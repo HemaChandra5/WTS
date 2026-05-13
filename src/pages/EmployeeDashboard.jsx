@@ -575,8 +575,8 @@ const EmployeeDashboard = () => {
     now.getHours() < 12
       ? 'Good morning'
       : now.getHours() < 18
-      ? 'Good afternoon'
-      : 'Good evening';
+        ? 'Good afternoon'
+        : 'Good evening';
 
   /* ── tabs config ──────────────────────────────────────────────────── */
   const topTabs = [
@@ -645,11 +645,10 @@ const EmployeeDashboard = () => {
                   key={tab.id}
                   type="button"
                   onClick={() => handleTopTabChange(tab.id)}
-                  className={`relative inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition-all ${
-                    active
+                  className={`relative inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition-all ${active
                       ? 'bg-indigo-600 text-white shadow-sm'
                       : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                  }`}
+                    }`}
                 >
                   <Icon className="h-4 w-4" />
                   {tab.label}
@@ -774,19 +773,19 @@ const EmployeeDashboard = () => {
                   typeFilter !== 'all' ||
                   sortBy !== 'newest' ||
                   selectedDate) && (
-                  <button
-                    onClick={() => {
-                      setSearch('');
-                      setTypeFilter('all');
-                      setSortBy('newest');
-                      setSelectedDate('');
-                    }}
-                    className="h-9 rounded-xl border border-rose-200 bg-rose-50 px-3 text-xs font-medium text-rose-600 hover:bg-rose-100 transition-colors"
-                    type="button"
-                  >
-                    Clear
-                  </button>
-                )}
+                    <button
+                      onClick={() => {
+                        setSearch('');
+                        setTypeFilter('all');
+                        setSortBy('newest');
+                        setSelectedDate('');
+                      }}
+                      className="h-9 rounded-xl border border-rose-200 bg-rose-50 px-3 text-xs font-medium text-rose-600 hover:bg-rose-100 transition-colors"
+                      type="button"
+                    >
+                      Clear
+                    </button>
+                  )}
               </div>
             </div>
 

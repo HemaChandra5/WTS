@@ -1,16 +1,15 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react()],
-  // IMPORTANT: repo name is exactly "FTS"
-  // App will be served from https://hemachandra5.github.io/FTS/
-  base: '/FTS/',
+  // In dev (npm run dev)  → base is '/'  so localhost:5173/ works directly
+  // In build (npm run build) → base is '/FTS/' for GitHub Pages
+  base: command === 'build' ? '/FTS/' : '/',
   build: {
-    // Build into /docs so GitHub Pages can use main/docs
     outDir: 'docs',
   },
   server: {
     port: 5173,
   },
-});
+}));

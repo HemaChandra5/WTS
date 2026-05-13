@@ -151,7 +151,7 @@ const AdminDashboard = () => {
   useEffect(() => { refreshEmployees(); }, [refreshEmployees]);
 
   const pendingEmployees = employees.filter((e) => !e.isApproved);
-  const activeEmployees  = employees.filter((e) =>  e.isApproved && e.isActive);
+  const activeEmployees = employees.filter((e) => e.isApproved && e.isActive);
   const inactiveEmployees = employees.filter((e) => e.isApproved && !e.isActive);
 
   const handleApprove = (id) => {
@@ -432,11 +432,10 @@ const AdminDashboard = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
-                active
+              className={`flex flex-shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${active
                   ? 'bg-white text-slate-900 shadow-md border border-slate-200'
                   : 'text-slate-500 hover:bg-white/60 hover:text-slate-700'
-              }`}
+                }`}
               type="button"
             >
               <Icon className="h-4 w-4" />
@@ -624,20 +623,20 @@ const AdminDashboard = () => {
                   range !== '30d' ||
                   sortBy !== 'newest' ||
                   statusFilter !== 'all') && (
-                  <button
-                    onClick={() => {
-                      setSearch('');
-                      setTypeFilter('all');
-                      setRange('30d');
-                      setSortBy('newest');
-                      setStatusFilter('all');
-                    }}
-                    className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-100 transition-colors"
-                    type="button"
-                  >
-                    Clear
-                  </button>
-                )}
+                    <button
+                      onClick={() => {
+                        setSearch('');
+                        setTypeFilter('all');
+                        setRange('30d');
+                        setSortBy('newest');
+                        setStatusFilter('all');
+                      }}
+                      className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-100 transition-colors"
+                      type="button"
+                    >
+                      Clear
+                    </button>
+                  )}
               </div>
             </div>
           </div>
@@ -683,9 +682,8 @@ const AdminDashboard = () => {
               >
                 {taskFormOpen ? 'Collapse' : 'New task'}
                 <ChevronDownIcon
-                  className={`h-3 w-3 transition-transform ${
-                    taskFormOpen ? 'rotate-180' : ''
-                  }`}
+                  className={`h-3 w-3 transition-transform ${taskFormOpen ? 'rotate-180' : ''
+                    }`}
                 />
               </button>
             </div>
