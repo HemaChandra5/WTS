@@ -1,1 +1,34 @@
-node_modules
+# ── Node / Frontend ──────────────────────────────────────────────────────
+node_modules/
+dist/
+docs/
+.env
+.env.local
+.env.production
+
+# ── Python / Backend ─────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+.eggs/
+build/
+*.sqlite3
+*.log
+staticfiles/
+media/
+
+# ── Django secrets ───────────────────────────────────────────────────────
+file-management-django-backend/.env
+
+# ── IDE / OS ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp

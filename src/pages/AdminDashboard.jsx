@@ -145,6 +145,7 @@ const AdminDashboard = () => {
 
   /* employee directory state */
   const [employees, setEmployees] = useState([]);
+  const [adminError, setAdminError] = useState('');
   const refreshEmployees = useCallback(() => {
     setEmployees(getAllEmployees ? getAllEmployees() : []);
   }, [getAllEmployees]);
@@ -155,7 +156,12 @@ const AdminDashboard = () => {
   const inactiveEmployees = employees.filter((e) => e.isApproved && !e.isActive);
 
   const handleApprove = (id) => {
-    approveEmployee(id);
+    const approved = approveEmployee(id);
+    if (!approved) {
+      setAdminError('Cannot approve accounts with non-company email addresses.');
+    } else {
+      setAdminError('');
+    }
     refreshEmployees();
   };
   const handleDeactivate = (id) => {
@@ -213,13 +219,19 @@ const AdminDashboard = () => {
     title: '',
     description: '',
     assignedToEmail: '',
+    adminFile: null,
   });
 
   /* Active section tab */
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'all' | 'tasks'
 
-  const handleTaskChange = (e) =>
-    setTaskForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleTaskChange = (e) => {
+    if (e.target.name === 'adminFile') {
+      setTaskForm((prev) => ({ ...prev, adminFile: e.target.files[0] }));
+    } else {
+      setTaskForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    }
+  };
 
   const handleTaskSubmit = (e) => {
     e.preventDefault();
@@ -229,8 +241,9 @@ const AdminDashboard = () => {
       description: taskForm.description.trim(),
       assignedToEmail: taskForm.assignedToEmail.trim(),
       assignedToName: taskForm.assignedToEmail.trim(),
+      adminFile: taskForm.adminFile,
     });
-    setTaskForm({ title: '', description: '', assignedToEmail: '' });
+    setTaskForm({ title: '', description: '', assignedToEmail: '', adminFile: null });
   };
 
   /* wrap updateFileStatus for optimistic UI */
@@ -737,6 +750,17 @@ const AdminDashboard = () => {
                       className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition"
                     />
                   </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                      Attach File (optional)
+                    </label>
+                    <input
+                      type="file"
+                      name="adminFile"
+                      onChange={handleTaskChange}
+                      className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs text-slate-600 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition"
+                    />
+                  </div>
                 </div>
                 <div className="flex justify-end">
                   <button
@@ -783,6 +807,19 @@ const AdminDashboard = () => {
                           <p className="truncate text-[11px] text-slate-500">
                             {t.assignedToEmail}
                           </p>
+                          {t.adminFile && (
+                            <div className="mt-1 flex items-center gap-1">
+                              <DocumentTextIcon className="h-3 w-3 text-indigo-500" />
+                              <a
+                                href={typeof t.adminFile === 'string' ? t.adminFile : URL.createObjectURL(t.adminFile)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[10px] font-medium text-indigo-600 hover:underline"
+                              >
+                                View attached file
+                              </a>
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
@@ -831,6 +868,12 @@ const AdminDashboard = () => {
                 {pendingEmployees.length} pending
               </span>
             </div>
+
+            {adminError && (
+              <div className="mx-6 mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {adminError}
+              </div>
+            )}
 
             <div className="px-6 py-5">
               {pendingEmployees.length === 0 ? (
