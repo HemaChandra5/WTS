@@ -9,7 +9,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name',
             'role', 'department', 'profile_picture',
-            'is_active', 'is_approved',
+            'is_active', 'is_approved', 'is_rejected',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
@@ -40,11 +40,11 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Only company emails (@sskatt.com) are allowed.")
         return normalized_email
 
-    def validate(self, data):
-        password2 = data.pop('password2', None)
-        if data['password'] != password2:
+    def validate(self, attrs):
+        password2 = attrs.pop('password2', None)
+        if attrs['password'] != password2:
             raise serializers.ValidationError({'password': 'Passwords do not match'})
-        return data
+        return attrs
 
     def create(self, validated_data):
         # New employees are immediately active and approved (can login right after signup)
@@ -87,11 +87,11 @@ class AdminRegistrationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Only company emails (@sskatt.com) are allowed.")
         return normalized_email
 
-    def validate(self, data):
-        password2 = data.pop('password2', None)
-        if data['password'] != password2:
+    def validate(self, attrs):
+        password2 = attrs.pop('password2', None)
+        if attrs['password'] != password2:
             raise serializers.ValidationError({'password': 'Passwords do not match'})
-        return data
+        return attrs
 
     def create(self, validated_data):
         # Admins are immediately active and approved

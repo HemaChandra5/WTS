@@ -1,19 +1,71 @@
-// src/context/AuthContext.jsx
- 
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-} from 'react';
- 
+
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+
 const AuthContext = createContext(null);
- 
-// ─────────────────────────────────────────────
-// AUTH PROVIDER
-// ─────────────────────────────────────────────
- 
+
+
+const DEMO_USERS = [
+  {
+    id: 'admin-1',
+    email: 'admin@sskatt.com',
+    password: 'admin@123',
+    name: 'Admin User',
+    role: 'admin',
+    department: 'IT',
+    isApproved: true,
+    isActive: true,
+    createdAt: '2024-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'emp-1',
+    email: 'john@sskatt.com',
+    password: 'john@123',
+    name: 'John Doe',
+    role: 'employee',
+    department: 'Engineering',
+    isApproved: true,
+    isActive: true,
+    createdAt: '2024-01-05T00:00:00.000Z',
+  },
+  {
+    id: 'emp-2',
+    email: 'sarah@sskatt.com',
+    password: 'sarah@123',
+    name: 'Sarah Wilson',
+    role: 'employee',
+    department: 'Marketing',
+    isApproved: true,
+    isActive: true,
+    createdAt: '2024-01-10T00:00:00.000Z',
+  },
+  {
+    id: 'emp-3',
+    email: 'mike@sskatt.com',
+    password: 'mike@123',
+    name: 'Mike Johnson',
+    role: 'employee',
+    department: 'Sales',
+    isApproved: true,
+    isActive: true,
+    createdAt: '2024-01-15T00:00:00.000Z',
+  },
+];
+
+// ─── Local-storage helpers ────────────────────────────────────────────────────
+const loadRegisteredUsers = () => {
+  try {
+    const stored = localStorage.getItem('registeredUsers');
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveRegisteredUsers = (users) => {
+  localStorage.setItem('registeredUsers', JSON.stringify(users));
+};
+
+// ─── Provider ─────────────────────────────────────────────────────────────────
 export const AuthProvider = ({ children }) => {
  
   const [user, setUser] = useState(null);
@@ -458,6 +510,46 @@ export const AuthProvider = ({ children }) => {
   // CONTEXT VALUE
   // ───────────────────────────────────────────
  
+
+
+
+
+  // ───────────────────────────────────────────
+  // REJECT EMPLOYEE
+  // ───────────────────────────────────────────
+
+  const rejectEmployee =
+    useCallback(async (userId) => {
+
+      try {
+
+        const token =
+          localStorage.getItem('token');
+
+        const response = await fetch(
+          `http://127.0.0.1:8000/api/user/${userId}/reject_user/`,
+          {
+            method: 'PATCH',
+
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
+
+        return response.ok;
+
+      } catch (error) {
+
+        console.error(error);
+
+        return false;
+      }
+
+    }, []);
+
+
   const value = {
  
     user,
@@ -484,6 +576,7 @@ export const AuthProvider = ({ children }) => {
     deactivateEmployee,
  
     reactivateEmployee,
+    rejectEmployee,
   };
  
   return (

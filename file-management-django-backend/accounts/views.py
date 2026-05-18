@@ -93,9 +93,11 @@ class UserViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
 
             try:
-
-                user_obj = CustomUser.objects.get(
-                    email=serializer.validated_data['email']
+                user_obj = CustomUser.objects.get(email=serializer.validated_data['email'])
+            except CustomUser.DoesNotExist:  # type: ignore
+                return Response(
+                    {'message': 'Invalid credentials'},
+                    status=status.HTTP_401_UNAUTHORIZED,
                 )
 
             except CustomUser.DoesNotExist:
@@ -167,7 +169,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
         user.is_approved = True
         user.is_active = True
-
+        user.is_rejected = False
         user.save()
 
         return Response(
@@ -180,15 +182,30 @@ class UserViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK,
         )
 
-    # ─────────────────────────────────────────
-    # DEACTIVATE USER
-    # ─────────────────────────────────────────
+    # ── Admin: reject a pending user ─────────────────────────────────────────
+    @action(detail=True, methods=['patch'], permission_classes=[IsAdminUser])
+    def reject_user(self, request, pk=None):
+        """Admin rejects a pending employee — sets is_rejected to True."""
+        user = self.get_object()
+        if user.role != 'employee':
+            return Response(
+                {'message': 'Only employee accounts can be rejected'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        user.is_approved = False
+        user.is_active = False
+        user.is_rejected = True
+        user.save()
+        return Response(
+            {
+                'message': f'User {user.username} ({user.email}) registration has been declined.',
+                'user': UserSerializer(user).data,
+            },
+            status=status.HTTP_200_OK,
+        )
 
-    @action(
-        detail=True,
-        methods=['patch'],
-        permission_classes=[IsAdminUser]
-    )
+    # ── Admin: deactivate a user ─────────────────────────────────────────────
+    @action(detail=True, methods=['patch'], permission_classes=[IsAdminUser])
     def deactivate_user(self, request, pk=None):
 
         user = self.get_object()
@@ -331,9 +348,7 @@ class AdminViewSet(viewsets.ModelViewSet):
                     email=serializer.validated_data['email'],
                     role='admin'
                 )
-
-            except CustomUser.DoesNotExist:
-
+            except CustomUser.DoesNotExist:  # type: ignore
                 return Response(
                     {
                         'message':
@@ -407,17 +422,9 @@ class AdminViewSet(viewsets.ModelViewSet):
         permission_classes=[IsAdminUser]
     )
     def pending_users(self, request):
-
-        users = CustomUser.objects.filter(
-            role='employee',
-            is_approved=False
-        ).order_by('-created_at')
-
-        serializer = UserSerializer(
-            users,
-            many=True
-        )
-
+        """Return employees awaiting admin approval."""
+        users = CustomUser.objects.filter(role='employee', is_approved=False, is_rejected=False).order_by('-created_at')
+        serializer = UserSerializer(users, many=True)
         return Response(serializer.data)
 
     # ─────────────────────────────────────────
