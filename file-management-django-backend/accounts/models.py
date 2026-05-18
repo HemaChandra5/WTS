@@ -10,11 +10,10 @@ class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='employee')
     department = models.CharField(max_length=255, default='General')
-    profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
-    # is_active=False blocks Django authentication; admins and approved users are True
+    profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)             
     is_active = models.BooleanField(default=False)
-    # is_approved tracks explicit admin approval; admins are pre-approved
     is_approved = models.BooleanField(default=False)
+    is_rejected = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
