@@ -1,258 +1,517 @@
 // src/context/AuthContext.jsx
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-
+ 
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from 'react';
+ 
 const AuthContext = createContext(null);
-
-// ─── Demo users (always approved) ────────────────────────────────────────────
-const DEMO_USERS = [
-  {
-    id: 'admin-1',
-    email: 'admin@company.com',
-    password: 'admin123',
-    name: 'Admin User',
-    role: 'admin',
-    department: 'IT',
-    isApproved: true,
-    isActive: true,
-    createdAt: '2024-01-01T00:00:00.000Z',
-  },
-  {
-    id: 'emp-1',
-    email: 'john@company.com',
-    password: 'john123',
-    name: 'John Doe',
-    role: 'employee',
-    department: 'Engineering',
-    isApproved: true,
-    isActive: true,
-    createdAt: '2024-01-05T00:00:00.000Z',
-  },
-  {
-    id: 'emp-2',
-    email: 'sarah@company.com',
-    password: 'sarah123',
-    name: 'Sarah Wilson',
-    role: 'employee',
-    department: 'Marketing',
-    isApproved: true,
-    isActive: true,
-    createdAt: '2024-01-10T00:00:00.000Z',
-  },
-  {
-    id: 'emp-3',
-    email: 'mike@company.com',
-    password: 'mike123',
-    name: 'Mike Johnson',
-    role: 'employee',
-    department: 'Sales',
-    isApproved: true,
-    isActive: true,
-    createdAt: '2024-01-15T00:00:00.000Z',
-  },
-];
-
-// ─── Local-storage helpers ────────────────────────────────────────────────────
-const loadRegisteredUsers = () => {
-  try {
-    const stored = localStorage.getItem('registeredUsers');
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
-};
-
-const saveRegisteredUsers = (users) => {
-  localStorage.setItem('registeredUsers', JSON.stringify(users));
-};
-
-// ─── Provider ─────────────────────────────────────────────────────────────────
+ 
+// ─────────────────────────────────────────────
+// AUTH PROVIDER
+// ─────────────────────────────────────────────
+ 
 export const AuthProvider = ({ children }) => {
+ 
   const [user, setUser] = useState(null);
+ 
   const [loading, setLoading] = useState(true);
-
+ 
+  // ───────────────────────────────────────────
+  // LOAD USER FROM LOCAL STORAGE
+  // ───────────────────────────────────────────
+ 
   useEffect(() => {
+ 
     const storedUser = localStorage.getItem('user');
+ 
     if (storedUser) {
+ 
       try {
+ 
         setUser(JSON.parse(storedUser));
+ 
       } catch {
+ 
         localStorage.removeItem('user');
       }
     }
+ 
     setLoading(false);
+ 
   }, []);
-
-  // ── login ──────────────────────────────────────────────────────────────────
-  const login = (email, password) => {
-    // Check demo users first
-    const demoUser = DEMO_USERS.find(
-      (u) => u.email === email && u.password === password
-    );
-    if (demoUser) {
-      const { password: _, ...safe } = demoUser;
-      setUser(safe);
-      localStorage.setItem('user', JSON.stringify(safe));
-      return { success: true, user: safe };
-    }
-
-    // Check registered users in localStorage
-    const registered = loadRegisteredUsers();
-    const found = registered.find(
-      (u) => u.email === email && u.password === password
-    );
-
-    if (found) {
-      // Account exists but not yet approved
-      if (!found.isApproved) {
+ 
+  // ───────────────────────────────────────────
+  // LOGIN
+  // ───────────────────────────────────────────
+ 
+  const login = async (email, password) => {
+ 
+    try {
+ 
+      // ── EMPLOYEE LOGIN ───────────────────
+ 
+      const employeeResponse = await fetch(
+        'http://127.0.0.1:8000/api/user/login/',
+        {
+          method: 'POST',
+ 
+          headers: {
+            'Content-Type': 'application/json',
+          },
+ 
+          body: JSON.stringify({
+            email,
+            password,
+          }),
+        }
+      );
+ 
+      const employeeData =
+        await employeeResponse.json();
+ 
+      if (employeeResponse.ok) {
+ 
+        const employeeUser =
+          employeeData.user;
+ 
+        setUser(employeeUser);
+ 
+        localStorage.setItem(
+          'user',
+          JSON.stringify(employeeUser)
+        );
+ 
+        localStorage.setItem(
+          'token',
+          employeeData.token
+        );
+ 
         return {
-          success: false,
-          pendingApproval: true,
-          error: 'Your account is pending admin approval. Please wait until an admin activates your account.',
+          success: true,
+          user: employeeUser,
         };
       }
-      // Account was deactivated by admin
-      if (!found.isActive) {
+ 
+      // ── ADMIN LOGIN ─────────────────────
+ 
+      const adminResponse = await fetch(
+        'http://127.0.0.1:8000/api/admin-auth/admin_login/',
+        {
+          method: 'POST',
+ 
+          headers: {
+            'Content-Type': 'application/json',
+          },
+ 
+          body: JSON.stringify({
+            email,
+            password,
+          }),
+        }
+      );
+ 
+      const adminData =
+        await adminResponse.json();
+ 
+      if (adminResponse.ok) {
+ 
+        const adminUser =
+          adminData.admin;
+ 
+        setUser(adminUser);
+ 
+        localStorage.setItem(
+          'user',
+          JSON.stringify(adminUser)
+        );
+ 
+        localStorage.setItem(
+          'token',
+          adminData.token
+        );
+ 
         return {
-          success: false,
-          error: 'Your account has been deactivated. Please contact your admin.',
+          success: true,
+          user: adminUser,
         };
       }
-
-      const { password: _, ...safe } = found;
-      setUser(safe);
-      localStorage.setItem('user', JSON.stringify(safe));
-      return { success: true, user: safe };
+ 
+      return {
+        success: false,
+        error:
+          employeeData.message ||
+          'Invalid credentials',
+      };
+ 
+    } catch (error) {
+ 
+      console.error(error);
+ 
+      return {
+        success: false,
+        error: 'Server error',
+      };
     }
-
-    return { success: false, error: 'Invalid email or password' };
   };
-
-  // ── signup ─────────────────────────────────────────────────────────────────
-  const signup = ({ email, password, name, department }) => {
-    if (!email || !password || !name) {
-      return { success: false, error: 'All fields are required' };
+ 
+  // ───────────────────────────────────────────
+  // SIGNUP
+  // ───────────────────────────────────────────
+ 
+  const signup = async ({
+    email,
+    password,
+    name,
+    department,
+  }) => {
+ 
+    try {
+ 
+      if (!email || !password || !name) {
+ 
+        return {
+          success: false,
+          error: 'All fields are required',
+        };
+      }
+ 
+      const normalizedEmail =
+        email.trim().toLowerCase();
+ 
+      if (
+        !normalizedEmail.endsWith('@sskatt.com')
+      ) {
+ 
+        return {
+          success: false,
+          error:
+            'Only company emails (@sskatt.com) are allowed.',
+        };
+      }
+ 
+      // Split name
+ 
+      const nameParts =
+        name.trim().split(' ');
+ 
+      const first_name =
+        nameParts[0];
+ 
+      const last_name =
+        nameParts.slice(1).join(' ') || '';
+ 
+      // Username from email
+ 
+      const username =
+        normalizedEmail.split('@')[0];
+ 
+      const response = await fetch(
+        'http://127.0.0.1:8000/api/user/register/',
+        {
+          method: 'POST',
+ 
+          headers: {
+            'Content-Type': 'application/json',
+          },
+ 
+          body: JSON.stringify({
+            email: normalizedEmail,
+            username,
+            first_name,
+            last_name,
+            password,
+            password2: password,
+            department:
+              department || 'General',
+          }),
+        }
+      );
+ 
+      const data =
+        await response.json();
+ 
+      if (response.ok) {
+ 
+        return {
+          success: true,
+          pendingApproval: false,
+          message:
+            'Registration successful. You can now login.',
+        };
+      }
+ 
+      return {
+        success: false,
+        error:
+          data.message ||
+          JSON.stringify(data),
+      };
+ 
+    } catch (error) {
+ 
+      console.error(error);
+ 
+      return {
+        success: false,
+        error: 'Server error',
+      };
     }
-
-    const normalizedEmail = email.trim().toLowerCase();
-    if (!normalizedEmail.endsWith('@sskatt.com')) {
-      return { success: false, error: 'Only company emails (@sskatt.com) are allowed.' };
-    }
-
-    // Duplicate check against demo users
-    if (DEMO_USERS.some((u) => u.email === normalizedEmail)) {
-      return { success: false, error: 'Email already in use' };
-    }
-
-    // Duplicate check against registered users
-    const registered = loadRegisteredUsers();
-    if (registered.some((u) => u.email === normalizedEmail)) {
-      return { success: false, error: 'Email already in use' };
-    }
-
-    // Create pending employee — NOT approved yet
-    const newUser = {
-      id: `emp-${Date.now()}`,
-      email: normalizedEmail,
-      password,
-      name,
-      role: 'employee',
-      department: department || 'General',
-      isApproved: false,   // must be approved by admin
-      isActive: false,
-      createdAt: new Date().toISOString(),
-    };
-
-    registered.push(newUser);
-    saveRegisteredUsers(registered);
-
-    // Do NOT log them in — return pending status
-    return { success: true, pendingApproval: true };
   };
-
-  // ── logout ─────────────────────────────────────────────────────────────────
+ 
+  // ───────────────────────────────────────────
+  // LOGOUT
+  // ───────────────────────────────────────────
+ 
   const logout = () => {
+ 
     setUser(null);
+ 
     localStorage.removeItem('user');
+ 
+    localStorage.removeItem('token');
   };
-
-  // ── Admin helpers ──────────────────────────────────────────────────────────
-
-  /** Returns all registered employees (demo + localStorage), any status. */
-  const getAllEmployees = useCallback(() => {
-    const demoEmployees = DEMO_USERS.filter((u) => u.role === 'employee').map(
-      ({ password: _, ...u }) => u
-    );
-    const localEmployees = loadRegisteredUsers().filter((u) => u.role === 'employee').map(
-      ({ password: _, ...u }) => u
-    );
-    return [...demoEmployees, ...localEmployees];
-  }, []);
-
-  /** Returns only employees still awaiting approval. */
-  const getPendingEmployees = useCallback(() =>
-    loadRegisteredUsers().filter((u) => u.role === 'employee' && !u.isApproved)
-  , []);
-
-  /** Admin approves a pending employee — sets isApproved + isActive. */
-  const approveEmployee = useCallback((userId) => {
-    const registered = loadRegisteredUsers();
-    const idx = registered.findIndex((u) => u.id === userId);
-    if (idx === -1) return false;
-
-    const userEmail = registered[idx].email?.trim().toLowerCase();
-    if (!userEmail?.endsWith('@sskatt.com')) {
-      return false;
-    }
-
-    registered[idx].isApproved = true;
-    registered[idx].isActive = true;
-    saveRegisteredUsers(registered);
-    return true;
-  }, []);
-
-  /** Admin deactivates an active employee. */
-  const deactivateEmployee = useCallback((userId) => {
-    const registered = loadRegisteredUsers();
-    const idx = registered.findIndex((u) => u.id === userId);
-    if (idx === -1) return false;
-    registered[idx].isActive = false;
-    registered[idx].isApproved = false;
-    saveRegisteredUsers(registered);
-    return true;
-  }, []);
-
-  /** Admin re-activates a deactivated employee. */
-  const reactivateEmployee = useCallback((userId) => {
-    const registered = loadRegisteredUsers();
-    const idx = registered.findIndex((u) => u.id === userId);
-    if (idx === -1) return false;
-    registered[idx].isActive = true;
-    registered[idx].isApproved = true;
-    saveRegisteredUsers(registered);
-    return true;
-  }, []);
-
+ 
+  // ───────────────────────────────────────────
+  // GET ALL EMPLOYEES
+  // ───────────────────────────────────────────
+ 
+  const getAllEmployees =
+    useCallback(async () => {
+ 
+      try {
+ 
+        const token =
+          localStorage.getItem('token');
+ 
+        const response = await fetch(
+          'http://127.0.0.1:8000/api/admin-auth/all_users/',
+          {
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
+ 
+        if (!response.ok) {
+          return [];
+        }
+ 
+        return await response.json();
+ 
+      } catch (error) {
+ 
+        console.error(error);
+ 
+        return [];
+      }
+ 
+    }, []);
+ 
+  // ───────────────────────────────────────────
+  // GET PENDING EMPLOYEES
+  // ───────────────────────────────────────────
+ 
+  const getPendingEmployees =
+    useCallback(async () => {
+ 
+      try {
+ 
+        const token =
+          localStorage.getItem('token');
+ 
+        const response = await fetch(
+          'http://127.0.0.1:8000/api/admin-auth/pending_users/',
+          {
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
+ 
+        if (!response.ok) {
+          return [];
+        }
+ 
+        return await response.json();
+ 
+      } catch (error) {
+ 
+        console.error(error);
+ 
+        return [];
+      }
+ 
+    }, []);
+ 
+  // ───────────────────────────────────────────
+  // APPROVE EMPLOYEE
+  // ───────────────────────────────────────────
+ 
+  const approveEmployee =
+    useCallback(async (userId) => {
+ 
+      try {
+ 
+        const token =
+          localStorage.getItem('token');
+ 
+        const response = await fetch(
+          `http://127.0.0.1:8000/api/user/${userId}/approve_user/`,
+          {
+            method: 'PATCH',
+ 
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
+ 
+        return response.ok;
+ 
+      } catch (error) {
+ 
+        console.error(error);
+ 
+        return false;
+      }
+ 
+    }, []);
+ 
+  // ───────────────────────────────────────────
+  // DEACTIVATE EMPLOYEE
+  // ───────────────────────────────────────────
+ 
+  const deactivateEmployee =
+    useCallback(async (userId) => {
+ 
+      try {
+ 
+        const token =
+          localStorage.getItem('token');
+ 
+        const response = await fetch(
+          `http://127.0.0.1:8000/api/user/${userId}/deactivate_user/`,
+          {
+            method: 'PATCH',
+ 
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
+ 
+        return response.ok;
+ 
+      } catch (error) {
+ 
+        console.error(error);
+ 
+        return false;
+      }
+ 
+    }, []);
+ 
+  // ───────────────────────────────────────────
+  // REACTIVATE EMPLOYEE
+  // ───────────────────────────────────────────
+ 
+  const reactivateEmployee =
+    useCallback(async (userId) => {
+ 
+      try {
+ 
+        const token =
+          localStorage.getItem('token');
+ 
+        const response = await fetch(
+          `http://127.0.0.1:8000/api/user/${userId}/activate_user/`,
+          {
+            method: 'PATCH',
+ 
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
+ 
+        return response.ok;
+ 
+      } catch (error) {
+ 
+        console.error(error);
+ 
+        return false;
+      }
+ 
+    }, []);
+ 
+  // ───────────────────────────────────────────
+  // CONTEXT VALUE
+  // ───────────────────────────────────────────
+ 
   const value = {
+ 
     user,
+ 
     login,
+ 
     signup,
+ 
     logout,
+ 
     loading,
+ 
     isAuthenticated: !!user,
-    isAdmin: user?.role === 'admin',
-    // employee management
+ 
+    isAdmin:
+      user?.role === 'admin',
+ 
     getAllEmployees,
+ 
     getPendingEmployees,
+ 
     approveEmployee,
+ 
     deactivateEmployee,
+ 
     reactivateEmployee,
   };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+ 
+  return (
+ 
+    <AuthContext.Provider value={value}>
+ 
+      {children}
+ 
+    </AuthContext.Provider>
+  );
 };
-
+ 
+// ─────────────────────────────────────────────
+// USE AUTH HOOK
+// ─────────────────────────────────────────────
+ 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within AuthProvider');
+ 
+  const context =
+    useContext(AuthContext);
+ 
+  if (!context) {
+ 
+    throw new Error(
+      'useAuth must be used within AuthProvider'
+    );
+  }
+ 
   return context;
 };
+ 

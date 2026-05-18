@@ -47,7 +47,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        # New employees start inactive and unapproved — admin must approve them
+        # New employees are immediately active and approved (can login right after signup)
         user = CustomUser.objects.create_user(  # type: ignore[call-arg]
             username=validated_data['username'],
             email=validated_data['email'],
@@ -56,8 +56,8 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             password=validated_data['password'],
             role='employee',
             department=validated_data.get('department', 'General'),
-            is_active=False,
-            is_approved=False,
+            is_active=True,
+            is_approved=True,
         )
         return user
 

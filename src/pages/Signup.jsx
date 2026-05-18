@@ -30,6 +30,7 @@ const Signup = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false); // shows success/pending banner
+  const [isPending, setIsPending] = useState(true);
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -72,7 +73,7 @@ const Signup = () => {
       return;
     }
 
-    const result = signup({
+    const result = await signup({
       email: formData.email,
       password: formData.password,
       name: formData.name,
@@ -81,9 +82,10 @@ const Signup = () => {
 
     setLoading(false);
 
-    if (result.success && result.pendingApproval) {
-      setSubmitted(true); // show pending-approval screen
-    } else if (!result.success) {
+    if (result.success) {
+      setIsPending(!!result.pendingApproval);
+      setSubmitted(true);
+    } else {
       setError(result.error);
     }
   };
@@ -93,37 +95,53 @@ const Signup = () => {
     'Testing', 'Data Analyst',
   ];
 
-  // ── Pending-approval success screen ────────────────────────────────────────
+  // ── Registration success screen ───────────────────────────────────────────
   if (submitted) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-amber-50 to-orange-50 p-4">
+      <div className={`flex min-h-screen items-center justify-center p-4 bg-gradient-to-br ${isPending ? 'from-slate-50 via-amber-50 to-orange-50' : 'from-slate-50 via-emerald-50 to-teal-50'}`}>
         <div className="w-full max-w-md text-center">
           {/* Icon */}
           <div className="mb-6 flex justify-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-100 shadow-lg ring-8 ring-amber-50">
-              <ClockIcon className="h-10 w-10 text-amber-600" />
-            </div>
+            {isPending ? (
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-100 shadow-lg ring-8 ring-amber-50">
+                <ClockIcon className="h-10 w-10 text-amber-600" />
+              </div>
+            ) : (
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 shadow-lg ring-8 ring-emerald-50">
+                <CheckCircleIcon className="h-10 w-10 text-emerald-600" />
+              </div>
+            )}
           </div>
 
-          <h1 className="text-2xl font-extrabold text-slate-900">Account Submitted!</h1>
+          <h1 className="text-2xl font-extrabold text-slate-900">
+            {isPending ? 'Account Submitted!' : 'Registration Successful!'}
+          </h1>
           <p className="mt-3 text-sm text-slate-500 leading-relaxed">
-            Your registration is complete. An admin will review and approve your
-            account shortly. You'll be able to log in once approved.
+            {isPending
+              ? "Your registration is complete. An admin will review and approve your account shortly. You'll be able to log in once approved."
+              : "Your registration is complete! You can log in to your account immediately with your email and password."}
           </p>
 
           {/* Info box */}
-          <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-left">
-            <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 mb-3">
-              What happens next?
+          <div className={`mt-6 rounded-2xl border p-5 text-left ${isPending ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'}`}>
+            <p className={`text-xs font-semibold uppercase tracking-wide mb-3 ${isPending ? 'text-amber-700' : 'text-emerald-700'}`}>
+              {isPending ? 'What happens next?' : 'Quick Steps'}
             </p>
             <ul className="space-y-2">
-              {[
-                'Admin receives your registration request',
-                'Admin reviews and approves your account',
-                'You can then log in with your email & password',
-              ].map((step, i) => (
-                <li key={i} className="flex items-start gap-2.5 text-sm text-amber-800">
-                  <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-amber-200 text-[10px] font-bold text-amber-700">
+              {(isPending
+                ? [
+                    'Admin receives your registration request',
+                    'Admin reviews and approves your account',
+                    'You can then log in with your email & password',
+                  ]
+                : [
+                    'Your employee account is immediately active',
+                    'Click the button below to go to the login page',
+                    'Use your company email and password to sign in',
+                  ]
+              ).map((step, i) => (
+                <li key={i} className={`flex items-start gap-2.5 text-sm ${isPending ? 'text-amber-800' : 'text-emerald-800'}`}>
+                  <span className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${isPending ? 'bg-amber-200 text-amber-700' : 'bg-emerald-200 text-emerald-700'}`}>
                     {i + 1}
                   </span>
                   {step}

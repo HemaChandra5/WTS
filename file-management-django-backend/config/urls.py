@@ -1,16 +1,25 @@
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from accounts.views import UserViewSet
+ 
+from accounts.views import UserViewSet, AdminViewSet
 from files.views import FileViewSet
 from tasks.views import TaskViewSet
-
+ 
 router = DefaultRouter()
-router.register(r'auth', UserViewSet, basename='user')
+ 
+# Authentication
+router.register(r'user', UserViewSet, basename='user')
+router.register(r'admin-auth', AdminViewSet, basename='admin-auth')
+ 
+# Files
 router.register(r'files', FileViewSet, basename='file')
+ 
+# Tasks
 router.register(r'tasks', TaskViewSet, basename='task')
-
+ 
 urlpatterns = [
     path('admin/', admin.site.urls),
+ 
     path('api/', include(router.urls)),
 ]
