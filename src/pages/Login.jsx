@@ -77,11 +77,30 @@ const Login = () => {
             </div>
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900">
-            Welcome Back
+            Welcome To sskatt!
           </h1>
           <p className="mt-2 text-sm text-slate-600">
             Sign in to access your dashboard
           </p>
+
+          <div className="mt-6 flex justify-center gap-4">
+            <button
+              type="button"
+              onClick={() => quickLogin('admin@sskatt.com', 'admin@123')}
+              className="flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-5 py-2.5 text-sm font-semibold text-violet-700 hover:bg-violet-100 transition-colors shadow-sm"
+            >
+              <ShieldCheckIcon className="h-5 w-5" />
+              Admin
+            </button>
+            <button
+              type="button"
+              onClick={() => quickLogin('john@sskatt.com', 'john@123')}
+              className="flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors shadow-sm"
+            >
+              <UserCircleIcon className="h-5 w-5" />
+              Employee
+            </button>
+          </div>
         </div>
 
         {/* Main Card */}
@@ -179,45 +198,7 @@ const Login = () => {
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="my-6 flex items-center gap-3">
-            <div className="h-px flex-1 bg-slate-200" />
-            <span className="text-xs font-medium text-slate-400">
-              Demo Accounts
-            </span>
-            <div className="h-px flex-1 bg-slate-200" />
-          </div>
 
-          {/* Quick Login Buttons */}
-          <div className="space-y-2">
-            <button
-              type="button"
-              onClick={() => quickLogin('admin@company.com', 'admin123')}
-              className="flex w-full items-center justify-between rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-semibold text-violet-700 hover:bg-violet-100 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <ShieldCheckIcon className="h-4 w-4" />
-                <span>Login as Admin</span>
-              </div>
-              <span className="text-xs text-violet-500">
-                admin@company.com
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => quickLogin('john@company.com', 'john123')}
-              className="flex w-full items-center justify-between rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <UserCircleIcon className="h-4 w-4" />
-                <span>Login as Employee</span>
-              </div>
-              <span className="text-xs text-indigo-500">
-                john@company.com
-              </span>
-            </button>
-          </div>
 
           {/* Footer */}
           <div className="mt-6 text-center">
@@ -238,9 +219,9 @@ const Login = () => {
           <p className="text-center text-xs text-slate-500">
             <strong>Demo credentials:</strong>
             <br />
-            Admin: admin@company.com / admin123
+            Admin: admin@sskatt.com / admin@123
             <br />
-            Employee: john@company.com / john123
+            Employee: john@sskatt.com / john@123
           </p>
         </div>
       </div>

@@ -7,8 +7,8 @@ const AuthContext = createContext(null);
 const DEMO_USERS = [
   {
     id: 'admin-1',
-    email: 'admin@company.com',
-    password: 'admin123',
+    email: 'admin@sskatt.com',
+    password: 'admin@123',
     name: 'Admin User',
     role: 'admin',
     department: 'IT',
@@ -18,8 +18,8 @@ const DEMO_USERS = [
   },
   {
     id: 'emp-1',
-    email: 'john@company.com',
-    password: 'john123',
+    email: 'john@sskatt.com',
+    password: 'john@123',
     name: 'John Doe',
     role: 'employee',
     department: 'Engineering',
@@ -29,8 +29,8 @@ const DEMO_USERS = [
   },
   {
     id: 'emp-2',
-    email: 'sarah@company.com',
-    password: 'sarah123',
+    email: 'sarah@sskatt.com',
+    password: 'sarah@123',
     name: 'Sarah Wilson',
     role: 'employee',
     department: 'Marketing',
@@ -40,8 +40,8 @@ const DEMO_USERS = [
   },
   {
     id: 'emp-3',
-    email: 'mike@company.com',
-    password: 'mike123',
+    email: 'mike@sskatt.com',
+    password: 'mike@123',
     name: 'Mike Johnson',
     role: 'employee',
     department: 'Sales',
