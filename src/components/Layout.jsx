@@ -18,7 +18,7 @@ const Layout = ({ children }) => {
           <div className="flex h-16 items-center justify-between">
             {/* Left - Logo & Role */}
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-800 shadow-sm">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-800 shadow-sm">
                 {isAdmin ? (
                   <ShieldCheckIcon className="h-5 w-5 text-white" />
                 ) : (
@@ -26,10 +26,10 @@ const Layout = ({ children }) => {
                 )}
               </div>
               <div>
-                <h1 className="text-sm font-bold text-slate-900">
-                  File Management System
+                <h1 className="text-base font-bold text-slate-900">
+                  Work Tracking System
                 </h1>
-                <p className="text-xs text-slate-500">
+                <p className="text-sm text-slate-500">
                   {isAdmin ? 'Admin Dashboard' : 'Employee Portal'}
                 </p>
               </div>

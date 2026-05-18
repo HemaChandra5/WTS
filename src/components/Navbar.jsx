@@ -34,13 +34,13 @@ const Navbar = () => {
           <img
             src={companyLogo}
             alt="sskatt logo"
-            className="h-12 w-12 object-contain"
+            className="h-14 w-14 object-contain"
           />
 
           <div className="flex flex-col leading-tight">
             {/* Company name: purple → pink gradient, slightly less bold */}
             <span
-              className="text-2xl font-bold tracking-tight"
+              className="text-3xl font-bold tracking-tight"
               style={{
                 background:
                   'linear-gradient(90deg, #7c3aed 0%, #ec4899 100%)', // purple -> pink
@@ -51,8 +51,8 @@ const Navbar = () => {
             >
               ssKatt
             </span>
-            <span className="mt-0.5 text-xs font-medium text-slate-500">
-              Files Management Tracking
+            <span className="mt-0.5 text-sm font-medium text-slate-500">
+              Work Tracking System
             </span>
           </div>
         </Link>

@@ -263,6 +263,7 @@ const TaskRow = ({ task, onStatusChange }) => {
                 href={typeof task.adminFile === 'string' ? task.adminFile : URL.createObjectURL(task.adminFile)}
                 target="_blank"
                 rel="noopener noreferrer"
+                download={typeof task.adminFile === 'string' ? '' : task.adminFile.name}
                 className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 hover:underline flex items-center gap-1"
               >
                 Download Admin File
@@ -659,8 +660,8 @@ const EmployeeDashboard = () => {
                   type="button"
                   onClick={() => handleTopTabChange(tab.id)}
                   className={`relative inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition-all ${active
-                      ? 'bg-indigo-600 text-white shadow-sm'
-                      : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                     }`}
                 >
                   <Icon className="h-4 w-4" />

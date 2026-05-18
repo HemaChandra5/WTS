@@ -384,12 +384,11 @@ const AdminDashboard = () => {
               <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
               Admin workspace
             </span>
-            <h1 className="mt-3 text-2xl font-bold text-white md:text-3xl">
-              Employee File Overview
+            <h1 className="text-2xl font-bold text-white md:text-3xl">
+              Work Tracking Overview
             </h1>
             <p className="max-w-md text-sm text-slate-400 leading-relaxed">
-              Review uploads, approve or reject documents, assign tasks, and
-              audit files across the organisation.
+              Monitor progress, review submissions, assign tasks, and manage work across the organization.
             </p>
             <div className="mt-3 flex items-center gap-2">
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-500/30 text-xs font-bold text-indigo-200">
@@ -457,8 +456,8 @@ const AdminDashboard = () => {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex flex-shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${active
-                  ? 'bg-white text-slate-900 shadow-md border border-slate-200'
-                  : 'text-slate-500 hover:bg-white/60 hover:text-slate-700'
+                ? 'bg-white text-slate-900 shadow-md border border-slate-200'
+                : 'text-slate-500 hover:bg-white/60 hover:text-slate-700'
                 }`}
               type="button"
             >
@@ -486,7 +485,7 @@ const AdminDashboard = () => {
               </div>
               <div>
                 <h2 className="text-sm font-bold text-slate-900">
-                  Files needing review
+                  Submissions needing review
                 </h2>
                 <p className="text-[11px] text-slate-500">
                   Approve, reject, or mark files under review
@@ -574,7 +573,7 @@ const AdminDashboard = () => {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-800">
-                    Filter employee files
+                    Filter submissions
                   </p>
                   <p className="text-[11px] text-slate-400">
                     {filteredFiles.length} file
@@ -825,9 +824,10 @@ const AdminDashboard = () => {
                                 href={typeof t.adminFile === 'string' ? t.adminFile : URL.createObjectURL(t.adminFile)}
                                 target="_blank"
                                 rel="noopener noreferrer"
+                                download={typeof t.adminFile === 'string' ? '' : t.adminFile.name}
                                 className="text-[10px] font-medium text-indigo-600 hover:underline"
                               >
-                                View attached file
+                                Download attached file
                               </a>
                             </div>
                           )}

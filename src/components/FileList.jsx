@@ -24,14 +24,14 @@ const getFriendlyFileType = (mimeType = '', fileName = '') => {
   if (name.endsWith('.csv')) return 'CSV File';
   if (name.endsWith('.json')) return 'JSON File';
   if (type.includes('zip') || name.match(/\.(zip|rar|7z)$/)) return 'Archive';
-  
+
   return 'Generic File';
 };
 
 const getFileIcon = (mimeType = '', fileName = '') => {
   const type = mimeType.toLowerCase();
   const name = fileName.toLowerCase();
-  
+
   if (type.includes('pdf') || name.endsWith('.pdf')) {
     return (
       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50">
@@ -42,7 +42,7 @@ const getFileIcon = (mimeType = '', fileName = '') => {
       </div>
     );
   }
-  
+
   if (type.includes('word') || name.match(/\.(doc|docx)$/)) {
     return (
       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50">
@@ -52,7 +52,7 @@ const getFileIcon = (mimeType = '', fileName = '') => {
       </div>
     );
   }
-  
+
   if (type.includes('sheet') || name.match(/\.(xls|xlsx)$/)) {
     return (
       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-50">
@@ -62,7 +62,7 @@ const getFileIcon = (mimeType = '', fileName = '') => {
       </div>
     );
   }
-  
+
   if (type.includes('presentation') || name.match(/\.(ppt|pptx)$/)) {
     return (
       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-50">
@@ -72,7 +72,7 @@ const getFileIcon = (mimeType = '', fileName = '') => {
       </div>
     );
   }
-  
+
   if (type.includes('image')) {
     return (
       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-50">
@@ -82,7 +82,7 @@ const getFileIcon = (mimeType = '', fileName = '') => {
       </div>
     );
   }
-  
+
   return (
     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
       <DocumentTextIcon className="h-5 w-5 text-slate-500" />
@@ -170,31 +170,31 @@ const FileList = ({
           {files.map((file) => {
             const fileDate = file.createdAt
               ? new Date(file.createdAt).toLocaleDateString('en-US', {
-                  month: 'numeric',
-                  day: 'numeric',
-                  year: 'numeric',
-                })
+                month: 'numeric',
+                day: 'numeric',
+                year: 'numeric',
+              })
               : '—';
 
             const fileTime = file.createdAt
               ? new Date(file.createdAt).toLocaleTimeString('en-US', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: true,
-                })
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+              })
               : '—';
 
             const fileSize = file.size
               ? (() => {
-                  const sizes = ['B', 'KB', 'MB', 'GB'];
-                  let sizeIndex = 0;
-                  let sizeValue = file.size;
-                  while (sizeValue >= 1024 && sizeIndex < sizes.length - 1) {
-                    sizeValue /= 1024;
-                    sizeIndex++;
-                  }
-                  return `${sizeValue.toFixed(1)} ${sizes[sizeIndex]}`;
-                })()
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                let sizeIndex = 0;
+                let sizeValue = file.size;
+                while (sizeValue >= 1024 && sizeIndex < sizes.length - 1) {
+                  sizeValue /= 1024;
+                  sizeIndex++;
+                }
+                return `${sizeValue.toFixed(1)} ${sizes[sizeIndex]}`;
+              })()
               : '—';
 
             return (
@@ -356,7 +356,7 @@ const FileList = ({
                     )}
 
                     {/* More Actions Dropdown */}
-                    <button 
+                    <button
                       className="flex items-center justify-center h-8 w-8 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 transition-all"
                       title="More options"
                     >
