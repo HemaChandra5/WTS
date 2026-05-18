@@ -134,6 +134,7 @@ const AdminDashboard = () => {
     approveEmployee,
     deactivateEmployee,
     reactivateEmployee,
+    rejectEmployee,
   } = useAuth();
   const { files, updateFileStatus } = useFiles();
   const { tasks, addTask, updateTaskStatus } = useTasks();
@@ -172,6 +173,12 @@ const AdminDashboard = () => {
   const handleReactivate = (id) => {
     reactivateEmployee(id);
     refreshEmployees();
+  };
+  const handleReject = (id) => {
+    if (window.confirm('Are you sure you want to decline this registration?')) {
+      rejectEmployee(id);
+      refreshEmployees();
+    }
   };
 
   /* WebSocket: real-time file updates */
@@ -916,6 +923,14 @@ const AdminDashboard = () => {
                         <span className="rounded-full border border-amber-200 bg-amber-100 px-2.5 py-0.5 text-[10px] font-semibold text-amber-700">
                           Pending
                         </span>
+                        <button
+                          onClick={() => handleReject(emp.id)}
+                          className="flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-[11px] font-semibold text-rose-600 hover:bg-rose-100 active:scale-95 transition-all"
+                          type="button"
+                        >
+                          <NoSymbolIcon className="h-3.5 w-3.5" />
+                          Decline
+                        </button>
                         <button
                           onClick={() => handleApprove(emp.id)}
                           className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-700 active:scale-95 transition-all"

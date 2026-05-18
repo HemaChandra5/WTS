@@ -4,12 +4,17 @@
     {
       "src": "file-management-django-backend/config/wsgi.py",
       "use": "@vercel/python",
-      "config": { "maxLambdaSize": "15mb", "runtime": "python3.13" }
+      "config": {
+        "maxLambdaSize": "15mb",
+        "runtime": "python3.13"
+      }
     },
     {
       "src": "package.json",
       "use": "@vercel/static-build",
-      "config": { "distDir": "docs" }
+      "config": {
+        "distDir": "dist"
+      }
     }
   ],
   "routes": [
@@ -18,8 +23,11 @@
       "dest": "file-management-django-backend/config/wsgi.py"
     },
     {
+      "handle": "filesystem"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/$1"
+      "dest": "/index.html"
     }
   ]
 }
