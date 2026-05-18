@@ -4,15 +4,21 @@ from accounts.models import CustomUser
 
 
 class UserSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+
     class Meta:
         model = CustomUser
         fields = [
-            'id', 'username', 'email', 'first_name', 'last_name',
+            'id', 'username', 'email', 'first_name', 'last_name', 'name',
             'role', 'department', 'profile_picture',
             'is_active', 'is_approved', 'is_rejected',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_name(self, obj):
+        full_name = f"{obj.first_name} {obj.last_name}".strip()
+        return full_name if full_name else obj.username
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -56,8 +62,8 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             password=validated_data['password'],
             role='employee',
             department=validated_data.get('department', 'General'),
-            is_active=True,
-            is_approved=True,
+            is_active=False,
+            is_approved=False,
         )
         return user
 

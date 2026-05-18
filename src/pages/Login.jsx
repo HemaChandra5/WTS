@@ -236,40 +236,7 @@ const Login = () => {
         <div className="h-px flex-1 bg-slate-100" />
       </div>
 
-      {/* Quick Login Buttons */}
-      <div className="grid grid-cols-2 gap-3">
-        <button
-          type="button"
-          onClick={() => quickLogin('admin@sskatt.com', 'admin@123')}
-          className="group flex flex-col items-start gap-1.5 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3.5 text-left transition-all hover:border-amber-300 hover:bg-amber-100 hover:shadow-md hover:shadow-amber-100 active:scale-[0.97]"
-        >
-          <div className="flex items-center gap-1.5">
-            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-200 group-hover:bg-amber-300 transition-colors">
-              <ShieldCheckIcon className="h-3.5 w-3.5 text-amber-700" />
-            </div>
-            <span className="text-xs font-bold text-amber-800">Admin</span>
-          </div>
-          <span className="text-[10px] font-medium text-amber-600 leading-tight">
-            admin@sskatt.com
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => quickLogin('john@sskatt.com', 'john@123')}
-          className="group flex flex-col items-start gap-1.5 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3.5 text-left transition-all hover:border-sky-300 hover:bg-sky-100 hover:shadow-md hover:shadow-sky-100 active:scale-[0.97]"
-        >
-          <div className="flex items-center gap-1.5">
-            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-sky-200 group-hover:bg-sky-300 transition-colors">
-              <UserCircleIcon className="h-3.5 w-3.5 text-sky-700" />
-            </div>
-            <span className="text-xs font-bold text-sky-800">Employee</span>
-          </div>
-          <span className="text-[10px] font-medium text-sky-500 leading-tight">
-            john@sskatt.com
-          </span>
-        </button>
-      </div>
+     
 
       {/* Footer */}
       <div className="mt-6 text-center">
@@ -285,16 +252,7 @@ const Login = () => {
       </div>
     </div>
 
-    {/* Bottom credential note */}
-    <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-4">
-      <p className="text-center text-[11px] text-slate-400 leading-relaxed">
-        <span className="font-semibold text-slate-500">Demo credentials</span>
-        <br />
-        Admin: admin@sskatt.com / admin@123
-        <br />
-        Employee: john@sskatt.com / john@123
-      </p>
-    </div>
+  
   </div>
       </div >
     </div >
