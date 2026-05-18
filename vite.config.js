@@ -3,11 +3,5 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ command }) => ({
   plugins: [react()],
-  base: command === 'build' ? '/FMS/' : '/',  // IMPORTANT: repo name
-  build: {
-    outDir: 'docs',                          // IMPORTANT: docs
-  },
-  server: {
-    port: 5173,
-  },
+  base:'/',
 }));
