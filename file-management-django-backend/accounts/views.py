@@ -6,29 +6,36 @@ from rest_framework.permissions import (
     IsAuthenticated,
     IsAdminUser
 )
+
 from django.contrib.auth import authenticate
 
 from accounts.models import CustomUser
+
 from accounts.serializers import (
     UserSerializer,
     UserRegistrationSerializer,
     AdminRegistrationSerializer,
     UserLoginSerializer
 )
+
 from accounts.utils import create_jwt_token
 
 
-# ─────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────
 # USER VIEWSET
-# ─────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────
 
 class UserViewSet(viewsets.ModelViewSet):
 
     serializer_class = UserSerializer
+
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return CustomUser.objects.filter(role='employee')
+
+        return CustomUser.objects.filter(
+            role='employee'
+        )
 
     # ─────────────────────────────────────────
     # REGISTER EMPLOYEE
@@ -50,22 +57,38 @@ class UserViewSet(viewsets.ModelViewSet):
 
         if serializer.is_valid():
 
-            user = serializer.save()
+            try:
 
-            print("USER CREATED SUCCESSFULLY")
-            print(user.email)
+                user = serializer.save()
 
-            return Response(
-                {
-                    'message': (
-                        'Registration successful! '
-                        'You can now login.'
-                    ),
-                    'status': 'success',
-                    'user': UserSerializer(user).data,
-                },
-                status=status.HTTP_201_CREATED,
-            )
+                print("USER CREATED SUCCESSFULLY")
+                print(user.email)
+
+                return Response(
+                    {
+                        'message':
+                        'Registration successful',
+
+                        'status':
+                        'success',
+
+                        'user':
+                        UserSerializer(user).data,
+                    },
+                    status=status.HTTP_201_CREATED,
+                )
+
+            except Exception as e:
+
+                print("SAVE ERROR:")
+                print(str(e))
+
+                return Response(
+                    {
+                        'error': str(e)
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
 
         print("SERIALIZER ERRORS:")
         print(serializer.errors)
@@ -93,20 +116,31 @@ class UserViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
 
             try:
-                user_obj = CustomUser.objects.get(email=serializer.validated_data['email'])
-            except CustomUser.DoesNotExist:  # type: ignore
-                return Response(
-                    {'message': 'Invalid credentials'},
-                    status=status.HTTP_401_UNAUTHORIZED,
+
+                user_obj = CustomUser.objects.get(
+                    email=serializer.validated_data['email']
                 )
 
             except CustomUser.DoesNotExist:
 
                 return Response(
                     {
-                        'message': 'Invalid credentials'
+                        'message':
+                        'Invalid credentials'
                     },
                     status=status.HTTP_401_UNAUTHORIZED,
+                )
+
+            # pending approval
+
+            if not user_obj.is_approved:
+
+                return Response(
+                    {
+                        'message':
+                        'Account pending admin approval'
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
                 )
 
             user = authenticate(
@@ -120,16 +154,22 @@ class UserViewSet(viewsets.ModelViewSet):
 
                 return Response(
                     {
-                        'message': 'Login successful',
-                        'token': token,
-                        'user': UserSerializer(user).data,
+                        'message':
+                        'Login successful',
+
+                        'token':
+                        token,
+
+                        'user':
+                        UserSerializer(user).data,
                     },
                     status=status.HTTP_200_OK,
                 )
 
             return Response(
                 {
-                    'message': 'Invalid credentials'
+                    'message':
+                    'Invalid credentials'
                 },
                 status=status.HTTP_401_UNAUTHORIZED,
             )
@@ -168,58 +208,45 @@ class UserViewSet(viewsets.ModelViewSet):
         user = self.get_object()
 
         user.is_approved = True
+
         user.is_active = True
-        user.is_rejected = False
+
         user.save()
 
         return Response(
             {
-                'message': (
-                    f'User {user.username} approved'
-                ),
-                'user': UserSerializer(user).data,
+                'message':
+                f'User {user.username} approved',
+
+                'user':
+                UserSerializer(user).data,
             },
             status=status.HTTP_200_OK,
         )
 
-    # ── Admin: reject a pending user ─────────────────────────────────────────
-    @action(detail=True, methods=['patch'], permission_classes=[IsAdminUser])
-    def reject_user(self, request, pk=None):
-        """Admin rejects a pending employee — sets is_rejected to True."""
-        user = self.get_object()
-        if user.role != 'employee':
-            return Response(
-                {'message': 'Only employee accounts can be rejected'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        user.is_approved = False
-        user.is_active = False
-        user.is_rejected = True
-        user.save()
-        return Response(
-            {
-                'message': f'User {user.username} ({user.email}) registration has been declined.',
-                'user': UserSerializer(user).data,
-            },
-            status=status.HTTP_200_OK,
-        )
+    # ─────────────────────────────────────────
+    # DEACTIVATE USER
+    # ─────────────────────────────────────────
 
-    # ── Admin: deactivate a user ─────────────────────────────────────────────
-    @action(detail=True, methods=['patch'], permission_classes=[IsAdminUser])
+    @action(
+        detail=True,
+        methods=['patch'],
+        permission_classes=[IsAdminUser]
+    )
     def deactivate_user(self, request, pk=None):
 
         user = self.get_object()
 
         user.is_active = False
-        user.is_approved = False
 
+        # Keep the user approved so deactivated employees remain in the deactivated list,
+        # not in the pending approvals list.
         user.save()
 
         return Response(
             {
-                'message': (
-                    f'User {user.username} deactivated'
-                )
+                'message':
+                f'User {user.username} deactivated'
             },
             status=status.HTTP_200_OK,
         )
@@ -238,15 +265,15 @@ class UserViewSet(viewsets.ModelViewSet):
         user = self.get_object()
 
         user.is_active = True
+
         user.is_approved = True
 
         user.save()
 
         return Response(
             {
-                'message': (
-                    f'User {user.username} activated'
-                )
+                'message':
+                f'User {user.username} activated'
             },
             status=status.HTTP_200_OK,
         )
@@ -268,15 +295,16 @@ class UserViewSet(viewsets.ModelViewSet):
 
         return Response(
             {
-                'message': 'User deleted successfully'
+                'message':
+                'User deleted successfully'
             },
             status=status.HTTP_200_OK,
         )
 
 
-# ─────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────
 # ADMIN VIEWSET
-# ─────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────
 
 class AdminViewSet(viewsets.ModelViewSet):
 
@@ -311,11 +339,14 @@ class AdminViewSet(viewsets.ModelViewSet):
 
             return Response(
                 {
-                    'message': (
-                        'Admin registered successfully'
-                    ),
-                    'token': token,
-                    'admin': UserSerializer(user).data,
+                    'message':
+                    'Admin registered successfully',
+
+                    'token':
+                    token,
+
+                    'admin':
+                    UserSerializer(user).data,
                 },
                 status=status.HTTP_201_CREATED,
             )
@@ -348,7 +379,9 @@ class AdminViewSet(viewsets.ModelViewSet):
                     email=serializer.validated_data['email'],
                     role='admin'
                 )
-            except CustomUser.DoesNotExist:  # type: ignore
+
+            except CustomUser.DoesNotExist:
+
                 return Response(
                     {
                         'message':
@@ -370,7 +403,10 @@ class AdminViewSet(viewsets.ModelViewSet):
                     {
                         'message':
                         'Admin login successful',
-                        'token': token,
+
+                        'token':
+                        token,
+
                         'admin':
                         UserSerializer(user).data,
                     },
@@ -422,9 +458,17 @@ class AdminViewSet(viewsets.ModelViewSet):
         permission_classes=[IsAdminUser]
     )
     def pending_users(self, request):
-        """Return employees awaiting admin approval."""
-        users = CustomUser.objects.filter(role='employee', is_approved=False, is_rejected=False).order_by('-created_at')
-        serializer = UserSerializer(users, many=True)
+
+        users = CustomUser.objects.filter(
+            role='employee',
+            is_approved=False
+        ).order_by('-created_at')
+
+        serializer = UserSerializer(
+            users,
+            many=True
+        )
+
         return Response(serializer.data)
 
     # ─────────────────────────────────────────

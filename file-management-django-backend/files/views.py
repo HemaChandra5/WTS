@@ -1,6 +1,7 @@
 # files/views.py
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from django.utils.text import slugify
 
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -11,45 +12,51 @@ from .models import File
 from .serializers import FileSerializer
 
 
-def _group_send(event: dict):
+def _group_send(group_name: str, event: dict):
     """
     Safe group_send: if channel layer isn't available it won't crash.
     """
     channel_layer = get_channel_layer()
     if channel_layer is None:
         return
-    async_to_sync(channel_layer.group_send)("files_group", event)
+    async_to_sync(channel_layer.group_send)(group_name, event)
 
 
 def notify_new_file(file_instance: File):
-    _group_send(
-        {
-            "type": "file_notification",  # calls file_notification() in consumer
-            "message": f"New file: {file_instance.original_name}",
-            "file": {
-                "id": str(file_instance.id),
-                "originalName": file_instance.original_name,
-                "status": file_instance.status,
-                "userName": getattr(file_instance.user, "first_name", ""),
-                "userEmail": getattr(file_instance.user, "email", ""),
-                "createdAt": file_instance.created_at.isoformat()
-                if getattr(file_instance, "created_at", None)
-                else None,
-                "description": getattr(file_instance, "description", ""),
-            },
-        }
-    )
+    admin_event = {
+        "type": "file_notification",
+        "message": f"New file uploaded: {file_instance.original_name}",
+        "file": {
+            "id": str(file_instance.id),
+            "originalName": file_instance.original_name,
+            "status": file_instance.status,
+            "userName": getattr(file_instance.user, "first_name", "") or getattr(file_instance.user, "username", ""),
+            "userEmail": getattr(file_instance.user, "email", ""),
+            "createdAt": file_instance.created_at.isoformat()
+            if getattr(file_instance, "created_at", None)
+            else None,
+            "description": getattr(file_instance, "description", ""),
+        },
+    }
+    _group_send("files_admin", admin_event)
 
 
 def notify_file_status_update(file_instance: File):
-    _group_send(
-        {
-            "type": "file_status_update",  # calls file_status_update() in consumer
-            "fileId": str(file_instance.id),
-            "status": file_instance.status,
-            "adminNote": getattr(file_instance, "admin_note", "") or "",
-        }
-    )
+    uploader_email = getattr(file_instance.user, "email", "")
+    uploader_slug = slugify(uploader_email) if uploader_email else 'anonymous'
+    uploader_group = f'files_{uploader_slug}'
+
+    event = {
+        "type": "file_status_update",
+        "fileId": str(file_instance.id),
+        "status": file_instance.status,
+        "adminNote": getattr(file_instance, "admin_note", "") or "",
+    }
+
+    # Notify the uploader directly about approval/rejection
+    _group_send(uploader_group, event)
+    # Also notify admins about file status changes if needed
+    _group_send("files_admin", event)
 
 
 class FileViewSet(viewsets.ModelViewSet):

@@ -2,21 +2,37 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
+from django.utils.text import slugify
 
 from files.models import File
 
 
 class FileConsumer(AsyncWebsocketConsumer):
     GROUP_NAME = "files_group"
+    ADMIN_GROUP = "files_admin"
 
     async def connect(self):
+        self.user_email = self.scope['user'].email if self.scope['user'].is_authenticated else None
+        self.user_slug = slugify(self.user_email) if self.user_email else 'anonymous'
+        self.user_group = f'files_{self.user_slug}'
+
         await self.channel_layer.group_add(self.GROUP_NAME, self.channel_name)
+        await self.channel_layer.group_add(self.user_group, self.channel_name)
+
+        if self.scope['user'].is_authenticated and getattr(self.scope['user'], 'role', None) == 'admin':
+            await self.channel_layer.group_add(self.ADMIN_GROUP, self.channel_name)
+
         await self.accept()
-        print("✅ Client connected to files WebSocket")
+        print(f"✅ Client connected to files WebSocket ({self.user_group})")
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.GROUP_NAME, self.channel_name)
-        print("❌ Client disconnected from files WebSocket")
+        await self.channel_layer.group_discard(self.user_group, self.channel_name)
+
+        if self.scope['user'].is_authenticated and getattr(self.scope['user'], 'role', None) == 'admin':
+            await self.channel_layer.group_discard(self.ADMIN_GROUP, self.channel_name)
+
+        print(f"❌ Client disconnected from files WebSocket ({self.user_group})")
 
     async def receive(self, text_data=None, bytes_data=None):
         """

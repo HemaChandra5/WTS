@@ -46,6 +46,8 @@ import { isSameDay, isWithinDays } from '../utils/dateUtils';
 
 /* ─── Constants ──────────────────────────────────────────────────────── */
 const ITEMS_PER_PAGE = 10;
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+const WS_BASE_URL = import.meta.env.VITE_WS_URL || API_BASE_URL.replace(/^http/, 'ws').replace(/\/api$/, '');
 
 const PRIORITY_CONFIG = {
   low: { label: 'Low', color: 'text-slate-500', bg: 'bg-slate-100', border: 'border-slate-200', dot: 'bg-slate-400' },
@@ -546,7 +548,7 @@ const AdminDashboard = () => {
 
   /* ── WebSocket ── */
   useWebSocket(
-    'ws://localhost:8000/ws/files/',
+    `${WS_BASE_URL}/ws/files/`,
     (data) => {
       if (!data?.type) return;
       if (data.type === 'file_notification' && data.file) {
