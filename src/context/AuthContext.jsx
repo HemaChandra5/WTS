@@ -51,6 +51,24 @@ const DEMO_USERS = [
   },
 ];
 
+const getDisplayName = (user) => {
+  if (!user) return '';
+  return (
+    user.name ||
+    [user.first_name, user.last_name].filter(Boolean).join(' ') ||
+    user.username ||
+    (user.email ? user.email.split('@')[0] : '')
+  );
+};
+
+const normalizeUser = (user) => {
+  if (!user) return null;
+  return {
+    ...user,
+    name: getDisplayName(user),
+  };
+};
+
 // ─── Local-storage helpers ────────────────────────────────────────────────────
 const loadRegisteredUsers = () => {
   try {
@@ -84,7 +102,7 @@ export const AuthProvider = ({ children }) => {
  
       try {
  
-        setUser(JSON.parse(storedUser));
+        setUser(normalizeUser(JSON.parse(storedUser)));
  
       } catch {
  
@@ -127,8 +145,7 @@ export const AuthProvider = ({ children }) => {
  
       if (employeeResponse.ok) {
  
-        const employeeUser =
-          employeeData.user;
+        const employeeUser = normalizeUser(employeeData.user);
  
         setUser(employeeUser);
  
@@ -171,8 +188,7 @@ export const AuthProvider = ({ children }) => {
  
       if (adminResponse.ok) {
  
-        const adminUser =
-          adminData.admin;
+        const adminUser = normalizeUser(adminData.admin);
  
         setUser(adminUser);
  
@@ -191,7 +207,8 @@ export const AuthProvider = ({ children }) => {
           user: adminUser,
         };
       }
- 
+ console.log("Employee Login Response:", employeeData);
+  console.log("Admin Login Response:", adminData);
       return {
         success: false,
         error:
