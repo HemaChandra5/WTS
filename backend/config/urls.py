@@ -22,4 +22,22 @@ urlpatterns = [
     path('admin/', admin.site.urls),
  
     path('api/', include(router.urls)),
+
+    path('api/dashboard/', include('dashboard.urls')),
+
+    path(
+    'api/notifications/',
+    include('notifications.urls')),
+
+    path(
+    'api/tasks/',
+    include('tasks.urls')),
+
+    path(
+    'api/files/',
+    include('files.urls')),
+
+    path(
+    'api/activity/',
+    include('activity_logs.urls')),
 ]

@@ -8,8 +8,22 @@ class CustomUser(AbstractUser):
     )
     
     email = models.EmailField(unique=True)
+    employee_id = models.CharField(
+    max_length=20,
+    unique=True,
+    null=True,
+    blank=True
+)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='employee')
     department = models.CharField(max_length=255, default='General')
+    phone_number = models.CharField(
+    max_length=15,
+    blank=True
+)
+    designation = models.CharField(
+    max_length=100,
+    blank=True
+)
     profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)             
     is_active = models.BooleanField(default=False)
     is_approved = models.BooleanField(default=False)

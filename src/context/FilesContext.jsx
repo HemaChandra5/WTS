@@ -1,10 +1,33 @@
 // src/context/FilesContext.jsx
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { api } from '../api';
 
 const FilesContext = createContext(null);
 
 export const FilesProvider = ({ children }) => {
   const [files, setFiles] = useState([]);
+  useEffect(() => {
+  console.log('Files state changed:', files);
+}, [files]);
+
+  const fetchFiles = async () => {
+  try {
+    console.log('Fetching files...');
+
+    const response = await api.get('/files/');
+
+    console.log('Files response:', response.data);
+
+    setFiles(response.data);
+  } catch (error) {
+    console.error('Failed to load files:', error);
+    console.error('Response:', error.response?.data);
+  }
+};
+
+  useEffect(() => {
+    fetchFiles();
+  }, []);
 
   const addFile = ({ userId, userName, userEmail, file, description }) => {
     const url = URL.createObjectURL(file);
@@ -52,7 +75,7 @@ export const FilesProvider = ({ children }) => {
     );
   };
 
-  const value = { files, addFile, updateFileStatus, toggleShared };
+  const value = { files, addFile, updateFileStatus, toggleShared, fetchFiles };
 
   return (
     <FilesContext.Provider value={value}>{children}</FilesContext.Provider>

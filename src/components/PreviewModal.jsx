@@ -6,10 +6,26 @@ import {
   ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
 
+/* ─── Ivory/gold employee tokens ────────────────────────────────────── */
+const L = {
+  border:   'rgba(212,175,122,0.20)',
+  txt0:     '#1c1917',
+  txt1:     '#78716c',
+  txt2:     '#a8a29e',
+  accent:   '#a8761e',
+  accentL:  'rgba(168,118,30,0.08)',
+  surface:  '#fffefb',
+  surface2: 'rgba(212,175,122,0.05)',
+  codeBg:   '#211d18',
+};
+
 const PreviewModal = ({ file, open, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [previewError, setPreviewError] = useState(false);
   const [content, setContent] = useState('');
+  const [closeHov, setCloseHov] = useState(false);
+  const [dlHov, setDlHov] = useState(false);
+  const [dlFooterHov, setDlFooterHov] = useState(false);
 
   useEffect(() => {
     if (!open || !file) {
@@ -92,48 +108,92 @@ const PreviewModal = ({ file, open, onClose }) => {
 
   const canPreview = isImage || isPdf || isText;
 
+  const EmptyState = ({ title, message, onDownload }) => (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      background: L.surface, borderRadius: 16, padding: 36, textAlign: 'center',
+      border: `2px dashed ${L.border}`,
+    }}>
+      <DocumentTextIcon style={{ width: 46, height: 46, color: '#cbb789', marginBottom: 16 }} />
+      <p style={{ fontSize: 15, fontWeight: 700, color: L.txt0, margin: '0 0 8px' }}>{title}</p>
+      <p style={{ fontSize: 13, color: L.txt1, margin: '0 0 22px', maxWidth: 360 }}>{message}</p>
+      <button
+        onClick={onDownload}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8, borderRadius: 10,
+          background: L.accent, padding: '9px 18px', fontSize: 13, fontWeight: 700,
+          color: '#fff', border: 'none', cursor: 'pointer', transition: 'background 0.15s',
+        }}
+      >
+        <ArrowDownTrayIcon style={{ width: 15, height: 15 }} />
+        Download instead
+      </button>
+    </div>
+  );
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
         onClick={onClose}
+        style={{ position: 'absolute', inset: 0, background: 'rgba(40,32,18,0.45)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
       />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-5xl max-h-[90vh] flex flex-col rounded-2xl bg-white shadow-2xl overflow-hidden">
+      <div style={{
+        position: 'relative', zIndex: 1, width: '100%', maxWidth: 920, maxHeight: '90vh',
+        display: 'flex', flexDirection: 'column', borderRadius: 20, background: L.surface,
+        boxShadow: '0 30px 80px rgba(120,98,53,0.30)', overflow: 'hidden',
+      }}>
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100">
-              <DocumentTextIcon className="h-5 w-5 text-slate-600" />
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          borderBottom: `1px solid ${L.border}`, background: L.surface, padding: '16px 24px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 11, background: L.accentL,
+              border: `1px solid ${L.border}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <DocumentTextIcon style={{ width: 19, height: 19, color: L.accent }} />
             </div>
-            <div className="min-w-0">
-              <h2 className="truncate text-sm font-bold text-slate-900">
+            <div style={{ minWidth: 0 }}>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: L.txt0, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {file.originalName}
               </h2>
-              <p className="truncate text-xs text-slate-500">
+              <p style={{ fontSize: 12, color: L.txt2, margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {file.description || 'No description'}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg hover:bg-slate-100 transition-colors text-slate-600 hover:text-slate-900"
+            onMouseEnter={() => setCloseHov(true)}
+            onMouseLeave={() => setCloseHov(false)}
+            style={{
+              display: 'flex', height: 34, width: 34, alignItems: 'center', justifyContent: 'center',
+              borderRadius: 10, border: 'none', cursor: 'pointer', flexShrink: 0, transition: 'background 0.15s',
+              background: closeHov ? 'rgba(212,175,122,0.14)' : 'transparent',
+              color: closeHov ? L.txt0 : L.txt1,
+            }}
           >
-            <XMarkIcon className="h-5 w-5" />
+            <XMarkIcon style={{ width: 17, height: 17 }} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
+        <div style={{ flex: 1, overflowY: 'auto', padding: 24, background: L.surface2 }}>
           {loading && (
-            <div className="flex items-center justify-center py-20">
-              <div className="text-center">
-                <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-indigo-600" />
-                <p className="mt-3 text-sm font-medium text-slate-600">
-                  Loading preview...
-                </p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 0' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  margin: '0 auto', width: 40, height: 40, borderRadius: '50%',
+                  border: `4px solid ${L.border}`, borderTopColor: L.accent,
+                  animation: 'sskatt-spin-pm 0.8s linear infinite',
+                }} />
+                <style>{`@keyframes sskatt-spin-pm { to { transform: rotate(360deg); } }`}</style>
+                <p style={{ marginTop: 12, fontSize: 13, fontWeight: 600, color: L.txt1 }}>Loading preview...</p>
               </div>
             </div>
           )}
@@ -142,11 +202,11 @@ const PreviewModal = ({ file, open, onClose }) => {
             <>
               {/* Image Preview */}
               {isImage && (
-                <div className="flex items-center justify-center bg-white rounded-xl p-4 border border-slate-200">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: L.surface, borderRadius: 16, padding: 16, border: `1px solid ${L.border}` }}>
                   <img
                     src={file.url}
                     alt={file.originalName}
-                    className="max-h-[600px] max-w-full rounded-lg object-contain"
+                    style={{ maxHeight: 600, maxWidth: '100%', borderRadius: 10, objectFit: 'contain' }}
                     onError={() => setPreviewError(true)}
                   />
                 </div>
@@ -154,10 +214,10 @@ const PreviewModal = ({ file, open, onClose }) => {
 
               {/* PDF Preview */}
               {isPdf && (
-                <div className="w-full h-[700px] rounded-xl overflow-hidden bg-white border border-slate-200">
+                <div style={{ width: '100%', height: 700, borderRadius: 16, overflow: 'hidden', background: L.surface, border: `1px solid ${L.border}` }}>
                   <iframe
                     src={file.url}
-                    className="w-full h-full border-0"
+                    style={{ width: '100%', height: '100%', border: 0 }}
                     title={file.originalName}
                     onError={() => setPreviewError(true)}
                   />
@@ -166,8 +226,12 @@ const PreviewModal = ({ file, open, onClose }) => {
 
               {/* Text Preview */}
               {isText && content && (
-                <div className="bg-slate-900 text-slate-100 p-4 rounded-xl font-mono text-xs overflow-auto max-h-[600px] border border-slate-800">
-                  <pre className="whitespace-pre-wrap break-words">
+                <div style={{
+                  background: L.codeBg, color: '#e8e1d4', padding: 18, borderRadius: 16,
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 12,
+                  overflow: 'auto', maxHeight: 600, border: '1px solid rgba(212,175,122,0.18)',
+                }}>
+                  <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0 }}>
                     {content}
                   </pre>
                 </div>
@@ -175,50 +239,30 @@ const PreviewModal = ({ file, open, onClose }) => {
 
               {/* Unsupported Type */}
               {!canPreview && (
-                <div className="flex flex-col items-center justify-center bg-white rounded-xl p-8 text-center border-2 border-dashed border-slate-300">
-                  <DocumentTextIcon className="h-12 w-12 text-slate-400 mb-4" />
-                  <p className="text-slate-700 font-semibold mb-2">
-                    Cannot preview {file.originalName}
-                  </p>
-                  <p className="text-slate-500 text-sm mb-6">
-                    This file type cannot be previewed online. Please download
-                    it to view.
-                  </p>
-                  <button
-                    onClick={downloadFile}
-                    className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
-                  >
-                    <ArrowDownTrayIcon className="h-4 w-4" />
-                    Download instead
-                  </button>
-                </div>
+                <EmptyState
+                  title={`Cannot preview ${file.originalName}`}
+                  message="This file type cannot be previewed online. Please download it to view."
+                  onDownload={downloadFile}
+                />
               )}
             </>
           )}
 
           {previewError && (
-            <div className="flex flex-col items-center justify-center bg-white rounded-xl p-8 text-center border-2 border-dashed border-slate-300">
-              <DocumentTextIcon className="h-12 w-12 text-slate-400 mb-4" />
-              <p className="text-slate-700 font-semibold mb-2">
-                Could not load preview
-              </p>
-              <p className="text-slate-500 text-sm mb-6">
-                There was an error loading the file preview.
-              </p>
-              <button
-                onClick={downloadFile}
-                className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
-              >
-                <ArrowDownTrayIcon className="h-4 w-4" />
-                Download instead
-              </button>
-            </div>
+            <EmptyState
+              title="Could not load preview"
+              message="There was an error loading the file preview."
+              onDownload={downloadFile}
+            />
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-slate-200 bg-white px-6 py-4">
-          <p className="text-xs text-slate-500">
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          borderTop: `1px solid ${L.border}`, background: L.surface, padding: '14px 24px',
+        }}>
+          <p style={{ fontSize: 12, color: L.txt2, margin: 0 }}>
             {file.size
               ? (() => {
                   const sizes = ['B', 'KB', 'MB', 'GB'];
@@ -237,9 +281,16 @@ const PreviewModal = ({ file, open, onClose }) => {
           </p>
           <button
             onClick={downloadFile}
-            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+            onMouseEnter={() => setDlFooterHov(true)}
+            onMouseLeave={() => setDlFooterHov(false)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8, borderRadius: 10,
+              border: `1px solid ${L.border}`, background: dlFooterHov ? L.accentL : L.surface,
+              padding: '8px 16px', fontSize: 13, fontWeight: 700, color: L.txt1,
+              cursor: 'pointer', transition: 'all 0.15s',
+            }}
           >
-            <ArrowDownTrayIcon className="h-4 w-4" />
+            <ArrowDownTrayIcon style={{ width: 15, height: 15 }} />
             Download
           </button>
         </div>

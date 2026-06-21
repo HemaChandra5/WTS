@@ -7,31 +7,49 @@ import {
   EllipsisVerticalIcon,
 } from '@heroicons/react/24/outline';
 
+/* ─── Ivory/gold employee tokens ────────────────────────────────────── */
+const L = {
+  border:   'rgba(212,175,122,0.18)',
+  rowBg:    'rgba(212,175,122,0.045)',
+  rowHov:   '#fffefb',
+  txt0:     '#1c1917',
+  txt1:     '#78716c',
+  txt2:     '#a8a29e',
+};
+
+const STATUS_CONFIG = {
+  pending: {
+    label: 'Pending',
+    bg: 'rgba(245,158,11,0.10)',
+    border: 'rgba(245,158,11,0.26)',
+    color: '#b45309',
+    dot: '#f59e0b',
+    icon: ClockIcon,
+  },
+  in_progress: {
+    label: 'In Progress',
+    bg: 'rgba(59,130,246,0.10)',
+    border: 'rgba(59,130,246,0.26)',
+    color: '#1d4ed8',
+    dot: '#3b82f6',
+    icon: PlayIcon,
+  },
+  done: {
+    label: 'Done',
+    bg: 'rgba(16,185,129,0.10)',
+    border: 'rgba(16,185,129,0.26)',
+    color: '#065f46',
+    dot: '#10b981',
+    icon: CheckCircleIcon,
+  },
+};
+
 const TaskRow = ({ task, onStatusChange }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [rowHov, setRowHov] = useState(false);
+  const [menuBtnHov, setMenuBtnHov] = useState(false);
 
-  const statusConfig = {
-    pending: {
-      label: 'Pending',
-      color: 'bg-amber-100 text-amber-700 border-amber-200',
-      dot: 'bg-amber-400',
-      icon: ClockIcon,
-    },
-    in_progress: {
-      label: 'In Progress',
-      color: 'bg-blue-100 text-blue-700 border-blue-200',
-      dot: 'bg-blue-400',
-      icon: PlayIcon,
-    },
-    done: {
-      label: 'Done',
-      color: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-      dot: 'bg-emerald-400',
-      icon: CheckCircleIcon,
-    },
-  };
-
-  const cfg = statusConfig[task?.status] || statusConfig.pending;
+  const cfg = STATUS_CONFIG[task?.status] || STATUS_CONFIG.pending;
   const StatusIcon = cfg.icon;
 
   const setStatus = (status) => {
@@ -39,85 +57,113 @@ const TaskRow = ({ task, onStatusChange }) => {
     onStatusChange?.(task.id, status);
   };
 
+  const MenuItem = ({ children, onClick, color }) => {
+    const [hov, setHov] = useState(false);
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        onMouseEnter={() => setHov(true)}
+        onMouseLeave={() => setHov(false)}
+        style={{
+          width: '100%', textAlign: 'left', padding: '9px 14px', fontSize: 12, fontWeight: 700,
+          color: color || L.txt1, background: hov ? 'rgba(212,175,122,0.10)' : 'transparent',
+          border: 'none', cursor: 'pointer', transition: 'background 0.12s', fontFamily: 'inherit',
+        }}
+      >
+        {children}
+      </button>
+    );
+  };
+
   return (
-    <li className="flex items-center justify-between gap-4 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 hover:bg-white hover:shadow-sm transition-all group">
+    <li
+      onMouseEnter={() => setRowHov(true)}
+      onMouseLeave={() => setRowHov(false)}
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+        borderRadius: 14, border: `1px solid ${L.border}`,
+        background: rowHov ? L.rowHov : L.rowBg,
+        padding: '12px 16px',
+        boxShadow: rowHov ? '0 2px 10px rgba(120,98,53,0.08)' : 'none',
+        transition: 'all 0.18s', listStyle: 'none',
+      }}
+    >
       {/* left */}
-      <div className="flex items-center gap-3 min-w-0 flex-1">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white border border-slate-100 shadow-sm flex-shrink-0">
-          <StatusIcon
-            className={`h-4 w-4 ${cfg.dot.replace('bg-', 'text-')}`}
-          />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+        <div style={{
+          display: 'flex', height: 32, width: 32, alignItems: 'center', justifyContent: 'center',
+          borderRadius: 10, background: '#fffefb', border: `1px solid ${L.border}`, flexShrink: 0,
+          boxShadow: '0 1px 3px rgba(120,98,53,0.06)',
+        }}>
+          <StatusIcon style={{ width: 15, height: 15, color: cfg.dot }} />
         </div>
 
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-slate-800">
+        <div style={{ minWidth: 0 }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: L.txt0, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {task?.title || '(Untitled task)'}
           </p>
           {task?.description ? (
-            <p className="mt-0.5 text-[11px] text-slate-500 line-clamp-2">
+            <p style={{
+              marginTop: 2, fontSize: 11, color: L.txt1, display: '-webkit-box',
+              WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+            }}>
               {task.description}
             </p>
           ) : (
-            <p className="mt-0.5 text-[11px] text-slate-400">
-              No description
-            </p>
+            <p style={{ marginTop: 2, fontSize: 11, color: L.txt2 }}>No description</p>
           )}
         </div>
       </div>
 
       {/* right */}
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
         {/* status pill */}
         <span
-          className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${cfg.color}`}
           title={cfg.label}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 999,
+            padding: '5px 11px', fontSize: 11, fontWeight: 700,
+            background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.color,
+          }}
         >
-          <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
+          <span style={{ height: 6, width: 6, borderRadius: '50%', background: cfg.dot }} />
           {cfg.label}
         </span>
 
         {/* menu */}
-        <div className="relative">
+        <div style={{ position: 'relative' }}>
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 transition"
+            onMouseEnter={() => setMenuBtnHov(true)}
+            onMouseLeave={() => setMenuBtnHov(false)}
             aria-label="Task actions"
+            style={{
+              display: 'flex', height: 32, width: 32, alignItems: 'center', justifyContent: 'center',
+              borderRadius: 10, border: `1px solid ${L.border}`,
+              background: menuBtnHov ? 'rgba(212,175,122,0.10)' : '#fffefb',
+              color: L.txt1, cursor: 'pointer', transition: 'background 0.15s',
+            }}
           >
-            <EllipsisVerticalIcon className="h-4 w-4" />
+            <EllipsisVerticalIcon style={{ width: 16, height: 16 }} />
           </button>
 
           {menuOpen && (
             <>
               {/* click-away backdrop */}
-              <button
-                type="button"
-                className="fixed inset-0 z-30 cursor-default"
+              <div
                 onClick={() => setMenuOpen(false)}
-                aria-label="Close menu"
+                style={{ position: 'fixed', inset: 0, zIndex: 30, cursor: 'default' }}
               />
-              <div className="absolute right-0 mt-2 w-44 z-40 rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => setStatus('pending')}
-                  className="w-full px-4 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  Mark as Pending
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatus('in_progress')}
-                  className="w-full px-4 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  Mark In Progress
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatus('done')}
-                  className="w-full px-4 py-2 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
-                >
-                  Mark Done
-                </button>
+              <div style={{
+                position: 'absolute', right: 0, marginTop: 8, width: 176, zIndex: 40,
+                borderRadius: 12, border: `1px solid ${L.border}`, background: '#fffefb',
+                boxShadow: '0 20px 50px rgba(120,98,53,0.20)', overflow: 'hidden',
+              }}>
+                <MenuItem onClick={() => setStatus('pending')}>Mark as Pending</MenuItem>
+                <MenuItem onClick={() => setStatus('in_progress')}>Mark In Progress</MenuItem>
+                <MenuItem onClick={() => setStatus('done')} color="#059669">Mark Done</MenuItem>
               </div>
             </>
           )}

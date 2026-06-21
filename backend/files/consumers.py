@@ -131,7 +131,7 @@ class FileConsumer(AsyncWebsocketConsumer):
         qs = (
             File.objects.select_related("user")
             .all()
-            .order_by("-createdAt")
+            .order_by("-created_at")
         )
 
         result = []
@@ -139,12 +139,12 @@ class FileConsumer(AsyncWebsocketConsumer):
             result.append(
                 {
                     "id": str(f.id),
-                    "originalName": getattr(f, "originalName", None),
+                    "originalName": f.original_name,
                     "size": getattr(f, "size", None),
                     "status": getattr(f, "status", None),
                     "userName": getattr(f.user, "first_name", "") if getattr(f, "user", None) else "",
                     "userEmail": getattr(f.user, "email", "") if getattr(f, "user", None) else "",
-                    "createdAt": f.createdAt.isoformat() if getattr(f, "createdAt", None) else None,
+                    "createdAt": f.created_at.isoformat() if getattr(f, "createdAt", None) else None,
                     "description": getattr(f, "description", ""),
                 }
             )

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 const AuthContext = createContext(null);
@@ -419,6 +418,93 @@ export const AuthProvider = ({ children }) => {
     }, []);
  
   // ───────────────────────────────────────────
+  // CREATE USER (admin-initiated, direct create)
+  // ───────────────────────────────────────────
+  // Used by the User Management tab in AdminDashboard so an admin can create
+  // an admin or employee account directly, without the self-signup +
+  // approval flow. The account is created already approved/active.
+  //
+  // NOTE: this calls a new backend endpoint that doesn't exist in the
+  // snippets shared so far — `/api/admin-auth/create_user/`. Wire up a
+  // matching Django view (mirroring admin_login / all_users auth) that:
+  //   - requires a valid admin Bearer token
+  //   - accepts { email, password, name, role, department }
+  //   - if role === 'admin', creates an Admin record
+  //   - if role === 'employee', creates a User record with is_approved=True,
+  //     is_active=True (skipping the normal pending-approval step)
+  // Adjust the URL/payload below to match your actual endpoint once it
+  // exists; the shape here follows the same conventions as signup()/login().
+
+  const createUser =
+    useCallback(async ({ email, password, name, role, department }) => {
+
+      try {
+
+        if (!email || !password || !name) {
+          return { success: false, error: 'Name, email and password are required.' };
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+
+        if (!normalizedEmail.endsWith('@sskatt.com')) {
+          return { success: false, error: 'Only company emails (@sskatt.com) are allowed.' };
+        }
+
+        const nameParts = name.trim().split(' ');
+        const first_name = nameParts[0];
+        const last_name = nameParts.slice(1).join(' ') || '';
+        const username = normalizedEmail.split('@')[0];
+
+        const token = localStorage.getItem('token');
+
+        const response = await fetch(
+          'http://127.0.0.1:8000/api/admin-auth/create_user/',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              email: normalizedEmail,
+              username,
+              first_name,
+              last_name,
+              password,
+              password2: password,
+              role: role || 'employee',
+              department: department || 'General',
+              is_approved: true,
+              is_active: true,
+            }),
+          },
+        );
+
+        const data = await response.json();
+
+        if (response.ok) {
+          return {
+            success: true,
+            user: normalizeUser(data.user || data.admin || data),
+            message: `${role === 'admin' ? 'Admin' : 'Employee'} account created successfully.`,
+          };
+        }
+
+        return {
+          success: false,
+          error: data.message || data.detail || JSON.stringify(data),
+        };
+
+      } catch (error) {
+
+        console.error(error);
+
+        return { success: false, error: 'Server error while creating user.' };
+      }
+
+    }, []);
+
+  // ───────────────────────────────────────────
   // APPROVE EMPLOYEE
   // ───────────────────────────────────────────
  
@@ -587,6 +673,8 @@ export const AuthProvider = ({ children }) => {
     getAllEmployees,
  
     getPendingEmployees,
+
+    createUser,
  
     approveEmployee,
  
@@ -624,4 +712,3 @@ export const useAuth = () => {
  
   return context;
 };
- 

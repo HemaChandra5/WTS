@@ -9,10 +9,18 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   // Show loading spinner while checking auth
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-50">
-        <div className="text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600" />
-          <p className="mt-4 text-sm font-medium text-slate-600">
+      <div style={{
+        display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center',
+        background: '#0a0a0b',
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            margin: '0 auto', width: 44, height: 44, borderRadius: '50%',
+            border: '4px solid rgba(255,255,255,0.08)', borderTopColor: '#5b8def',
+            animation: 'sskatt-spin-pr 0.8s linear infinite',
+          }} />
+          <style>{`@keyframes sskatt-spin-pr { to { transform: rotate(360deg); } }`}</style>
+          <p style={{ marginTop: 16, fontSize: 13, fontWeight: 600, color: '#9aa1b8' }}>
             Loading...
           </p>
         </div>

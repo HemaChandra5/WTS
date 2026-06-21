@@ -5,9 +5,16 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.utils.text import slugify
+from django.utils import timezone
+from rest_framework.exceptions import ValidationError
+from rest_framework.filters import SearchFilter
+from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import Task
 from .serializers import TaskSerializer
+from notifications.services import create_notification
+from activity_logs.services import create_activity
+from accounts.models import CustomUser
 
 
 class TaskViewSet(viewsets.ModelViewSet):
@@ -15,15 +22,70 @@ class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
 
+    filter_backends = [
+        SearchFilter,
+        DjangoFilterBackend,
+    ]
+
+    search_fields = [
+        'title',
+        'description',
+        'assigned_to_email',
+    ]
+
+    filterset_fields = [
+        'status',
+        'priority',
+    ]
+
+    def get_queryset(self):
+        if self.request.user.role == 'admin':
+            return Task.objects.all().order_by("-created_at")
+
+        return Task.objects.filter(
+            assigned_to_user=self.request.user
+        ).order_by("-created_at")
+
     def perform_create(self, serializer):
         """Called after validation, before saving"""
-        task = serializer.save()
-        
-        # Convert email to valid group name
-        assigned_email = serializer.validated_data.get("assigned_to_email")
+        employee = CustomUser.objects.filter(
+            email=self.request.data.get(
+                "assigned_to_email"
+            )
+        ).first()
+
+        if not employee:
+            raise ValidationError(
+                "Employee not found"
+            )
+
+        task = serializer.save(
+            assigned_to_user=employee,
+            assigned_by_user=self.request.user,
+        )
+
+        create_activity(
+            self.request.user,
+            'create_task',
+            f'Created task {task.title}'
+        )
+
+        if task.assigned_to_user:
+            print("INSIDE NOTIFICATION BLOCK")
+            print(task.assigned_to_user)
+
+            create_notification(
+                user=task.assigned_to_user,
+                title='New Task Assigned',
+                message=f'You have been assigned "{task.title}".',
+                notification_type='task'
+            )
+
+        assigned_email = serializer.validated_data.get(
+            "assigned_to_email"
+        )
         assigned_slug = slugify(assigned_email)
-        
-        # Send notification after creating task
+
         async_to_sync(get_channel_layer().group_send)(
             f'tasks_{assigned_slug}',
             {
@@ -39,6 +101,16 @@ class TaskViewSet(viewsets.ModelViewSet):
             }
         )
 
+    # ===== ADD THIS METHOD =====
+    def perform_destroy(self, instance):
+        create_activity(
+            self.request.user,
+            'delete_task',
+            f'Deleted task "{instance.title}"'
+        )
+
+        instance.delete()
+
     @action(detail=True, methods=["patch"], url_path="update_status")
     def update_status(self, request, pk=None):
         """
@@ -49,15 +121,30 @@ class TaskViewSet(viewsets.ModelViewSet):
         new_status = request.data.get("status")
 
         if not new_status:
-            return Response({"detail": "status is required"}, status=400)
+            return Response(
+                {"detail": "status is required"},
+                status=400
+            )
 
         task.status = new_status
+
+        if new_status == 'done':
+            task.completed_at = timezone.now()
+        else:
+            task.completed_at = None
+
         task.save()
 
-        # Convert email to valid group name
-        assigned_slug = slugify(task.assigned_to_email)
+        create_activity(
+            request.user,
+            'update_task',
+            f'Updated task "{task.title}" status to {task.status}'
+        )
 
-        # Send notification after updating status
+        assigned_slug = slugify(
+            task.assigned_to_email
+        )
+
         async_to_sync(get_channel_layer().group_send)(
             f'tasks_{assigned_slug}',
             {
@@ -67,4 +154,37 @@ class TaskViewSet(viewsets.ModelViewSet):
             }
         )
 
-        return Response(TaskSerializer(task).data, status=status.HTTP_200_OK)
+        return Response(
+            TaskSerializer(task).data,
+            status=status.HTTP_200_OK
+        )
+
+    @action(detail=False, methods=['get'])
+    def overdue(self, request):
+        tasks = self.get_queryset().filter(
+            due_date__lt=timezone.now()
+        ).exclude(
+            status='done'
+        )
+
+        serializer = self.get_serializer(
+            tasks,
+            many=True
+        )
+
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def due_today(self, request):
+        today = timezone.now().date()
+
+        tasks = self.get_queryset().filter(
+            due_date__date=today
+        )
+
+        serializer = self.get_serializer(
+            tasks,
+            many=True
+        )
+
+        return Response(serializer.data)

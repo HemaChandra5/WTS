@@ -8,7 +8,11 @@ class Task(models.Model):
         ('in_progress', 'In Progress'),
         ('done', 'Done'),
     )
-    
+    PRIORITY_CHOICES = (
+    ('low', 'Low'),
+    ('medium', 'Medium'),
+    ('high', 'High'),
+    )
     id = models.CharField(max_length=36, primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, default='')
@@ -18,6 +22,11 @@ class Task(models.Model):
     assigned_by_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='created_tasks')
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    priority = models.CharField(
+    max_length=20,
+    choices=PRIORITY_CHOICES,
+    default='medium'
+)
     admin_file = models.FileField(upload_to='task_files/', null=True, blank=True)
     due_date = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)

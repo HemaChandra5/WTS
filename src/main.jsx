@@ -6,16 +6,19 @@ import App from './App.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { FilesProvider } from './context/FilesContext.jsx';
 import { TasksProvider } from './context/TasksContext.jsx';
+import { NotificationsProvider } from './context/NotificationsContext.jsx';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
     <AuthProvider>
-      <FilesProvider>
-        <TasksProvider>
-          <App />
-        </TasksProvider>
-      </FilesProvider>
+      <NotificationsProvider>
+        <FilesProvider>
+          <TasksProvider>
+            <App />
+          </TasksProvider>
+        </FilesProvider>
+      </NotificationsProvider>
     </AuthProvider>
   </BrowserRouter>
 );

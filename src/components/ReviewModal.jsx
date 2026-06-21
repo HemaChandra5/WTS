@@ -12,6 +12,25 @@ import {
 } from '@heroicons/react/24/outline';
 import StatusBadge from './StatusBadge';
 
+/* ─── Obsidian-Slate dark tokens ─────────────────────────────────────── */
+const T = {
+  glass:    'rgba(20,20,22,0.55)',
+  surface:  '#161618',
+  surface2: '#1c1c1f',
+  bdr0:     'rgba(255,255,255,0.05)',
+  bdr1:     'rgba(255,255,255,0.09)',
+  bdr2:     'rgba(255,255,255,0.15)',
+  txt0:     '#f5f6fa',
+  txt1:     '#9aa1b8',
+  txt2:     '#5c6178',
+  accent:   '#5b8def',
+  accentL:  'rgba(91,141,239,0.14)',
+  emerald:  '#34d399',
+  emeraldL: 'rgba(52,211,153,0.12)',
+  rose:     '#f0708a',
+  roseL:    'rgba(240,112,138,0.12)',
+};
+
 const formatBytes = (bytes) => {
   if (!bytes && bytes !== 0) return '0 B';
   const sizes = ['B', 'KB', 'MB', 'GB'];
@@ -23,6 +42,9 @@ const formatBytes = (bytes) => {
 const ReviewModal = ({ file, open, onClose, onUpdateStatus }) => {
   const [adminNote, setAdminNote] = useState('');
   const [confirming, setConfirming] = useState(null); // 'approved' | 'rejected'
+  const [noteFocus, setNoteFocus] = useState(false);
+  const [closeHov, setCloseHov] = useState(false);
+  const [reviewingHov, setReviewingHov] = useState(false);
 
   useEffect(() => {
     if (file) {
@@ -55,75 +77,84 @@ const ReviewModal = ({ file, open, onClose, onUpdateStatus }) => {
     ? new Date(file.reviewedAt).toLocaleString()
     : null;
 
+  const InfoRow = ({ icon: Icon, children, span2 }) => (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7, gridColumn: span2 ? 'span 2' : undefined }}>
+      <Icon style={{ width: 13, height: 13, color: T.txt2, flexShrink: 0, marginTop: 1 }} />
+      <span style={{ fontSize: 12, color: T.txt1, minWidth: 0 }}>{children}</span>
+    </div>
+  );
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
         onClick={onClose}
+        style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
       />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-lg rounded-3xl bg-white shadow-2xl overflow-hidden">
+      <div style={{
+        position: 'relative', zIndex: 1, width: '100%', maxWidth: 480,
+        borderRadius: 22, background: T.surface, border: `1px solid ${T.bdr1}`,
+        boxShadow: '0 30px 80px rgba(0,0,0,0.65)', overflow: 'hidden',
+      }}>
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-100">
-              <DocumentTextIcon className="h-5 w-5 text-indigo-600" />
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          borderBottom: `1px solid ${T.bdr1}`, background: T.surface2, padding: '16px 22px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 11, background: T.accentL,
+              border: `1px solid rgba(91,141,239,0.25)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <DocumentTextIcon style={{ width: 18, height: 18, color: T.accent }} />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-900">
-                Review File
-              </h2>
-              <p className="text-[11px] text-slate-500">
-                Approve, reject, or mark as under review
-              </p>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: T.txt0, margin: 0 }}>Review File</h2>
+              <p style={{ fontSize: 11, color: T.txt2, margin: '2px 0 0' }}>Approve, reject, or mark as under review</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-slate-200 transition-colors"
+            onMouseEnter={() => setCloseHov(true)}
+            onMouseLeave={() => setCloseHov(false)}
+            style={{
+              display: 'flex', height: 30, width: 30, alignItems: 'center', justifyContent: 'center',
+              borderRadius: '50%', border: 'none', cursor: 'pointer', transition: 'background 0.15s',
+              background: closeHov ? 'rgba(255,255,255,0.08)' : 'transparent',
+            }}
           >
-            <XMarkIcon className="h-4 w-4 text-slate-500" />
+            <XMarkIcon style={{ width: 15, height: 15, color: T.txt1 }} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="px-6 py-5 space-y-5">
+        <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 18 }}>
           {/* File info card */}
-          <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 space-y-3">
-            <div className="flex items-start justify-between gap-2">
-              <p className="text-sm font-bold text-slate-900 break-all leading-snug">
+          <div style={{
+            borderRadius: 16, border: `1px solid ${T.bdr0}`, background: 'rgba(255,255,255,0.025)',
+            padding: 14, display: 'flex', flexDirection: 'column', gap: 11,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: T.txt0, margin: 0, wordBreak: 'break-all', lineHeight: 1.4 }}>
                 {file.originalName}
               </p>
-              <StatusBadge status={file.status} size="sm" />
+              <StatusBadge status={file.status} size="sm" dark />
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
-              <div className="flex items-center gap-1.5">
-                <UserCircleIcon className="h-3.5 w-3.5 text-slate-400" />
-                <span className="truncate">{file.userName}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <DocumentTextIcon className="h-3.5 w-3.5 text-slate-400" />
-                <span>{formatBytes(file.size)}</span>
-              </div>
-              <div className="flex items-center gap-1.5 col-span-2">
-                <CalendarDaysIcon className="h-3.5 w-3.5 text-slate-400" />
-                <span>Uploaded {uploadedAt}</span>
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <InfoRow icon={UserCircleIcon}>{file.userName}</InfoRow>
+              <InfoRow icon={DocumentTextIcon}>{formatBytes(file.size)}</InfoRow>
+              <InfoRow icon={CalendarDaysIcon} span2>Uploaded {uploadedAt}</InfoRow>
               {reviewedAt && (
-                <div className="flex items-center gap-1.5 col-span-2">
-                  <EyeIcon className="h-3.5 w-3.5 text-slate-400" />
-                  <span>Last reviewed {reviewedAt}</span>
-                </div>
+                <InfoRow icon={EyeIcon} span2>Last reviewed {reviewedAt}</InfoRow>
               )}
               {file.description && (
-                <div className="flex items-start gap-1.5 col-span-2">
-                  <ChatBubbleLeftIcon className="h-3.5 w-3.5 text-slate-400 mt-0.5" />
-                  <span className="text-slate-500 italic">
-                    "{file.description}"
-                  </span>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7, gridColumn: 'span 2' }}>
+                  <ChatBubbleLeftIcon style={{ width: 13, height: 13, color: T.txt2, flexShrink: 0, marginTop: 1 }} />
+                  <span style={{ fontSize: 12, color: T.txt2, fontStyle: 'italic' }}>"{file.description}"</span>
                 </div>
               )}
             </div>
@@ -131,75 +162,102 @@ const ReviewModal = ({ file, open, onClose, onUpdateStatus }) => {
 
           {/* Admin note */}
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: T.txt2, marginBottom: 7 }}>
               Admin note{' '}
-              <span className="font-normal normal-case text-slate-400">
-                (visible to employee)
-              </span>
+              <span style={{ fontWeight: 500, textTransform: 'none', color: T.txt2, opacity: 0.7 }}>(visible to employee)</span>
             </label>
             <textarea
               value={adminNote}
               onChange={(e) => setAdminNote(e.target.value)}
               rows={3}
               placeholder="Add a note for the employee, e.g. 'Missing page 3' or 'All good, approved!'"
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 resize-none transition"
+              onFocus={() => setNoteFocus(true)}
+              onBlur={() => setNoteFocus(false)}
+              style={{
+                width: '100%', borderRadius: 12, resize: 'none', outline: 'none', boxSizing: 'border-box',
+                border: `1px solid ${noteFocus ? 'rgba(91,141,239,0.45)' : T.bdr1}`,
+                background: 'rgba(255,255,255,0.03)',
+                padding: '10px 13px', fontSize: 13, color: T.txt0,
+                fontFamily: 'inherit', transition: 'border-color 0.15s, box-shadow 0.15s',
+                boxShadow: noteFocus ? '0 0 0 3px rgba(91,141,239,0.14)' : 'none',
+              }}
             />
+            <style>{`textarea::placeholder { color: ${T.txt2}; opacity: 0.8; }`}</style>
           </div>
 
           {/* Confirm hint */}
           {confirming && (
-            <div
-              className={`rounded-xl border px-4 py-2.5 text-xs font-medium ${
-                confirming === 'approved'
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                  : 'border-rose-200 bg-rose-50 text-rose-700'
-              }`}
-            >
-              Click{' '}
-              <strong>
-                {confirming === 'approved' ? 'Approve' : 'Reject'}
-              </strong>{' '}
-              again to confirm this action.
+            <div style={{
+              borderRadius: 12, padding: '10px 14px', fontSize: 12, fontWeight: 500,
+              border: `1px solid ${confirming === 'approved' ? 'rgba(52,211,153,0.30)' : 'rgba(240,112,138,0.30)'}`,
+              background: confirming === 'approved' ? T.emeraldL : T.roseL,
+              color: confirming === 'approved' ? T.emerald : T.rose,
+            }}>
+              Click <strong>{confirming === 'approved' ? 'Approve' : 'Reject'}</strong> again to confirm this action.
             </div>
           )}
         </div>
 
         {/* Footer actions */}
-        <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-6 py-4 gap-3">
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+          borderTop: `1px solid ${T.bdr1}`, background: T.surface2, padding: '16px 22px',
+        }}>
           {/* Mark reviewing */}
           <button
             onClick={handleReviewing}
             disabled={file.status === 'reviewing'}
-            className="flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            onMouseEnter={() => setReviewingHov(true)}
+            onMouseLeave={() => setReviewingHov(false)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6, borderRadius: 11,
+              padding: '8px 14px', fontSize: 12, fontWeight: 700,
+              border: '1px solid rgba(91,141,239,0.30)',
+              background: file.status === 'reviewing' ? 'rgba(91,141,239,0.05)' : (reviewingHov ? 'rgba(91,141,239,0.20)' : T.accentL),
+              color: T.accent,
+              cursor: file.status === 'reviewing' ? 'not-allowed' : 'pointer',
+              opacity: file.status === 'reviewing' ? 0.4 : 1,
+              transition: 'all 0.15s',
+            }}
           >
-            <EyeIcon className="h-3.5 w-3.5" />
+            <EyeIcon style={{ width: 13, height: 13 }} />
             Mark reviewing
           </button>
 
-          <div className="flex items-center gap-2">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {/* Reject */}
             <button
               onClick={() => handleAction('rejected')}
-              className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
-                confirming === 'rejected'
-                  ? 'bg-rose-600 text-white scale-105 shadow-sm'
-                  : 'border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
-              }`}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6, borderRadius: 11,
+                padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                transition: 'all 0.15s',
+                border: confirming === 'rejected' ? 'none' : '1px solid rgba(240,112,138,0.30)',
+                background: confirming === 'rejected' ? T.rose : T.roseL,
+                color: confirming === 'rejected' ? '#1a1a1c' : T.rose,
+                transform: confirming === 'rejected' ? 'scale(1.04)' : 'scale(1)',
+                boxShadow: confirming === 'rejected' ? '0 4px 14px rgba(240,112,138,0.30)' : 'none',
+              }}
             >
-              <XCircleIcon className="h-3.5 w-3.5" />
+              <XCircleIcon style={{ width: 13, height: 13 }} />
               {confirming === 'rejected' ? 'Confirm reject' : 'Reject'}
             </button>
 
             {/* Approve */}
             <button
               onClick={() => handleAction('approved')}
-              className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
-                confirming === 'approved'
-                  ? 'bg-emerald-600 text-white scale-105 shadow-sm'
-                  : 'border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-              }`}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6, borderRadius: 11,
+                padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                transition: 'all 0.15s',
+                border: confirming === 'approved' ? 'none' : '1px solid rgba(52,211,153,0.30)',
+                background: confirming === 'approved' ? T.emerald : T.emeraldL,
+                color: confirming === 'approved' ? '#0a1410' : T.emerald,
+                transform: confirming === 'approved' ? 'scale(1.04)' : 'scale(1)',
+                boxShadow: confirming === 'approved' ? '0 4px 14px rgba(52,211,153,0.30)' : 'none',
+              }}
             >
-              <CheckCircleIcon className="h-3.5 w-3.5" />
+              <CheckCircleIcon style={{ width: 13, height: 13 }} />
               {confirming === 'approved' ? 'Confirm approve' : 'Approve'}
             </button>
           </div>

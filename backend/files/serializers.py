@@ -13,4 +13,14 @@ class FileSerializer(serializers.ModelSerializer):
             'cloudinary_id', 'description', 'user', 'status', 'admin_note',
             'reviewed_at', 'reviewer', 'shared', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'file_name', 'cloudinary_id', 'url', 'created_at', 'updated_at']
+        read_only_fields = [
+    'id',
+    'original_name',
+    'mime_type',
+    'size',
+    'file_name',
+    'cloudinary_id',
+    'url',
+    'created_at',
+    'updated_at'
+]

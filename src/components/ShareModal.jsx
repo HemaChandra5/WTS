@@ -1,8 +1,21 @@
+// src/components/ShareModal.jsx
 import React, { useState } from 'react';
 import { XMarkIcon, LinkIcon } from '@heroicons/react/24/outline';
 
+/* ─── Ivory/gold employee tokens ────────────────────────────────────── */
+const L = {
+  border:   'rgba(212,175,122,0.20)',
+  txt0:     '#1c1917',
+  txt1:     '#78716c',
+  txt2:     '#a8a29e',
+  accent:   '#a8761e',
+  accentL:  'rgba(168,118,30,0.07)',
+  surface:  '#fffefb',
+};
+
 const ShareModal = ({ file, open, onClose }) => {
   const [copied, setCopied] = useState(false);
+  const [closeHov, setCloseHov] = useState(false);
 
   if (!open || !file) return null;
 
@@ -19,59 +32,84 @@ const ShareModal = ({ file, open, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/70">
-      <div className="w-[90vw] max-w-md rounded-2xl bg-white p-5 shadow-2xl">
-        <div className="mb-3 flex items-center justify-between">
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 200,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(40,32,18,0.45)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+    }} onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '90vw', maxWidth: 420, borderRadius: 18, background: L.surface,
+          padding: 22, boxShadow: '0 30px 80px rgba(120,98,53,0.30)',
+          border: `1px solid ${L.border}`,
+        }}
+      >
+        <div style={{ marginBottom: 14, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">
+            <h2 style={{ fontSize: 14, fontWeight: 700, color: L.txt0, margin: 0 }}>
               Share this document
             </h2>
-            <p className="mt-1 text-[11px] text-slate-500">
+            <p style={{ marginTop: 5, fontSize: 11.5, color: L.txt2, lineHeight: 1.5 }}>
               Generate a share link to send this file to HR or your manager.
               (Actual access control will be handled in backend.)
             </p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-full border border-slate-200 p-1.5 text-slate-500 hover:bg-slate-50"
+            onMouseEnter={() => setCloseHov(true)}
+            onMouseLeave={() => setCloseHov(false)}
+            style={{
+              borderRadius: '50%', border: `1px solid ${L.border}`, padding: 7,
+              color: L.txt1, cursor: 'pointer', flexShrink: 0, transition: 'background 0.15s',
+              background: closeHov ? 'rgba(212,175,122,0.12)' : 'transparent',
+            }}
           >
-            <XMarkIcon className="h-4 w-4" />
+            <XMarkIcon style={{ width: 15, height: 15 }} />
           </button>
         </div>
 
-        <div className="rounded-xl bg-slate-50 p-3 text-xs">
-          <div className="flex items-center gap-2">
-            <LinkIcon className="h-4 w-4 text-indigo-500" />
-            <span className="font-medium text-slate-800">
+        <div style={{ borderRadius: 14, background: 'rgba(212,175,122,0.06)', border: `1px solid ${L.border}`, padding: 13 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <LinkIcon style={{ width: 15, height: 15, color: L.accent, flexShrink: 0 }} />
+            <span style={{ fontWeight: 700, color: L.txt0, fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {file.originalName}
             </span>
           </div>
-          <p className="mt-1 text-[11px] text-slate-500">
+          <p style={{ marginTop: 5, fontSize: 11.5, color: L.txt2 }}>
             {file.description || 'No description provided.'}
           </p>
         </div>
 
-        <div className="mt-3 text-xs">
-          <label className="mb-1 block text-[11px] font-medium text-slate-700">
+        <div style={{ marginTop: 14 }}>
+          <label style={{ marginBottom: 6, display: 'block', fontSize: 11.5, fontWeight: 700, color: L.txt1 }}>
             Shareable link
           </label>
-          <div className="flex items-center gap-2">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <input
               type="text"
               readOnly
               value={shareUrl}
-              className="flex-1 rounded-full border border-slate-300 px-3 py-1 text-[11px] text-slate-700"
+              style={{
+                flex: 1, borderRadius: 999, border: `1px solid ${L.border}`,
+                padding: '7px 13px', fontSize: 11.5, color: L.txt1,
+                background: 'rgba(212,175,122,0.04)', outline: 'none', fontFamily: 'inherit',
+              }}
             />
             <button
               onClick={copyLink}
-              className="rounded-full bg-indigo-600 px-3 py-1 text-[11px] font-semibold text-white hover:bg-indigo-700"
+              style={{
+                borderRadius: 999, background: copied ? '#059669' : L.accent,
+                padding: '7px 16px', fontSize: 11.5, fontWeight: 700, color: '#fff',
+                border: 'none', cursor: 'pointer', transition: 'background 0.15s', whiteSpace: 'nowrap',
+              }}
             >
               {copied ? 'Copied' : 'Copy'}
             </button>
           </div>
         </div>
 
-        <p className="mt-3 text-[11px] text-slate-500">
+        <p style={{ marginTop: 14, fontSize: 11.5, color: L.txt2, lineHeight: 1.5 }}>
           In a real deployment you can extend this panel to send the link by
           email, restrict access per user, or set expiry dates.
         </p>

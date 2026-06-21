@@ -1,6 +1,11 @@
+
 import { useEffect, useRef } from 'react';
 
-export const useWebSocket = (url, onMessage, onError) => {
+export const useWebSocket = (
+  url,
+  onMessage,
+  onError
+) => {
   const onMessageRef = useRef(onMessage);
   const onErrorRef = useRef(onError);
 
@@ -10,6 +15,9 @@ export const useWebSocket = (url, onMessage, onError) => {
   }, [onMessage, onError]);
 
   useEffect(() => {
+    // Don't create a socket if URL is null
+    if (!url) return;
+
     const token = localStorage.getItem('token');
     const wsUrl = `${url}?token=${token}`;
 
@@ -17,23 +25,49 @@ export const useWebSocket = (url, onMessage, onError) => {
 
     ws.onopen = () => {
       console.log('✅ WebSocket connected');
-      ws.send(JSON.stringify({ action: 'get_files' }));
+
+      // Only files socket needs initial data
+      if (url.includes('/ws/files/')) {
+        ws.send(
+          JSON.stringify({
+            action: 'get_files',
+          })
+        );
+      }
     };
 
     ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      onMessageRef.current?.(data);
+      try {
+        const data = JSON.parse(event.data);
+        onMessageRef.current?.(data);
+      } catch (err) {
+        console.error(
+          'Failed to parse websocket message:',
+          err
+        );
+      }
     };
 
     ws.onerror = (error) => {
-      console.error('❌ WebSocket error:', error);
+      console.error(
+        '❌ WebSocket error:',
+        error
+      );
+
       onErrorRef.current?.(error);
     };
 
-    ws.onclose = () => console.log('⚪ WebSocket disconnected');
+    ws.onclose = () => {
+      console.log(
+        '⚪ WebSocket disconnected'
+      );
+    };
 
     return () => {
-      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+      if (
+        ws.readyState === WebSocket.OPEN ||
+        ws.readyState === WebSocket.CONNECTING
+      ) {
         ws.close();
       }
     };

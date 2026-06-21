@@ -38,10 +38,15 @@ class JWTAuthMiddleware:
     def __init__(self, inner):
         self.inner = inner
 
-    async def __call__(self, scope):
+    async def __call__(self, scope, receive, send):
         query_string = scope.get('query_string', b'').decode('utf-8')
         query_params = parse_qs(query_string)
-        token_list = query_params.get('token') or query_params.get('authorization')
+
+        token_list = (
+            query_params.get('token')
+            or query_params.get('authorization')
+        )
+
         token = token_list[0] if token_list else None
 
         scope['user'] = AnonymousUser()
@@ -51,7 +56,7 @@ class JWTAuthMiddleware:
             if user is not None:
                 scope['user'] = user
 
-        return await self.inner(scope)
+        return await self.inner(scope, receive, send)
 
     @database_sync_to_async
     def get_user_from_token(self, token):

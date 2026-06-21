@@ -15,10 +15,13 @@ class UserSerializer(serializers.ModelSerializer):
  
         fields = [
             'id',
+            'employee_id',
             'username',
             'email',
             'first_name',
             'last_name',
+            'phone_number',
+            'designation',
             'role',
             'department',
             'profile_picture',
@@ -56,6 +59,8 @@ class UserRegistrationSerializer(
             'username',
             'first_name',
             'last_name',
+            'phone_number',
+            'designation',
             'password',
             'password2',
             'department',
@@ -137,33 +142,17 @@ class UserRegistrationSerializer(
         )
  
         user = CustomUser.objects.create(
- 
-            email=validated_data['email'],
- 
-            username=validated_data['username'],
- 
-            first_name=validated_data.get(
-                'first_name',
-                ''
-            ),
- 
-            last_name=validated_data.get(
-                'last_name',
-                ''
-            ),
- 
-            department=validated_data.get(
-                'department',
-                'General'
-            ),
- 
-            role='employee',
- 
-            # pending admin approval
-            is_active=False,
- 
-            is_approved=False,
-        )
+    email=validated_data['email'],
+    username=validated_data['username'],
+    first_name=validated_data.get('first_name', ''),
+    last_name=validated_data.get('last_name', ''),
+    department=validated_data.get('department', 'General'),
+    phone_number=validated_data.get('phone_number', ''),
+    designation=validated_data.get('designation', ''),
+    role='employee',
+    is_active=False,
+    is_approved=False,
+)
  
         # HASH PASSWORD
         user.password = make_password(

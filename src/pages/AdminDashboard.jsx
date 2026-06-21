@@ -1,41 +1,16 @@
-import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
-import {
-  FunnelIcon,
-  DocumentTextIcon,
-  UsersIcon,
-  ClockIcon,
-  PlusCircleIcon,
-  MagnifyingGlassIcon,
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  ShieldCheckIcon,
-  XCircleIcon,
-  EyeIcon,
-  NoSymbolIcon,
-  BellIcon,
-  ArrowDownTrayIcon,
-  TrashIcon,
-  ChartBarIcon,
-  AdjustmentsHorizontalIcon,
-  ArrowPathIcon,
-  InformationCircleIcon,
-  CalendarDaysIcon,
-  FlagIcon,
-  ListBulletIcon,
-  Squares2X2Icon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  XMarkIcon,
-  CheckIcon,
-  ArrowUpIcon,
-  ArrowDownIcon,
-} from '@heroicons/react/24/outline';
-import { BellIcon as BellSolid } from '@heroicons/react/24/solid';
+// AdminDashboard.jsx — WTS Admin, restyled to ssKatt's dark SaaS/PaaS aesthetic
+// All state, handlers, memos, effects, and the WebSocket integration are unchanged
+// from the original Tailwind/Heroicons version. Only presentation (inline styles +
+// custom SVG icons instead of Tailwind classes + Heroicons) has been replaced.
+
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useAuth } from '../context/AuthContext';
 import { useFiles } from '../context/FilesContext';
 import { useTasks } from '../context/TasksContext';
+import { useNotifications } from '../context/NotificationsContext';
+import { api } from '../api';
 
 import FileList from '../components/FileList';
 import PreviewModal from '../components/PreviewModal';
@@ -44,21 +19,60 @@ import ReviewModal from '../components/ReviewModal';
 import StatusBadge from '../components/StatusBadge';
 import { isSameDay, isWithinDays } from '../utils/dateUtils';
 
+// ─── Design Tokens — true-black premium SaaS palette ──────────────────────
+// Pure black canvas (not navy-tinted) with glass-morphism surfaces: panels
+// are translucent + blurred rather than flat fills, so depth comes from
+// layering, not from saturated color.
+const T = {
+  bg0: '#000000',
+  bg1: '#000000',
+  bg2: 'rgba(255,255,255,0.035)',
+  bg3: 'rgba(255,255,255,0.055)',
+  bg4: 'rgba(255,255,255,0.085)',
+  glass: 'rgba(20,20,22,0.55)',
+  glassBorder: 'rgba(255,255,255,0.09)',
+  bdr0: 'rgba(255,255,255,0.05)',
+  bdr1: 'rgba(255,255,255,0.09)',
+  bdr2: 'rgba(255,255,255,0.15)',
+  accent: '#5b8def',
+  accentB: '#4877dd',
+  accentL: 'rgba(91,141,239,0.14)',
+  accentG: 'rgba(91,141,239,0.07)',
+  txt0: '#f5f6fa',
+  txt1: '#9aa1b8',
+  txt2: '#5c6178',
+  emerald: '#34d399',
+  emeraldD: 'rgba(52,211,153,0.10)',
+  amber: '#f0b14d',
+  amberD: 'rgba(240,177,77,0.10)',
+  rose: '#f0708a',
+  roseD: 'rgba(240,112,138,0.10)',
+  violet: '#a78bfa',
+  violetD: 'rgba(167,139,250,0.10)',
+  cyan: '#22d3ee',
+  cyanD: 'rgba(34,211,238,0.10)',
+  // Neutral tone used for the "no-color" toggle/status look the dashboard
+  // standardizes on — active states read via weight/opacity, not hue.
+  neutral: '#c4c9da',
+  neutralDim: '#5c6178',
+};
+
 /* ─── Constants ──────────────────────────────────────────────────────── */
 const ITEMS_PER_PAGE = 10;
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 const WS_BASE_URL = import.meta.env.VITE_WS_URL || API_BASE_URL.replace(/^http/, 'ws').replace(/\/api$/, '');
+console.log('WS URL:', WS_BASE_URL);
 
 const PRIORITY_CONFIG = {
-  low: { label: 'Low', color: 'text-slate-500', bg: 'bg-slate-100', border: 'border-slate-200', dot: 'bg-slate-400' },
-  medium: { label: 'Medium', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', dot: 'bg-amber-400' },
-  high: { label: 'High', color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-200', dot: 'bg-rose-400' },
+  low: { label: 'Low', color: T.txt1, bg: 'rgba(160,168,192,0.1)', border: 'rgba(160,168,192,0.15)', dot: T.txt2 },
+  medium: { label: 'Medium', color: T.amber, bg: T.amberD, border: 'rgba(245,166,35,0.2)', dot: T.amber },
+  high: { label: 'High', color: T.rose, bg: T.roseD, border: 'rgba(255,95,126,0.2)', dot: T.rose },
 };
 
 const TASK_STATUS_CONFIG = {
-  pending: { label: 'Pending', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', dot: 'bg-amber-400' },
-  in_progress: { label: 'In Progress', color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200', dot: 'bg-blue-400' },
-  done: { label: 'Done', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-400' },
+  pending: { label: 'Pending', color: T.amber, bg: T.amberD, border: 'rgba(245,166,35,0.2)', dot: T.amber },
+  in_progress: { label: 'In Progress', color: T.accent, bg: T.accentL, border: 'rgba(59,124,255,0.2)', dot: T.accent },
+  done: { label: 'Done', color: T.emerald, bg: T.emeraldD, border: 'rgba(16,232,160,0.2)', dot: T.emerald },
 };
 
 /* ─── Helpers ─────────────────────────────────────────────────────────── */
@@ -108,6 +122,17 @@ const timeAgo = (date) => {
   return `${Math.floor(hrs / 24)}d ago`;
 };
 
+const getGreeting = (date = new Date()) => {
+  const h = date.getHours();
+  if (h < 5) return 'Good night';
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  if (h < 21) return 'Good evening';
+  return 'Good night';
+};
+
+const firstName = (name = '') => name.trim().split(' ')[0] || name;
+
 const exportToCSV = (data, filename) => {
   if (!data.length) return;
   const keys = Object.keys(data[0]);
@@ -124,208 +149,298 @@ const exportToCSV = (data, filename) => {
   URL.revokeObjectURL(url);
 };
 
+// ─── Icons (inline SVG, replacing @heroicons/react) ───────────────────────
+const I = {
+  Funnel: (p) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" /></svg>,
+  Doc: (p) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>,
+  Users: (p) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" {...p}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>,
+  Clock: (p) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" {...p}><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>,
+  PlusCircle: (p) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>,
+  Search: (p) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...p}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>,
+  CheckCircle: (p) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><circle cx="12" cy="12" r="10" /><polyline points="9 12 11 14 16 9" /></svg>,
+  ExclCircle: (p) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>,
+  Shield: (p) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>,
+  XCircle: (p) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>,
+  Eye: (p) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>,
+  NoSymbol: (p) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><circle cx="12" cy="12" r="10" /><line x1="4.9" y1="4.9" x2="19.1" y2="19.1" /></svg>,
+  Download: (p) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>,
+  Trash: (p) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>,
+  Chart: (p) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" {...p}><rect x="3" y="12" width="4" height="9" rx="1" /><rect x="9.5" y="7" width="4" height="14" rx="1" /><rect x="16" y="4" width="4" height="17" rx="1" /></svg>,
+  Adjustments: (p) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" {...p}><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" /></svg>,
+  Refresh: (p) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg>,
+  Info: (p) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>,
+  Calendar: (p) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>,
+  Flag: (p) => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" /></svg>,
+  ListBullet: (p) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>,
+  Grid: (p) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" {...p}><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>,
+  ChevLeft: (p) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...p}><polyline points="15 18 9 12 15 6" /></svg>,
+  ChevRight: (p) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...p}><polyline points="9 18 15 12 9 6" /></svg>,
+  X: (p) => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" {...p}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>,
+  Check: (p) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" {...p}><polyline points="20 6 9 17 4 12" /></svg>,
+  ArrowUp: (p) => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" {...p}><line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" /></svg>,
+  ArrowDown: (p) => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" {...p}><line x1="12" y1="5" x2="12" y2="19" /><polyline points="19 12 12 19 5 12" /></svg>,
+  ArrowPath: (p) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg>,
+  UserPlus: (p) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="17" y1="11" x2="23" y2="11" /></svg>,
+  Lock: (p) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>,
+  Mail: (p) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><rect x="2" y="4" width="20" height="16" rx="2" /><path d="M22 6 12 13 2 6" /></svg>,
+  Briefcase: (p) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>,
+  UserKey: (p) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" {...p}><circle cx="9" cy="8" r="4" /><path d="M2 21v-2a4 4 0 0 1 4-4h2.5" /><circle cx="18" cy="16" r="3" /><path d="M20.5 13.5 22 12" /></svg>,
+  Sparkle: (p) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" {...p}><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8" /></svg>,
+};
+
 /* ─── Reusable Components ─────────────────────────────────────────────── */
 
 // Toast notification
 const Toast = ({ toasts, removeToast }) => (
-  <div className="fixed bottom-6 right-6 z-[100] space-y-2 pointer-events-none">
-    {toasts.map((t) => (
-      <div
-        key={t.id}
-        className={`pointer-events-auto flex items-center gap-3 rounded-2xl px-4 py-3 shadow-2xl border text-sm font-medium animate-slide-up
-        ${
-          t.type === 'success'
-            ? 'bg-emerald-900 border-emerald-700 text-emerald-100'
-            : t.type === 'error'
-            ? 'bg-rose-900 border-rose-700 text-rose-100'
-            : 'bg-slate-900 border-slate-700 text-slate-100'
-        }`}
-      >
-        {t.type === 'success' && (
-          <CheckCircleIcon className="h-4 w-4 text-emerald-400 flex-shrink-0" />
-        )}
-        {t.type === 'error' && (
-          <XCircleIcon className="h-4 w-4 text-rose-400 flex-shrink-0" />
-        )}
-        {t.type === 'info' && (
-          <InformationCircleIcon className="h-4 w-4 text-blue-400 flex-shrink-0" />
-        )}
-        <span>{t.message}</span>
-        <button
-          onClick={() => removeToast(t.id)}
-          className="ml-2 opacity-60 hover:opacity-100"
-        >
-          <XMarkIcon className="h-3.5 w-3.5" />
-        </button>
-      </div>
-    ))}
+  <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none' }}>
+    {toasts.map((t) => {
+      const colors = {
+        success: { bg: '#0d2e22', border: 'rgba(16,232,160,0.3)', text: '#bdf5dd', icon: T.emerald },
+        error: { bg: '#341019', border: 'rgba(255,95,126,0.3)', text: '#ffd2dc', icon: T.rose },
+        info: { bg: T.bg3, border: T.bdr2, text: T.txt0, icon: T.accent },
+      };
+      const c = colors[t.type] || colors.info;
+      return (
+        <div key={t.id} style={{ pointerEvents: 'all', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px', borderRadius: 16, background: c.bg, border: `1px solid ${c.border}`, boxShadow: '0 8px 40px rgba(0,0,0,0.5)', animation: 'slideUp 0.28s cubic-bezier(.16,1,.3,1)', minWidth: 220, maxWidth: 340, fontSize: 13.5, fontWeight: 500, color: c.text }}>
+          {t.type === 'success' && <I.CheckCircle style={{ color: c.icon, flexShrink: 0 }} />}
+          {t.type === 'error' && <I.XCircle style={{ color: c.icon, flexShrink: 0 }} />}
+          {t.type === 'info' && <I.Info style={{ color: c.icon, flexShrink: 0 }} />}
+          <span style={{ flex: 1 }}>{t.message}</span>
+          <button onClick={() => removeToast(t.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.text, opacity: 0.6, display: 'flex', padding: 2 }}>
+            <I.X />
+          </button>
+        </div>
+      );
+    })}
   </div>
 );
 
-// Stat Card
+// Stat Card — glass-morphism: translucent blurred surface tinted with a
+// soft color wash + a saturated icon chip, so cards read as "premium dark
+// glass" rather than flat color tiles or pure poster-gradients.
+const STAT_TINTS = {
+  indigo: { wash: 'rgba(91,141,239,0.16)', edge: 'rgba(91,141,239,0.30)', icon: '#7aa2f5' },
+  amber: { wash: 'rgba(240,177,77,0.16)', edge: 'rgba(240,177,77,0.30)', icon: '#f0b14d' },
+  emerald: { wash: 'rgba(52,211,153,0.16)', edge: 'rgba(52,211,153,0.30)', icon: '#34d399' },
+  violet: { wash: 'rgba(167,139,250,0.16)', edge: 'rgba(167,139,250,0.30)', icon: '#a78bfa' },
+  rose: { wash: 'rgba(240,112,138,0.16)', edge: 'rgba(240,112,138,0.30)', icon: '#f0708a' },
+  sky: { wash: 'rgba(34,211,238,0.16)', edge: 'rgba(34,211,238,0.30)', icon: '#22d3ee' },
+};
 const StatCard = ({ icon: Icon, label, value, sub, trend, color, onClick }) => {
-  const colors = {
-    indigo: 'from-indigo-600 to-indigo-800',
-    amber: 'from-amber-500 to-orange-600',
-    emerald: 'from-emerald-600 to-teal-700',
-    violet: 'from-violet-600 to-purple-800',
-    rose: 'from-rose-500 to-rose-700',
-    sky: 'from-sky-500 to-cyan-700',
-  };
+  const [hov, setHov] = useState(false);
+  const tint = STAT_TINTS[color] || STAT_TINTS.indigo;
   return (
     <button
       onClick={onClick}
       type="button"
-      className={`relative overflow-hidden rounded-2xl p-5 shadow-lg bg-gradient-to-br ${
-        colors[color] || colors.indigo
-      } hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 w-full text-left group`}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        position: 'relative', overflow: 'hidden', borderRadius: 18, padding: '18px 20px',
+        background: `linear-gradient(160deg, ${tint.wash}, rgba(255,255,255,0.025))`,
+        backdropFilter: 'blur(18px) saturate(160%)', WebkitBackdropFilter: 'blur(18px) saturate(160%)',
+        border: `1px solid ${hov ? tint.edge : 'rgba(255,255,255,0.08)'}`, cursor: 'pointer',
+        textAlign: 'left', width: '100%', transition: 'transform 0.18s, border-color 0.18s, box-shadow 0.18s',
+        transform: hov ? 'translateY(-2px)' : 'none',
+        boxShadow: hov ? `0 16px 40px rgba(0,0,0,0.5), 0 0 0 1px ${tint.edge}` : '0 4px 20px rgba(0,0,0,0.35)',
+        fontFamily: 'inherit',
+      }}
     >
-      <div className="absolute -top-8 -right-8 h-24 w-24 rounded-full bg-white/5 group-hover:scale-110 transition-transform duration-300" />
-      <div className="absolute -bottom-6 -left-6 h-16 w-16 rounded-full bg-white/5" />
-      <div className="relative">
-        <div className="flex items-start justify-between mb-3">
-          <div className="rounded-xl bg-white/15 p-2.5 backdrop-blur-sm">
-            <Icon className="h-5 w-5 text-white" />
+      <div style={{ position: 'absolute', top: -40, right: -40, width: 120, height: 120, borderRadius: '50%', background: tint.wash, filter: 'blur(20px)', pointerEvents: 'none' }} />
+      <div style={{ position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{ borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: `1px solid ${tint.edge}`, padding: 9, display: 'flex' }}>
+            <Icon style={{ color: tint.icon }} />
           </div>
           {trend !== undefined && (
-            <div
-              className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold
-              ${
-                trend >= 0
-                  ? 'bg-white/20 text-white'
-                  : 'bg-black/20 text-white/80'
-              }`}
-            >
-              {trend >= 0 ? (
-                <ArrowUpIcon className="h-2.5 w-2.5" />
-              ) : (
-                <ArrowDownIcon className="h-2.5 w-2.5" />
-              )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 3, borderRadius: 999, padding: '2px 7px', fontSize: 10, fontWeight: 700, background: 'rgba(255,255,255,0.06)', color: T.txt1, border: `1px solid ${T.bdr1}` }}>
+              {trend >= 0 ? <I.ArrowUp /> : <I.ArrowDown />}
               {Math.abs(trend)}%
             </div>
           )}
         </div>
-        <p className="text-2xl font-black text-white tracking-tight">{value}</p>
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-white/60 mt-0.5">
-          {label}
-        </p>
-        {sub && <p className="text-[10px] text-white/50 mt-1">{sub}</p>}
+        <p style={{ fontSize: '1.7rem', fontWeight: 700, color: T.txt0, letterSpacing: '-0.02em', margin: 0, lineHeight: 1 }}>{value}</p>
+        <p style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: T.txt1, margin: '7px 0 0' }}>{label}</p>
+        {sub && <p style={{ fontSize: 10.5, color: T.txt2, margin: '3px 0 0' }}>{sub}</p>}
       </div>
     </button>
   );
 };
 
-// Notification Panel
-const NotificationPanel = ({ notifications, onClear, onClearAll }) => (
-  <div className="absolute right-0 top-12 z-50 w-80 rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden">
-    <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-      <p className="text-sm font-bold text-slate-900">Notifications</p>
-      {notifications.length > 0 && (
-        <button
-          onClick={onClearAll}
-          className="text-[11px] text-indigo-600 hover:underline font-medium"
-        >
-          Clear all
-        </button>
-      )}
-    </div>
-    <div className="max-h-80 overflow-y-auto">
-      {notifications.length === 0 ? (
-        <div className="py-10 text-center">
-          <BellIcon className="h-8 w-8 text-slate-300 mx-auto" />
-          <p className="mt-2 text-xs text-slate-400">No notifications</p>
-        </div>
-      ) : (
-        notifications.map((n) => (
-          <div
-            key={n.id}
-            className="flex items-start gap-3 border-b border-slate-50 px-4 py-3 hover:bg-slate-50 transition-colors"
-          >
-            <div
-              className={`mt-0.5 h-2 w-2 flex-shrink-0 rounded-full ${
-                n.type === 'file'
-                  ? 'bg-indigo-500'
-                  : n.type === 'employee'
-                  ? 'bg-amber-500'
-                  : 'bg-emerald-500'
-              }`}
-            />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-slate-800">
-                {n.title}
-              </p>
-              <p className="text-[11px] text-slate-500">{n.message}</p>
-              <p className="text-[10px] text-slate-400 mt-0.5">
-                {timeAgo(n.time)}
-              </p>
-            </div>
-            <button
-              onClick={() => onClear(n.id)}
-              className="text-slate-400 hover:text-slate-600"
-            >
-              <XMarkIcon className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        ))
-      )}
-    </div>
-  </div>
-);
 
-// Pagination
+// ─── Employee Status Toggle ────────────────────────────────────────────
+// A single sliding switch that fully replaces the old Approve/Decline and
+// Activate/Deactivate button pairs.
+//   pending  → slide right = Approve   · slide left = Decline (confirms)
+//   active   → slide right = stays Active · slide left = Deactivate (confirms)
+//   inactive → slide right = Reactivate  · slide left = stays Deactivated
+// The thumb position is fully controlled by `mode`, which reflects the real
+// employee record — not local optimistic state. This matters because
+// Deactivate/Decline route through a confirm dialog the admin can cancel;
+// if the thumb moved on click alone, cancelling would leave it stuck in the
+// wrong position. It only moves once refreshEmployees() confirms the change.
+//
+// Deliberately colorless: the switch communicates state through position,
+// weight, and opacity only (no green/red), matching the no-color request —
+// a status pill (StatusPill) carries the one allowed accent dot instead.
+const TOGGLE_COPY = {
+  pending: { onLabel: 'Approve', offLabel: 'Decline', isOn: false },
+  active: { onLabel: 'Active', offLabel: 'Deactivate', isOn: true },
+  inactive: { onLabel: 'Reactivate', offLabel: 'Deactivated', isOn: false },
+};
+
+const EmployeeStatusToggle = ({ mode, busy, onActivate, onDeactivate }) => {
+  const cfg = TOGGLE_COPY[mode] || TOGGLE_COPY.active;
+  const isOn = cfg.isOn;
+  const [hovSide, setHovSide] = useState(null); // 'on' | 'off' | null
+
+  const handleClick = (targetOn) => {
+    if (busy || targetOn === isOn) return;
+    if (targetOn) {
+      onActivate?.();
+    } else {
+      onDeactivate?.();
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, opacity: busy ? 0.55 : 1 }}>
+      <span
+        onClick={() => handleClick(false)}
+        onMouseEnter={() => setHovSide('off')}
+        onMouseLeave={() => setHovSide(null)}
+        style={{
+          fontSize: 10.5, fontWeight: !isOn ? 700 : 600, cursor: busy ? 'default' : 'pointer', userSelect: 'none',
+          color: !isOn ? T.txt0 : (hovSide === 'off' ? T.txt1 : T.txt2),
+          transition: 'color 0.15s',
+        }}
+      >
+        {cfg.offLabel}
+      </span>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={isOn}
+        aria-busy={busy || undefined}
+        disabled={busy}
+        onClick={() => handleClick(!isOn)}
+        title={isOn ? cfg.onLabel : cfg.offLabel}
+        style={{
+          position: 'relative', width: 44, height: 25, borderRadius: 999, flexShrink: 0,
+          border: `1px solid ${T.bdr2}`,
+          background: isOn ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.05)',
+          cursor: busy ? 'not-allowed' : 'pointer', padding: 0,
+          transition: 'background 0.2s, border-color 0.2s',
+        }}
+      >
+        <span
+          style={{
+            position: 'absolute', top: 2, left: isOn ? 21 : 2, width: 19, height: 19, borderRadius: '50%',
+            background: isOn ? T.txt0 : T.txt2, boxShadow: '0 2px 6px rgba(0,0,0,0.45)',
+            transition: 'left 0.22s cubic-bezier(.4,0,.2,1), background 0.2s',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          {busy && (
+            <span
+              style={{
+                width: 9, height: 9, borderRadius: '50%',
+                border: '2px solid rgba(0,0,0,0.25)', borderTopColor: 'rgba(0,0,0,0.65)',
+                animation: 'spin 0.6s linear infinite',
+              }}
+            />
+          )}
+        </span>
+      </button>
+
+      <span
+        onClick={() => handleClick(true)}
+        onMouseEnter={() => setHovSide('on')}
+        onMouseLeave={() => setHovSide(null)}
+        style={{
+          fontSize: 10.5, fontWeight: isOn ? 700 : 600, cursor: busy ? 'default' : 'pointer', userSelect: 'none',
+          color: isOn ? T.txt0 : (hovSide === 'on' ? T.txt1 : T.txt2),
+          transition: 'color 0.15s',
+        }}
+      >
+        {cfg.onLabel}
+      </span>
+    </div>
+  );
+};
+
+// StatusPill — small neutral badge used next to names instead of a colored
+// "Active" word; communicates state via a dot + weight, not hue, so lists
+// don't look like a stoplight.
+const StatusPill = ({ mode }) => {
+  const copy = { pending: 'Pending', active: 'Active', inactive: 'Deactivated' }[mode] || mode;
+  const dotOn = mode === 'active';
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 999, padding: '3px 10px 3px 8px',
+      fontSize: 10.5, fontWeight: 600, color: T.txt1, background: 'rgba(255,255,255,0.04)', border: `1px solid ${T.bdr1}`,
+    }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: dotOn ? T.txt0 : T.txt2 }} />
+      {copy}
+    </span>
+  );
+};
+
+// Pagination — bottom-right, prev/next only. No page-number buttons: just
+// the current position ("3 of 12") and two arrows. The boundary arrow is
+// removed entirely (not just disabled) on the first/last page, since a
+// dimmed-but-present arrow still implies "you could click forward."
 const Pagination = ({ current, total, onChange }) => {
   if (total <= 1) return null;
-  const pages = Array.from({ length: total }, (_, i) => i + 1);
+  const btnBase = {
+    display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 10,
+    border: `1px solid ${T.bdr1}`, background: 'rgba(255,255,255,0.03)', color: T.txt1, cursor: 'pointer',
+    fontFamily: 'inherit', fontSize: 12, transition: 'background 0.15s, border-color 0.15s',
+  };
+  const isFirst = current === 1;
+  const isLast = current === total;
   return (
-    <div className="flex items-center justify-center gap-1 py-4">
-      <button
-        onClick={() => onChange(current - 1)}
-        disabled={current === 1}
-        className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-      >
-        <ChevronLeftIcon className="h-4 w-4" />
-      </button>
-      {pages.map((p) => (
-        <button
-          key={p}
-          onClick={() => onChange(p)}
-          className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold transition
-            ${
-              p === current
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
-            }`}
-        >
-          {p}
-        </button>
-      ))}
-      <button
-        onClick={() => onChange(current + 1)}
-        disabled={current === total}
-        className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-      >
-        <ChevronRightIcon className="h-4 w-4" />
-      </button>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 14, padding: '14px 20px' }}>
+      <span style={{ fontSize: 11.5, color: T.txt2, fontWeight: 500 }}>
+        Page <span style={{ color: T.txt0, fontWeight: 700 }}>{current}</span> of {total}
+      </span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        {!isFirst && (
+          <button
+            onClick={() => onChange(current - 1)}
+            style={btnBase}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.borderColor = T.bdr2; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = T.bdr1; }}
+            aria-label="Previous page"
+          >
+            <I.ChevLeft />
+          </button>
+        )}
+        {!isLast && (
+          <button
+            onClick={() => onChange(current + 1)}
+            style={btnBase}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.borderColor = T.bdr2; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = T.bdr1; }}
+            aria-label="Next page"
+          >
+            <I.ChevRight />
+          </button>
+        )}
+      </div>
     </div>
   );
 };
 
 // Mini bar chart
-const MiniBarChart = ({ data, color = '#6366f1' }) => {
+const MiniBarChart = ({ data, color = T.accent }) => {
   const max = Math.max(...data.map((d) => d.value), 1);
   return (
-    <div className="flex items-end gap-1 h-12">
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 48 }}>
       {data.map((d, i) => (
-        <div key={i} className="flex-1 flex flex-col items-center gap-0.5 group">
-          <div
-            className="w-full rounded-t-sm transition-all duration-300 group-hover:opacity-80"
-            style={{
-              height: `${(d.value / max) * 100}%`,
-              backgroundColor: color,
-              minHeight: d.value > 0 ? 4 : 0,
-            }}
-            title={`${d.label}: ${d.value}`}
-          />
+        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }} title={`${d.label}: ${d.value}`}>
+          <div style={{ width: '100%', borderRadius: '3px 3px 0 0', transition: 'opacity 0.2s', height: `${(d.value / max) * 100}%`, minHeight: d.value > 0 ? 4 : 0, background: color }} />
         </div>
       ))}
     </div>
@@ -336,37 +451,16 @@ const MiniBarChart = ({ data, color = '#6366f1' }) => {
 const ConfirmDialog = ({ open, title, message, onConfirm, onCancel, danger }) => {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6">
-        <div
-          className={`flex h-12 w-12 items-center justify-center rounded-full mb-4 ${
-            danger ? 'bg-rose-100' : 'bg-indigo-100'
-          }`}
-        >
-          {danger ? (
-            <XCircleIcon className="h-6 w-6 text-rose-600" />
-          ) : (
-            <InformationCircleIcon className="h-6 w-6 text-indigo-600" />
-          )}
+    <div onClick={e => e.target === e.currentTarget && onCancel()} style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', padding: 16 }}>
+      <div style={{ width: '100%', maxWidth: 380, borderRadius: 18, background: '#0a0a0c', border: `1px solid ${T.bdr2}`, boxShadow: '0 32px 80px rgba(0,0,0,0.7)', padding: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 48, height: 48, borderRadius: '50%', marginBottom: 16, background: danger ? T.roseD : T.accentL }}>
+          {danger ? <I.XCircle style={{ width: 22, height: 22, color: T.rose }} /> : <I.Info style={{ width: 22, height: 22, color: T.accent }} />}
         </div>
-        <h3 className="text-base font-bold text-slate-900">{title}</h3>
-        <p className="mt-1 text-sm text-slate-500">{message}</p>
-        <div className="mt-5 flex gap-3">
-          <button
-            onClick={onCancel}
-            className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            className={`flex-1 rounded-xl py-2.5 text-sm font-semibold text-white transition
-              ${
-                danger ? 'bg-rose-600 hover:bg-rose-700' : 'bg-indigo-600 hover:bg-indigo-700'
-              }`}
-          >
-            Confirm
-          </button>
+        <h3 style={{ fontSize: 15.5, fontWeight: 600, color: T.txt0, margin: 0 }}>{title}</h3>
+        <p style={{ marginTop: 6, fontSize: 13, color: T.txt1 }}>{message}</p>
+        <div style={{ marginTop: 20, display: 'flex', gap: 10 }}>
+          <button onClick={onCancel} style={{ flex: 1, borderRadius: 11, border: `1px solid ${T.bdr1}`, padding: '10px', fontSize: 13.5, fontWeight: 500, color: T.txt1, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+          <button onClick={onConfirm} style={{ flex: 1, borderRadius: 11, border: 'none', padding: '10px', fontSize: 13.5, fontWeight: 600, color: '#fff', background: danger ? T.rose : T.accent, cursor: 'pointer', fontFamily: 'inherit' }}>Confirm</button>
         </div>
       </div>
     </div>
@@ -375,44 +469,39 @@ const ConfirmDialog = ({ open, title, message, onConfirm, onCancel, danger }) =>
 
 // Pending Review Row
 const PendingRow = ({ file, onReview, selected, onSelect }) => (
-  <li
-    className={`flex items-center gap-4 rounded-xl border px-4 py-3 transition-all
-    ${
-      selected
-        ? 'border-indigo-300 bg-indigo-50/60'
-        : 'border-amber-100 bg-amber-50/40 hover:bg-amber-50 hover:shadow-sm'
-    }`}
-  >
-    <input
-      type="checkbox"
-      checked={selected}
-      onChange={onSelect}
-      className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 flex-shrink-0"
-    />
-    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-amber-100">
-      <DocumentTextIcon className="h-4 w-4 text-amber-600" />
+  <li style={{
+    display: 'flex', alignItems: 'center', gap: 14, borderRadius: 13, padding: '12px 16px',
+    border: `1px solid ${selected ? 'rgba(59,124,255,0.35)' : 'rgba(245,166,35,0.18)'}`,
+    background: selected ? T.accentG : 'rgba(245,166,35,0.04)', transition: 'all 0.15s', listStyle: 'none',
+  }}>
+    <input type="checkbox" checked={selected} onChange={onSelect} style={{ width: 15, height: 15, accentColor: T.accent, cursor: 'pointer', flexShrink: 0 }} />
+    <div style={{ display: 'flex', height: 36, width: 36, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderRadius: 11, background: T.amberD }}>
+      <I.Doc style={{ color: T.amber }} />
     </div>
-    <div className="min-w-0 flex-1">
-      <p className="truncate text-sm font-semibold text-slate-800">
-        {file.originalName}
-      </p>
-      <p className="text-[11px] text-slate-500">
-        {file.userName} · {file.userEmail}
-      </p>
+    <div style={{ minWidth: 0, flex: 1 }}>
+      <p style={{ fontSize: 13.5, fontWeight: 600, color: T.txt0, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.originalName}</p>
+      <p style={{ fontSize: 11.5, color: T.txt2, margin: '2px 0 0' }}>{file.userName} · {file.userEmail}</p>
     </div>
-    <div className="hidden md:block text-[11px] text-slate-400">
-      {timeAgo(file.createdAt)}
-    </div>
+    <div style={{ fontSize: 11.5, color: T.txt2, flexShrink: 0 }}>{timeAgo(file.createdAt)}</div>
     <StatusBadge status={file.status} size="sm" />
-    <button
-      onClick={() => onReview(file)}
-      className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-indigo-700 active:scale-95 transition-all shadow-sm"
-      type="button"
-    >
-      <EyeIcon className="h-3.5 w-3.5" />
-      Review
+    <button onClick={() => onReview(file)} type="button" style={{
+      display: 'flex', alignItems: 'center', gap: 6, borderRadius: 10, background: T.accent, padding: '7px 13px',
+      fontSize: 11.5, fontWeight: 700, color: '#fff', border: 'none', cursor: 'pointer', flexShrink: 0,
+      boxShadow: '0 4px 14px rgba(59,124,255,0.3)', fontFamily: 'inherit',
+    }}>
+      <I.Eye /> Review
     </button>
   </li>
+);
+
+// Card — generic glass panel wrapper
+const Card = ({ children, style = {} }) => (
+  <div style={{
+    background: T.glass, backdropFilter: 'blur(22px) saturate(160%)', WebkitBackdropFilter: 'blur(22px) saturate(160%)',
+    border: `1px solid ${T.glassBorder}`, borderRadius: 18, padding: 18, ...style,
+  }}>
+    {children}
+  </div>
 );
 
 /* ─── Main Component ──────────────────────────────────────────────────── */
@@ -424,24 +513,66 @@ const AdminDashboard = () => {
     deactivateEmployee,
     reactivateEmployee,
     rejectEmployee,
+    createUser,
   } = useAuth();
+  if (user?.role !== 'admin') {
+  return null;
+}
   const { files, updateFileStatus } = useFiles();
   const { tasks, addTask, updateTaskStatus, deleteTask } = useTasks();
+  const { pushNotification } = useNotifications();
 
   /* ── State ── */
   const [fileList, setFileList] = useState(files || []);
   const [employees, setEmployees] = useState([]);
   const [adminError, setAdminError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [viewMode, setViewMode] = useState('list'); // for future list/grid support
-  const [notifications, setNotifications] = useState([]);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [toasts, setToasts] = useState([]);
   const [auditLog, setAuditLog] = useState([]);
+  const [dashboardStats, setDashboardStats] = useState({
+  employees: 0,
+  activeEmployees: 0,
+  inactiveEmployees: 0,
+  pendingApprovals: 0,
+  rejectedEmployees: 0,
+  tasks: 0,
+  completedTasks: 0,
+  pendingTasks: 0,
+  files: 0,
+  approvedFiles: 0,
+  rejectedFiles: 0,
+  pendingFiles: 0,
+});
+  const fetchActivityLogs = useCallback(async () => {
+  try {
+    const response = await api.get('/activity/');
+    setAuditLog(response.data);
+  } catch (error) {
+    console.error(
+      'Failed to fetch activity logs:',
+      error
+    );
+  }
+}, []);
+
+const fetchDashboardStats = useCallback(async () => {
+  try {
+    const response = await api.get('/dashboard/admin/');
+    setDashboardStats(response.data);
+  } catch (error) {
+    console.error(
+      'Failed to fetch dashboard stats:',
+      error
+    );
+  }
+}, []);
+
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [empSearch, setEmpSearch] = useState('');
   const [empTab, setEmpTab] = useState('active'); // 'pending'|'active'|'inactive'
-  const notifRef = useRef(null);
+  const [busyEmployeeIds, setBusyEmployeeIds] = useState(new Set());
 
   /* ── File Filters ── */
   const [range, setRange] = useState('30d');
@@ -472,6 +603,37 @@ const AdminDashboard = () => {
   const [shareFile, setShareFile] = useState(null);
   const [reviewFile, setReviewFile] = useState(null);
 
+  /* ── User Management (create admin/employee accounts directly) ── */
+  const [userForm, setUserForm] = useState({
+    name: '', email: '', password: '', role: 'employee', department: '',
+  });
+  const [userFormOpen, setUserFormOpen] = useState(false);
+  const [userFormSubmitting, setUserFormSubmitting] = useState(false);
+  const [userFormError, setUserFormError] = useState('');
+  const [createdUsersLog, setCreatedUsersLog] = useState([]); // session-local feed of users created from this tab
+
+  /* ── Live clock (drives the greeting; ticks once a minute so "Good
+     morning" rolls over to "Good afternoon" without a page refresh) ── */
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(id);
+  }, []);
+
+  const greeting = useMemo(() => getGreeting(now), [now]);
+  const greetingEmoji = useMemo(() => {
+    const h = now.getHours();
+    if (h < 5) return '🌙';
+    if (h < 12) return '☀️';
+    if (h < 17) return '🌤️';
+    if (h < 21) return '🌆';
+    return '🌙';
+  }, [now]);
+  const todayLabel = useMemo(
+    () => now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' }),
+    [now],
+  );
+
   /* ── Init ── */
   useEffect(() => {
     setFileList(files || []);
@@ -495,18 +657,15 @@ const AdminDashboard = () => {
     refreshEmployees();
   }, [refreshEmployees]);
 
-  /* ── Click outside notif ── */
   useEffect(() => {
-    const handler = (e) => {
-      if (notifRef.current && !notifRef.current.contains(e.target)) {
-        setShowNotifications(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
+  fetchActivityLogs();
+}, [fetchActivityLogs]);
 
-  /* ── Toast helpers ── */
+useEffect(() => {
+  fetchDashboardStats();
+}, [fetchDashboardStats]);
+
+
   const addToast = useCallback((message, type = 'info') => {
     const id = Date.now();
     setToasts((p) => [...p, { id, message, type }]);
@@ -534,18 +693,6 @@ const AdminDashboard = () => {
     [user],
   );
 
-  /* ── Notification helper ── */
-  const pushNotif = useCallback((title, message, type = 'info') => {
-    const n = {
-      id: Date.now(),
-      title,
-      message,
-      type,
-      time: new Date().toISOString(),
-    };
-    setNotifications((p) => [n, ...p].slice(0, 20));
-  }, []);
-
   /* ── WebSocket ── */
   useWebSocket(
     `${WS_BASE_URL}/ws/files/`,
@@ -553,7 +700,7 @@ const AdminDashboard = () => {
       if (!data?.type) return;
       if (data.type === 'file_notification' && data.file) {
         setFileList((prev) => upsertById(prev, data.file));
-        pushNotif(
+        pushNotification(
           'New file uploaded',
           `${data.file.userName} uploaded ${data.file.originalName}`,
           'file',
@@ -575,7 +722,16 @@ const AdminDashboard = () => {
   );
 
   /* ── Employee actions ── */
+  const setEmployeeBusy = useCallback((id, busy) => {
+    setBusyEmployeeIds((prev) => {
+      const next = new Set(prev);
+      busy ? next.add(id) : next.delete(id);
+      return next;
+    });
+  }, []);
+
   const handleApprove = async (id) => {
+    setEmployeeBusy(id, true);
     const approved = await approveEmployee?.(id);
     if (!approved) {
       setAdminError(
@@ -586,14 +742,15 @@ const AdminDashboard = () => {
       setAdminError('');
       const emp = employees.find((e) => e.id === id);
       logAction('Employee Approved', emp?.email || id);
-      pushNotif(
+      pushNotification(
         'Employee approved',
         `${emp?.name || emp?.email || 'Employee'} can now log in`,
         'employee',
       );
       addToast('Employee approved successfully', 'success');
     }
-    refreshEmployees();
+    await refreshEmployees();
+    setEmployeeBusy(id, false);
   };
 
   const handleDeactivate = (id) => {
@@ -603,34 +760,40 @@ const AdminDashboard = () => {
       message: 'This employee will lose access until reactivated.',
       danger: true,
       onConfirm: async () => {
+        setEmployeeBusy(id, true);
         await deactivateEmployee?.(id);
         logAction('Employee Deactivated', emp?.email || id);
         addToast('Employee deactivated', 'info');
-        refreshEmployees();
+        await refreshEmployees();
+        setEmployeeBusy(id, false);
         setConfirmDialog(null);
       },
     });
   };
 
   const handleReactivate = async (id) => {
+    setEmployeeBusy(id, true);
     const emp = employees.find((e) => e.id === id);
     await reactivateEmployee?.(id);
     logAction('Employee Reactivated', emp?.email || id);
     addToast('Employee reactivated', 'success');
-    refreshEmployees();
+    await refreshEmployees();
+    setEmployeeBusy(id, false);
   };
 
   const handleReject = (id) => {
     const emp = employees.find((e) => e.id === id);
     setConfirmDialog({
-      title: 'Reject registration?',
+      title: 'Decline registration?',
       message: 'This will permanently decline the employee registration.',
       danger: true,
       onConfirm: async () => {
+        setEmployeeBusy(id, true);
         await rejectEmployee?.(id);
         logAction('Employee Rejected', emp?.email || id);
-        addToast('Registration rejected', 'info');
-        refreshEmployees();
+        addToast('Registration declined', 'info');
+        await refreshEmployees();
+        setEmployeeBusy(id, false);
         setConfirmDialog(null);
       },
     });
@@ -745,6 +908,56 @@ const AdminDashboard = () => {
     });
   };
 
+  /* ── User Management ── */
+  const handleUserFormChange = (e) => {
+    setUserFormError('');
+    setUserForm((p) => ({ ...p, [e.target.name]: e.target.value }));
+  };
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    setUserFormError('');
+
+    if (!userForm.name.trim() || !userForm.email.trim() || !userForm.password.trim()) {
+      setUserFormError('Name, email and password are required.');
+      return;
+    }
+    if (userForm.password.length < 6) {
+      setUserFormError('Password must be at least 6 characters.');
+      return;
+    }
+    if (!createUser) {
+      setUserFormError('User creation is not wired up yet — see createUser() in AuthContext.');
+      return;
+    }
+
+    setUserFormSubmitting(true);
+    const result = await createUser({
+      name: userForm.name.trim(),
+      email: userForm.email.trim(),
+      password: userForm.password,
+      role: userForm.role,
+      department: userForm.department.trim() || (userForm.role === 'admin' ? 'Administration' : 'General'),
+    });
+    setUserFormSubmitting(false);
+
+    if (!result?.success) {
+      setUserFormError(result?.error || 'Failed to create user.');
+      addToast(result?.error || 'Failed to create user', 'error');
+      return;
+    }
+
+    logAction(`${userForm.role === 'admin' ? 'Admin' : 'Employee'} Created`, userForm.email.trim());
+    addToast(result.message || 'User created successfully', 'success');
+    setCreatedUsersLog((p) => [
+      { id: Date.now(), name: userForm.name.trim(), email: userForm.email.trim(), role: userForm.role, department: userForm.department.trim() || '—', time: new Date().toISOString() },
+      ...p,
+    ].slice(0, 20));
+    setUserForm({ name: '', email: '', password: '', role: 'employee', department: '' });
+    setUserFormOpen(false);
+    await refreshEmployees();
+  };
+
   /* ── Derived data ── */
   const pendingEmployees = useMemo(
     () => employees.filter((e) => !(e.is_approved ?? e.isApproved)),
@@ -789,7 +1002,7 @@ const AdminDashboard = () => {
   }, [empTab, pendingEmployees, activeEmployees, inactiveEmployees, empSearch]);
 
   const stats = useMemo(() => {
-    const totalFiles = fileList.length;
+    const totalFiles = dashboardStats.files;
     const totalSize = fileList.reduce(
       (sum, f) => sum + (f.size || 0),
       0,
@@ -826,6 +1039,16 @@ const AdminDashboard = () => {
     };
   }, [fileList, tasks]);
 
+  const recentFiles = useMemo(() => {
+  return [...fileList]
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt) -
+        new Date(a.createdAt)
+    )
+    .slice(0, 5);
+}, [fileList]);
+
   // Weekly upload trend (last 7 days)
   const weeklyTrend = useMemo(() => {
     const days = Array.from({ length: 7 }, (_, i) => {
@@ -849,10 +1072,10 @@ const AdminDashboard = () => {
   // Status distribution
   const statusDistribution = useMemo(
     () => [
-      { label: 'Pending', value: stats.pending, color: '#f59e0b' },
-      { label: 'Reviewing', value: stats.reviewing, color: '#3b82f6' },
-      { label: 'Approved', value: stats.approved, color: '#10b981' },
-      { label: 'Rejected', value: stats.rejected, color: '#ef4444' },
+      { label: 'Pending', value: stats.pending, color: T.amber },
+      { label: 'Reviewing', value: stats.reviewing, color: T.accent },
+      { label: 'Approved', value: stats.approved, color: T.emerald },
+      { label: 'Rejected', value: stats.rejected, color: T.rose },
     ],
     [stats],
   );
@@ -972,37 +1195,16 @@ const AdminDashboard = () => {
     dueDate && new Date(dueDate) < new Date() && new Date(dueDate).toDateString() < new Date().toDateString();
 
   /* ── Tabs config ── */
+  // Badge colors removed in favor of a single neutral pill (see render
+  // below) — counts communicate via numerals, not a traffic-light of hues.
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: ChartBarIcon },
-    {
-      id: 'pending',
-      label: 'Needs Review',
-      icon: ClockIcon,
-      badge: needsAttention.length,
-      badgeColor: 'bg-amber-500',
-    },
-    {
-      id: 'files',
-      label: 'All Files',
-      icon: DocumentTextIcon,
-      badge: fileList.length,
-      badgeColor: 'bg-indigo-500',
-    },
-    {
-      id: 'tasks',
-      label: 'Tasks',
-      icon: CheckCircleIcon,
-      badge: stats.pendingTasks || null,
-      badgeColor: 'bg-blue-500',
-    },
-    {
-      id: 'employees',
-      label: 'Employees',
-      icon: UsersIcon,
-      badge: pendingEmployees.length || null,
-      badgeColor: 'bg-rose-500',
-    },
-    { id: 'audit', label: 'Audit Log', icon: ListBulletIcon },
+    { id: 'overview', label: 'Overview', icon: I.Chart },
+    { id: 'pending', label: 'Needs Review', icon: I.Clock, badge: needsAttention.length },
+    { id: 'files', label: 'All Files', icon: I.Doc, badge: dashboardStats.files },
+    { id: 'tasks', label: 'Tasks', icon: I.CheckCircle, badge: dashboardStats.pendingTasks || null },
+    { id: 'employees', label: 'Employees', icon: I.Users, badge: dashboardStats.pendingApprovals || null },
+    { id: 'users', label: 'User Management', icon: I.UserPlus },
+    { id: 'audit', label: 'Audit Log', icon: I.ListBullet },
   ];
 
   /* ── Export handlers ── */
@@ -1038,170 +1240,84 @@ const AdminDashboard = () => {
 
   /* ── Render ── */
   return (
-    <div className="min-h-screen bg-white font-sans">
+    <div style={{
+      minHeight: '100vh', position: 'relative',
+      background: '#000000',
+      color: T.txt0, fontFamily: '"SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
+    }}>
+      {/* Ambient backdrop: drifting blurred color blobs behind the black
+          canvas — the layer the glass cards' backdrop-filter actually
+          blurs against. A flat radial-gradient glow alone (the previous
+          version) doesn't move and barely registers through blur; these
+          give the glass panels real depth and a living, premium feel. */}
+      <div aria-hidden="true" style={{ position: 'fixed', inset: 0, overflow: 'hidden', zIndex: 0, pointerEvents: 'none' }}>
+        <div className="admin-blob admin-blob-a" />
+        <div className="admin-blob admin-blob-b" />
+        <div className="admin-blob admin-blob-c" />
+      </div>
+
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Sora:wght@700;800&display=swap');
-        * { font-family: 'DM Sans', sans-serif; }
-        h1, h2 { font-family: 'Sora', sans-serif; }
-        .animate-slide-up { animation: slideUp 0.35s cubic-bezier(.16,1,.3,1); }
-        @keyframes slideUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
-        .scrollbar-thin::-webkit-scrollbar { width: 4px; }
-        .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-        .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+        @keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        *{box-sizing:border-box}
+        ::-webkit-scrollbar{width:4px;height:4px}
+        ::-webkit-scrollbar-track{background:transparent}
+        ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px}
+        ::placeholder{color:${T.txt2}}
+        .admin-blob { position: absolute; border-radius: 50%; filter: blur(90px); will-change: transform; }
+        .admin-blob-a { width: 620px; height: 620px; top: -200px; left: -140px; background: radial-gradient(circle, rgba(91,141,239,0.22), rgba(91,141,239,0) 70%); animation: adrift1 30s ease-in-out infinite; }
+        .admin-blob-b { width: 560px; height: 560px; top: 8%; right: -180px; background: radial-gradient(circle, rgba(167,139,250,0.16), rgba(167,139,250,0) 70%); animation: adrift2 36s ease-in-out infinite; }
+        .admin-blob-c { width: 480px; height: 480px; bottom: -160px; left: 28%; background: radial-gradient(circle, rgba(34,211,238,0.10), rgba(34,211,238,0) 70%); animation: adrift3 34s ease-in-out infinite; }
+        @keyframes adrift1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(50px,30px) scale(1.06); } }
+        @keyframes adrift2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-40px,40px) scale(0.95); } }
+        @keyframes adrift3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(30px,-30px) scale(1.04); } }
+        @media (prefers-reduced-motion: reduce) { .admin-blob { animation: none !important; } }
       `}</style>
 
-      <main className="max-w-7xl mx-auto px-4 md:px-8 py-6 space-y-6">
+      <main style={{ position: 'relative', zIndex: 1, maxWidth: 1400, margin: '0 auto', padding: '24px 28px 48px', display: 'flex', flexDirection: 'column', gap: 24 }}>
         {/* ── Header ── */}
-        <div className="relative flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-          <div className="space-y-1">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-0.5 text-[11px] font-medium uppercase tracking-widest text-indigo-600">
-              <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
-              Admin workspace
-            </span>
-            <h1 className="text-2xl font-bold text-slate-900 md:text-3xl">
-              Work Tracking Overview
-            </h1>
-            <p className="max-w-md text-sm text-slate-500 leading-relaxed">
-              Monitor progress, review submissions, assign tasks, and manage
-              work across the organization.
-            </p>
-            <div className="mt-3 flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">
-                {user?.name?.[0]?.toUpperCase() || 'A'}
-              </div>
-              <p className="text-xs text-slate-500">
-                Signed in as{' '}
-                <span className="font-semibold text-slate-900">
-                  {user?.name}
-                </span>
-                <span className="ml-1 text-slate-400">
-                  ({user?.email})
-                </span>
+        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <div style={{ maxWidth: 520 }}>
+              <h1 style={{ fontSize: 26, fontWeight: 600, color: T.txt0, letterSpacing: '-0.02em', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                {greeting}, {firstName(user?.name) || 'there'}
+                <span style={{ fontSize: 22 }} aria-hidden="true">{greetingEmoji}</span>
+              </h1>
+              <p style={{ fontSize: 13.5, color: T.txt1, lineHeight: 1.5, margin: '6px 0 0' }}>
+                {todayLabel} · here's what's happening across your workspace.
               </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Live indicator */}
-            <div className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[10px] font-semibold text-emerald-700">
-                Live
-              </span>
-            </div>
-            {/* Notification bell */}
-            <div ref={notifRef} className="relative">
-              <button
-                onClick={() => setShowNotifications((p) => !p)}
-                className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition"
-              >
-                {notifications.length > 0 ? (
-                  <BellSolid className="h-4 w-4 text-indigo-600" />
-                ) : (
-                  <BellIcon className="h-4 w-4" />
-                )}
-                {notifications.length > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white">
-                    {notifications.length > 9
-                      ? '9+'
-                      : notifications.length}
-                  </span>
-                )}
-              </button>
-              {showNotifications && (
-                <NotificationPanel
-                  notifications={notifications}
-                  onClear={(id) =>
-                    setNotifications((p) =>
-                      p.filter((n) => n.id !== id),
-                    )
-                  }
-                  onClearAll={() => setNotifications([])}
-                />
-              )}
             </div>
           </div>
         </div>
 
         {/* ── Stat cards ── */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          <StatCard
-            icon={DocumentTextIcon}
-            label="Total Files"
-            value={stats.totalFiles}
-            sub={`${stats.todayCount} today`}
-            color="indigo"
-            trend={12}
-            onClick={() => setActiveTab('files')}
-          />
-          <StatCard
-            icon={ClockIcon}
-            label="Pending"
-            value={stats.pending}
-            sub={`${stats.reviewing} reviewing`}
-            color="amber"
-            onClick={() => setActiveTab('pending')}
-          />
-          <StatCard
-            icon={ShieldCheckIcon}
-            label="Approved"
-            value={stats.approved}
-            sub={`${stats.rejected} rejected`}
-            color="emerald"
-            onClick={() => {
-              setActiveTab('files');
-              setStatusFilter('approved');
-            }}
-          />
-          <StatCard
-            icon={UsersIcon}
-            label="Employees"
-            value={activeEmployees.length}
-            sub={`${pendingEmployees.length} pending`}
-            color="violet"
-            onClick={() => setActiveTab('employees')}
-          />
-          <StatCard
-            icon={CheckCircleIcon}
-            label="Tasks"
-            value={tasks.length}
-            sub={`${stats.pendingTasks} open`}
-            color="sky"
-            onClick={() => setActiveTab('tasks')}
-          />
-          <StatCard
-            icon={ArrowDownTrayIcon}
-            label="Storage"
-            value={formatBytes(stats.totalSize)}
-            sub="total uploaded"
-            color="rose"
-            onClick={() => setActiveTab('files')}
-          />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 12 }}>
+          <StatCard icon={I.Doc} label="Total Files" value={dashboardStats.files} sub={`${stats.todayCount} today`} color="indigo" trend={12} onClick={() => setActiveTab('files')} />
+          <StatCard icon={I.Clock} label="Pending" value={dashboardStats.pendingFiles} sub={`${stats.reviewing} reviewing`} color="amber" onClick={() => setActiveTab('pending')} />
+          <StatCard icon={I.Shield} label="Approved" value={dashboardStats.approvedFiles} sub={`${dashboardStats.rejectedFiles} rejected`} color="emerald" onClick={() => { setActiveTab('files'); setStatusFilter('approved'); }} />
+          <StatCard icon={I.Users} label="Employees" value={dashboardStats.employees} sub={`${dashboardStats.pendingApprovals} pending`} color="violet" onClick={() => setActiveTab('employees')} />
+          <StatCard icon={I.CheckCircle} label="Tasks" value={dashboardStats.tasks} sub={`${dashboardStats.pendingTasks} open`} color="sky" onClick={() => setActiveTab('tasks')} />
+          <StatCard icon={I.Download} label="Storage" value={formatBytes(stats.totalSize)} sub="total uploaded" color="rose" onClick={() => setActiveTab('files')} />
         </div>
 
-        {/* ── TABS ──────────────────────────────────────────────── */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
+        {/* ── TABS ── */}
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
             return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                type="button"
-                className={`flex flex-shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
-                  active
-                    ? 'bg-white text-slate-900 shadow-md border border-slate-200'
-                    : 'text-slate-500 hover:bg-white/60 hover:text-slate-700'
-                }`}
-              >
-                <Icon className="h-4 w-4" />
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} type="button" style={{
+                display: 'flex', flexShrink: 0, alignItems: 'center', gap: 8, borderRadius: 11, padding: '9px 16px',
+                fontSize: 13, fontWeight: active ? 600 : 500, transition: 'all 0.15s', whiteSpace: 'nowrap',
+                border: `1px solid ${active ? T.bdr2 : 'transparent'}`, cursor: 'pointer', fontFamily: 'inherit',
+                background: active ? T.bg3 : 'transparent', color: active ? T.txt0 : T.txt2,
+                boxShadow: active ? '0 2px 10px rgba(0,0,0,0.3)' : 'none',
+              }}>
+                <Icon style={{ color: active ? T.txt0 : T.txt2 }} />
                 {tab.label}
                 {tab.badge > 0 && (
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold text-white ${tab.badgeColor}`}
-                  >
-                    {tab.badge}
-                  </span>
+                  <span style={{ borderRadius: 999, padding: '1px 7px', fontSize: 10, fontWeight: 700, color: active ? '#000' : T.txt0, background: active ? T.txt0 : 'rgba(255,255,255,0.12)' }}>{tab.badge}</span>
                 )}
               </button>
             );
@@ -1212,235 +1328,155 @@ const AdminDashboard = () => {
         {/* ── OVERVIEW TAB ── */}
         {/* ══════════════════════════════════════════════════════ */}
         {activeTab === 'overview' && (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 14, animation: 'fadeIn 0.25s ease-out both' }}>
             {/* Upload trend */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
+            <Card>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <div>
-                  <p className="text-sm font-bold text-slate-800">
-                    Upload Trend
-                  </p>
-                  <p className="text-[11px] text-slate-400">
-                    Last 7 days
-                  </p>
+                  <p style={{ fontSize: 13.5, fontWeight: 600, color: T.txt0, margin: 0 }}>Upload Trend</p>
+                  <p style={{ fontSize: 11, color: T.txt2, margin: '2px 0 0' }}>Last 7 days</p>
                 </div>
-                <ChartBarIcon className="h-5 w-5 text-indigo-400" />
+                <I.Chart style={{ color: '#7aa8ff' }} />
               </div>
-              <MiniBarChart data={weeklyTrend} color="#6366f1" />
-              <div className="mt-2 flex justify-between">
+              <MiniBarChart data={weeklyTrend} color={T.accent} />
+              <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between' }}>
                 {weeklyTrend.map((d) => (
-                  <span
-                    key={d.label}
-                    className="text-[9px] text-slate-400"
-                  >
-                    {d.label}
-                  </span>
+                  <span key={d.label} style={{ fontSize: 9.5, color: T.txt2 }}>{d.label}</span>
                 ))}
               </div>
-            </div>
+            </Card>
 
             {/* Status distribution */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
+            <Card>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <div>
-                  <p className="text-sm font-bold text-slate-800">
-                    File Status
-                  </p>
-                  <p className="text-[11px] text-slate-400">
-                    Distribution
-                  </p>
+                  <p style={{ fontSize: 13.5, fontWeight: 600, color: T.txt0, margin: 0 }}>File Status</p>
+                  <p style={{ fontSize: 11, color: T.txt2, margin: '2px 0 0' }}>Distribution</p>
                 </div>
-                <FunnelIcon className="h-5 w-5 text-violet-400" />
+                <I.Funnel style={{ color: T.violet }} />
               </div>
-              <div className="space-y-2.5">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {statusDistribution.map((s) => (
-                  <div
-                    key={s.label}
-                    className="flex items-center gap-3"
-                  >
-                    <span className="text-[11px] text-slate-500 w-16">
-                      {s.label}
-                    </span>
-                    <div className="flex-1 rounded-full bg-slate-100 h-2 overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{
-                          width: `${
-                            stats.totalFiles
-                              ? (s.value / stats.totalFiles) * 100
-                              : 0
-                          }%`,
-                          backgroundColor: s.color,
-                        }}
-                      />
+                  <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 11, color: T.txt1, width: 64, flexShrink: 0 }}>{s.label}</span>
+                    <div style={{ flex: 1, borderRadius: 999, background: T.bg4, height: 7, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', borderRadius: 999, transition: 'width 0.5s', width: `${stats.totalFiles ? (s.value / stats.totalFiles) * 100 : 0}%`, background: s.color }} />
                     </div>
-                    <span className="text-[11px] font-bold text-slate-700 w-5 text-right">
-                      {s.value}
-                    </span>
+                    <span style={{ fontSize: 11.5, fontWeight: 700, color: T.txt0, width: 20, textAlign: 'right', flexShrink: 0 }}>{s.value}</span>
                   </div>
                 ))}
               </div>
-            </div>
+            </Card>
 
             {/* Quick actions */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-sm font-bold text-slate-800 mb-4">
-                Quick Actions
-              </p>
-              <div className="grid grid-cols-2 gap-2">
+            <Card>
+              <p style={{ fontSize: 13.5, fontWeight: 600, color: T.txt0, margin: '0 0 16px' }}>Quick Actions</p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 {[
-                  {
-                    label: 'Review pending',
-                    icon: ClockIcon,
-                    onClick: () => setActiveTab('pending'),
-                    color:
-                      'text-amber-600 bg-amber-50 border-amber-200',
-                  },
-                  {
-                    label: 'New task',
-                    icon: PlusCircleIcon,
-                    onClick: () => {
-                      setActiveTab('tasks');
-                      setTaskFormOpen(true);
-                    },
-                    color:
-                      'text-indigo-600 bg-indigo-50 border-indigo-200',
-                  },
-                  {
-                    label: 'All files',
-                    icon: DocumentTextIcon,
-                    onClick: () => setActiveTab('files'),
-                    color:
-                      'text-slate-600 bg-slate-50 border-slate-200',
-                  },
-                  {
-                    label: 'Approve staff',
-                    icon: UsersIcon,
-                    onClick: () => {
-                      setActiveTab('employees');
-                      setEmpTab('pending');
-                    },
-                    color:
-                      'text-emerald-600 bg-emerald-50 border-emerald-200',
-                  },
+                  { label: 'Review pending', icon: I.Clock, onClick: () => setActiveTab('pending'), color: T.amber, bg: T.amberD, border: 'rgba(245,166,35,0.2)' },
+                  { label: 'New task', icon: I.PlusCircle, onClick: () => { setActiveTab('tasks'); setTaskFormOpen(true); }, color: '#7aa8ff', bg: T.accentL, border: 'rgba(59,124,255,0.2)' },
+                  { label: 'All files', icon: I.Doc, onClick: () => setActiveTab('files'), color: T.txt1, bg: T.bg3, border: T.bdr1 },
+                  { label: 'Approve staff', icon: I.Users, onClick: () => { setActiveTab('employees'); setEmpTab('pending'); }, color: T.emerald, bg: T.emeraldD, border: 'rgba(16,232,160,0.2)' },
                 ].map((a) => {
                   const Icon = a.icon;
                   return (
-                    <button
-                      key={a.label}
-                      onClick={a.onClick}
-                      type="button"
-                      className={`flex flex-col items-center gap-2 rounded-xl border px-3 py-3 text-[11px] font-semibold transition hover:scale-[1.02] active:scale-95 ${a.color}`}
-                    >
-                      <Icon className="h-5 w-5" />
+                    <button key={a.label} onClick={a.onClick} type="button" style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, borderRadius: 13, padding: '14px 10px',
+                      fontSize: 11, fontWeight: 600, transition: 'transform 0.15s', cursor: 'pointer', fontFamily: 'inherit',
+                      border: `1px solid ${a.border}`, background: a.bg, color: a.color,
+                    }}
+                      onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
+                      onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                      <Icon />
                       {a.label}
                     </button>
                   );
                 })}
               </div>
-            </div>
+            </Card>
 
             {/* Recent activity */}
-            <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-sm font-bold text-slate-800">
-                  Recent Uploads
-                </p>
-                <button
-                  onClick={() => setActiveTab('files')}
-                  className="text-[11px] text-indigo-600 hover:underline font-semibold"
-                >
-                  View all
-                </button>
+            <Card style={{ gridColumn: 'span 2' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <p style={{ fontSize: 13.5, fontWeight: 600, color: T.txt0, margin: 0 }}>Recent Uploads</p>
+                <button onClick={() => setActiveTab('files')} style={{ fontSize: 11, color: '#7aa8ff', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit' }}>View all</button>
               </div>
-              {fileList.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-6">
-                  No files yet
-                </p>
+              {dashboardStats.files === 0 ? (
+<div
+  style={{
+    textAlign: 'center',
+    padding: '40px',
+  }}
+>
+  <I.Doc
+    style={{
+      width: 40,
+      height: 40,
+      color: T.txt2,
+      marginBottom: 12,
+    }}
+  />
+
+  <p
+    style={{
+      fontSize: 13,
+      color: T.txt1,
+      margin: 0,
+    }}
+  >
+    No files uploaded
+  </p>
+
+  <p
+    style={{
+      fontSize: 11,
+      color: T.txt2,
+      marginTop: 8,
+    }}
+  >
+    Upload files to get started.
+  </p>
+</div>
               ) : (
-                <div className="space-y-2">
-                  {[...fileList]
-                    .sort(
-                      (a, b) =>
-                        new Date(b.createdAt) -
-                        new Date(a.createdAt),
-                    )
-                    .slice(0, 5)
-                    .map((f) => (
-                      <div
-                        key={f.id}
-                        className="flex items-center gap-3 rounded-xl border border-slate-100 px-3 py-2.5 hover:bg-slate-50 transition"
-                      >
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 flex-shrink-0">
-                          <DocumentTextIcon className="h-4 w-4 text-indigo-500" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-xs font-semibold text-slate-800">
-                            {f.originalName}
-                          </p>
-                          <p className="text-[10px] text-slate-400">
-                            {f.userName} · {timeAgo(f.createdAt)}
-                          </p>
-                        </div>
-                        <StatusBadge status={f.status} size="sm" />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+{recentFiles.map((f) => (
+                      <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 12, border: `1px solid ${T.bdr0}`, padding: '10px 12px', transition: 'background 0.12s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = T.bg3} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      <div style={{ display: 'flex', height: 32, width: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 9, background: T.accentL, flexShrink: 0 }}>
+                        <I.Doc style={{ color: '#7aa8ff' }} />
                       </div>
-                    ))}
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <p style={{ fontSize: 12.5, fontWeight: 600, color: T.txt0, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.originalName}</p>
+                        <p style={{ fontSize: 10.5, color: T.txt2, margin: '2px 0 0' }}>{f.userName} · {timeAgo(f.createdAt)}</p>
+                      </div>
+                      <StatusBadge status={f.status} size="sm" />
+                    </div>
+                  ))}
                 </div>
               )}
-            </div>
+            </Card>
 
             {/* Employees summary */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-sm font-bold text-slate-800 mb-4">
-                Employee Summary
-              </p>
-              <div className="space-y-3">
+            <Card>
+              <p style={{ fontSize: 13.5, fontWeight: 600, color: T.txt0, margin: '0 0 16px' }}>Employee Summary</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {[
-                  {
-                    label: 'Active',
-                    value: activeEmployees.length,
-                    color: 'bg-emerald-500',
-                  },
-                  {
-                    label: 'Pending approval',
-                    value: pendingEmployees.length,
-                    color: 'bg-amber-500',
-                  },
-                  {
-                    label: 'Deactivated',
-                    value: inactiveEmployees.length,
-                    color: 'bg-slate-400',
-                  },
-                  {
-                    label: 'Tasks open',
-                    value: stats.pendingTasks,
-                    color: 'bg-indigo-500',
-                  },
-                  {
-                    label: 'Tasks done',
-                    value: stats.doneTasks,
-                    color: 'bg-emerald-400',
-                  },
+                  { label: 'Active', value: dashboardStats.activeEmployees, color: T.emerald },
+                  { label: 'Pending approval', value: dashboardStats.pendingApprovals, color: T.amber },
+                  { label: 'Deactivated', value: dashboardStats.inactiveEmployees, color: T.txt2 },
+                  { label: 'Tasks open', value: dashboardStats.pendingTasks, color: T.accent },
+                  { label: 'Tasks done', value: dashboardStats.completedTasks, color: T.emerald },
                 ].map((item) => (
-                  <div
-                    key={item.label}
-                    className="flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`h-2 w-2 rounded-full ${item.color}`}
-                      />
-                      <span className="text-[11px] text-slate-600">
-                        {item.label}
-                      </span>
+                  <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ width: 7, height: 7, borderRadius: '50%', background: item.color }} />
+                      <span style={{ fontSize: 11.5, color: T.txt1 }}>{item.label}</span>
                     </div>
-                    <span className="text-xs font-bold text-slate-800">
-                      {item.value}
-                    </span>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: T.txt0 }}>{item.value}</span>
                   </div>
                 ))}
               </div>
-            </div>
+            </Card>
           </div>
         )}
 
@@ -1448,104 +1484,49 @@ const AdminDashboard = () => {
         {/* ── PENDING / NEEDS REVIEW TAB ── */}
         {/* ══════════════════════════════════════════════════════ */}
         {activeTab === 'pending' && (
-          <section className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-4 bg-gradient-to-r from-amber-50 to-orange-50">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100">
-                  <ClockIcon className="h-5 w-5 text-amber-600" />
+          <section style={{ borderRadius: 18, border: `1px solid ${T.glassBorder}`, background: T.glass, backdropFilter: 'blur(22px) saturate(160%)', WebkitBackdropFilter: 'blur(22px) saturate(160%)', overflow: 'hidden', animation: 'fadeIn 0.25s ease-out both' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderBottom: `1px solid ${T.bdr1}`, padding: '16px 24px', background: 'linear-gradient(90deg, rgba(240,177,77,0.05), transparent)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ display: 'flex', height: 38, width: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 11, background: T.amberD }}>
+                  <I.Clock style={{ color: T.amber }} />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-slate-900">
-                    Files Needing Review
-                  </h2>
-                  <p className="text-[11px] text-slate-500">
-                    Approve, reject, or mark files under review
-                  </p>
+                  <h2 style={{ fontSize: 14, fontWeight: 600, color: T.txt0, margin: 0 }}>Files Needing Review</h2>
+                  <p style={{ fontSize: 11, color: T.txt2, margin: '2px 0 0' }}>Approve, reject, or mark files under review</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 {selectedFiles.size > 0 && (
-                  <div className="flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2">
-                    <span className="text-[11px] font-semibold text-indigo-700">
-                      {selectedFiles.size} selected
-                    </span>
-                    <button
-                      onClick={() => handleBulkAction('approved')}
-                      className="text-[10px] font-bold text-emerald-700 hover:underline"
-                    >
-                      Approve all
-                    </button>
-                    <button
-                      onClick={() => handleBulkAction('rejected')}
-                      className="text-[10px] font-bold text-rose-700 hover:underline"
-                    >
-                      Reject all
-                    </button>
-                    <button
-                      onClick={() => setSelectedFiles(new Set())}
-                      className="text-slate-400 hover:text-slate-600"
-                    >
-                      <XMarkIcon className="h-3.5 w-3.5" />
-                    </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 11, border: `1px solid ${T.bdr2}`, background: T.accentG, padding: '7px 12px' }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: '#7aa8ff' }}>{selectedFiles.size} selected</span>
+                    <button onClick={() => handleBulkAction('approved')} style={{ fontSize: 10.5, fontWeight: 700, color: T.emerald, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Approve all</button>
+                    <button onClick={() => handleBulkAction('rejected')} style={{ fontSize: 10.5, fontWeight: 700, color: T.rose, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Reject all</button>
+                    <button onClick={() => setSelectedFiles(new Set())} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.txt2, display: 'flex' }}><I.X /></button>
                   </div>
                 )}
-                <span className="rounded-full border border-amber-200 bg-amber-100 px-3 py-1 text-[11px] font-semibold text-amber-700">
-                  {needsAttention.length} pending
-                </span>
+                <span style={{ borderRadius: 999, border: '1px solid rgba(245,166,35,0.25)', background: T.amberD, padding: '4px 12px', fontSize: 11, fontWeight: 600, color: T.amber }}>{needsAttention.length} pending</span>
               </div>
             </div>
 
-            <div className="px-6 py-5">
+            <div style={{ padding: '20px 24px' }}>
               {needsAttention.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 py-16 text-center">
-                  <CheckCircleIcon className="h-12 w-12 text-emerald-400" />
-                  <p className="mt-3 text-sm font-bold text-slate-600">
-                    All caught up!
-                  </p>
-                  <p className="text-xs text-slate-400">
-                    No files are waiting for review.
-                  </p>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: 16, border: `2px dashed ${T.bdr1}`, padding: '60px 0', textAlign: 'center' }}>
+                  <I.CheckCircle style={{ width: 44, height: 44, color: T.emerald }} />
+                  <p style={{ marginTop: 12, fontSize: 13.5, fontWeight: 700, color: T.txt1 }}>All caught up!</p>
+                  <p style={{ fontSize: 12, color: T.txt2 }}>No files are waiting for review.</p>
                 </div>
               ) : (
                 <>
-                  <div className="mb-3 flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={
-                        selectedFiles.size === needsAttention.length &&
-                        needsAttention.length > 0
-                      }
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedFiles(
-                            new Set(needsAttention.map((f) => f.id)),
-                          );
-                        } else {
-                          setSelectedFiles(new Set());
-                        }
-                      }}
-                      className="h-4 w-4 rounded border-slate-300 text-indigo-600"
-                    />
-                    <span className="text-[11px] text-slate-500">
-                      Select all
-                    </span>
+                  <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input type="checkbox" checked={selectedFiles.size === needsAttention.length && needsAttention.length > 0}
+                      onChange={(e) => setSelectedFiles(e.target.checked ? new Set(needsAttention.map((f) => f.id)) : new Set())}
+                      style={{ width: 15, height: 15, accentColor: T.accent, cursor: 'pointer' }} />
+                    <span style={{ fontSize: 11, color: T.txt2 }}>Select all</span>
                   </div>
-                  <ul className="space-y-2">
+                  <ul style={{ display: 'flex', flexDirection: 'column', gap: 8, listStyle: 'none', margin: 0, padding: 0 }}>
                     {needsAttention.map((file) => (
-                      <PendingRow
-                        key={file.id}
-                        file={file}
-                        onReview={setReviewFile}
-                        selected={selectedFiles.has(file.id)}
-                        onSelect={() =>
-                          setSelectedFiles((p) => {
-                            const next = new Set(p);
-                            if (next.has(file.id)) next.delete(file.id);
-                            else next.add(file.id);
-                            return next;
-                          })
-                        }
-                      />
+                      <PendingRow key={file.id} file={file} onReview={setReviewFile} selected={selectedFiles.has(file.id)}
+                        onSelect={() => setSelectedFiles((p) => { const next = new Set(p); next.has(file.id) ? next.delete(file.id) : next.add(file.id); return next; })} />
                     ))}
                   </ul>
                 </>
@@ -1553,48 +1534,19 @@ const AdminDashboard = () => {
             </div>
 
             {/* Bottom summary bar */}
-            <div className="grid grid-cols-4 divide-x divide-slate-100 border-t border-slate-100 bg-slate-50">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderTop: `1px solid ${T.bdr1}`, background: T.bg3 }}>
               {[
-                {
-                  label: 'Approved',
-                  value: stats.approved,
-                  color: 'text-emerald-600',
-                  icon: CheckCircleIcon,
-                },
-                {
-                  label: 'Rejected',
-                  value: stats.rejected,
-                  color: 'text-rose-600',
-                  icon: XCircleIcon,
-                },
-                {
-                  label: 'Reviewing',
-                  value: stats.reviewing,
-                  color: 'text-blue-600',
-                  icon: EyeIcon,
-                },
-                {
-                  label: 'Pending',
-                  value: stats.pending,
-                  color: 'text-amber-600',
-                  icon: ClockIcon,
-                },
-              ].map((item) => {
+                { label: 'Approved', value: stats.approved, color: T.emerald, icon: I.CheckCircle },
+                { label: 'Rejected', value: stats.rejected, color: T.rose, icon: I.XCircle },
+                { label: 'Reviewing', value: stats.reviewing, color: T.accent, icon: I.Eye },
+                { label: 'Pending', value: stats.pending, color: T.amber, icon: I.Clock },
+              ].map((item, i) => {
                 const Icon = item.icon;
                 return (
-                  <div
-                    key={item.label}
-                    className="flex flex-col items-center gap-1 py-3"
-                  >
-                    <Icon className={`h-4 w-4 ${item.color}`} />
-                    <span
-                      className={`text-base font-black ${item.color}`}
-                    >
-                      {item.value}
-                    </span>
-                    <span className="text-[10px] text-slate-500">
-                      {item.label}
-                    </span>
+                  <div key={item.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '14px 0', borderLeft: i > 0 ? `1px solid ${T.bdr0}` : 'none' }}>
+                    <Icon style={{ color: item.color }} />
+                    <span style={{ fontSize: 17, fontWeight: 700, color: item.color }}>{item.value}</span>
+                    <span style={{ fontSize: 10, color: T.txt2 }}>{item.label}</span>
                   </div>
                 );
               })}
@@ -1606,197 +1558,82 @@ const AdminDashboard = () => {
         {/* ── ALL FILES TAB ── */}
         {/* ══════════════════════════════════════════════════════ */}
         {activeTab === 'files' && (
-          <section className="space-y-4">
+          <section style={{ display: 'flex', flexDirection: 'column', gap: 14, animation: 'fadeIn 0.25s ease-out both' }}>
             {/* Filter bar */}
-            <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50">
-                    <AdjustmentsHorizontalIcon className="h-4 w-4 text-indigo-500" />
+            <Card style={{ padding: '16px 20px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ display: 'flex', height: 34, width: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 11, background: T.accentL }}>
+                      <I.Adjustments style={{ color: '#7aa8ff' }} />
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 13.5, fontWeight: 600, color: T.txt0, margin: 0 }}>Filter & Sort</p>
+                      <p style={{ fontSize: 11, color: T.txt2, margin: '2px 0 0' }}>{filteredFiles.length} file{filteredFiles.length !== 1 ? 's' : ''} match</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-slate-800">
-                      Filter & Sort
-                    </p>
-                    <p className="text-[11px] text-slate-400">
-                      {filteredFiles.length} file
-                      {filteredFiles.length !== 1 ? 's' : ''} match
-                    </p>
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+                    {[
+                      { value: range, onChange: setRange, options: [['today', 'Today'], ['7d', '7 days'], ['30d', '30 days'], ['all', 'All time']] },
+                      { value: statusFilter, onChange: setStatusFilter, options: [['all', 'All statuses'], ['pending', 'Pending'], ['reviewing', 'Reviewing'], ['approved', 'Approved'], ['rejected', 'Rejected']] },
+                      { value: typeFilter, onChange: setTypeFilter, options: [['all', 'All types'], ['pdf', 'PDF'], ['image', 'Images'], ['doc', 'Office'], ['other', 'Other']] },
+                      { value: sortBy, onChange: setSortBy, options: [['newest', 'Newest'], ['oldest', 'Oldest'], ['name', 'Name'], ['size', 'Size']] },
+                    ].map((sel, i) => (
+                      <select key={i} value={sel.value} onChange={(e) => { sel.onChange(e.target.value); setFilePage(1); }}
+                        style={{ borderRadius: 10, border: `1px solid ${T.bdr1}`, background: T.bg3, padding: '8px 11px', fontSize: 12, color: T.txt1, outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}>
+                        {sel.options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                      </select>
+                    ))}
+
+                    <div style={{ position: 'relative' }}>
+                      <I.Search style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: T.txt2, pointerEvents: 'none' }} />
+                      <input type="text" placeholder="Search files, employees…" value={search}
+                        onChange={(e) => { setSearch(e.target.value); setFilePage(1); }}
+                        style={{ minWidth: 180, borderRadius: 10, border: `1px solid ${T.bdr1}`, background: T.bg3, padding: '8px 12px 8px 30px', fontSize: 12, color: T.txt0, outline: 'none', fontFamily: 'inherit' }} />
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 2, borderRadius: 10, border: `1px solid ${T.bdr1}`, background: T.bg3, padding: 2 }}>
+                      <button onClick={() => setViewMode('list')} style={{ display: 'flex', borderRadius: 8, padding: 6, border: 'none', cursor: 'pointer', background: viewMode === 'list' ? T.bg4 : 'transparent', color: viewMode === 'list' ? T.txt0 : T.txt2 }}>
+                        <I.ListBullet />
+                      </button>
+                      <button onClick={() => setViewMode('grid')} style={{ display: 'flex', borderRadius: 8, padding: 6, border: 'none', cursor: 'pointer', background: viewMode === 'grid' ? T.bg4 : 'transparent', color: viewMode === 'grid' ? T.txt0 : T.txt2 }}>
+                        <I.Grid />
+                      </button>
+                    </div>
+
+                    <button onClick={handleExportFiles} style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 10, border: `1px solid ${T.bdr1}`, background: T.bg3, padding: '8px 13px', fontSize: 12, fontWeight: 600, color: T.txt1, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      <I.Download /> Export
+                    </button>
+
+                    {(search || typeFilter !== 'all' || range !== '30d' || sortBy !== 'newest' || statusFilter !== 'all') && (
+                      <button onClick={() => { setSearch(''); setTypeFilter('all'); setRange('30d'); setSortBy('newest'); setStatusFilter('all'); setFilePage(1); }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, borderRadius: 10, border: '1px solid rgba(255,95,126,0.25)', background: T.roseD, padding: '8px 13px', fontSize: 12, fontWeight: 600, color: T.rose, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        <I.X /> Clear
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  {[
-                    {
-                      value: range,
-                      onChange: setRange,
-                      options: [
-                        ['today', 'Today'],
-                        ['7d', '7 days'],
-                        ['30d', '30 days'],
-                        ['all', 'All time'],
-                      ],
-                    },
-                    {
-                      value: statusFilter,
-                      onChange: setStatusFilter,
-                      options: [
-                        ['all', 'All statuses'],
-                        ['pending', 'Pending'],
-                        ['reviewing', 'Reviewing'],
-                        ['approved', 'Approved'],
-                        ['rejected', 'Rejected'],
-                      ],
-                    },
-                    {
-                      value: typeFilter,
-                      onChange: setTypeFilter,
-                      options: [
-                        ['all', 'All types'],
-                        ['pdf', 'PDF'],
-                        ['image', 'Images'],
-                        ['doc', 'Office'],
-                        ['other', 'Other'],
-                      ],
-                    },
-                    {
-                      value: sortBy,
-                      onChange: setSortBy,
-                      options: [
-                        ['newest', 'Newest'],
-                        ['oldest', 'Oldest'],
-                        ['name', 'Name'],
-                        ['size', 'Size'],
-                      ],
-                    },
-                  ].map((sel, i) => (
-                    <select
-                      key={i}
-                      value={sel.value}
-                      onChange={(e) => {
-                        sel.onChange(e.target.value);
-                        setFilePage(1);
-                      }}
-                      className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-                    >
-                      {sel.options.map(([v, l]) => (
-                        <option key={v} value={v}>
-                          {l}
-                        </option>
-                      ))}
-                    </select>
-                  ))}
-
-                  <div className="relative">
-                    <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-                    <input
-                      type="text"
-                      placeholder="Search files, employees…"
-                      value={search}
-                      onChange={(e) => {
-                        setSearch(e.target.value);
-                        setFilePage(1);
-                      }}
-                      className="min-w-[180px] rounded-xl border border-slate-200 bg-slate-50 py-2 pl-8 pr-4 text-xs text-slate-700 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-0.5">
-                    <button
-                      onClick={() => setViewMode('list')}
-                      className={`rounded-lg p-1.5 transition ${
-                        viewMode === 'list'
-                          ? 'bg-white shadow-sm text-slate-900'
-                          : 'text-slate-400 hover:text-slate-600'
-                      }`}
-                    >
-                      <ListBulletIcon className="h-3.5 w-3.5" />
+                {/* Bulk actions */}
+                {selectedFiles.size > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, borderRadius: 12, border: `1px solid ${T.bdr2}`, background: T.accentG, padding: '10px 16px' }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#7aa8ff' }}>{selectedFiles.size} selected</span>
+                    <button onClick={() => handleBulkAction('approved')} style={{ borderRadius: 8, background: T.emerald, padding: '5px 12px', fontSize: 11, fontWeight: 700, color: '#04261a', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Approve</button>
+                    <button onClick={() => handleBulkAction('rejected')} style={{ borderRadius: 8, background: T.rose, padding: '5px 12px', fontSize: 11, fontWeight: 700, color: '#330014', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Reject</button>
+                    <button onClick={() => handleBulkAction('reviewing')} style={{ borderRadius: 8, background: T.accent, padding: '5px 12px', fontSize: 11, fontWeight: 700, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Mark reviewing</button>
+                    <button onClick={handleBulkDelete} style={{ display: 'flex', alignItems: 'center', gap: 5, borderRadius: 8, border: '1px solid rgba(255,95,126,0.25)', background: 'transparent', padding: '5px 12px', fontSize: 11, fontWeight: 700, color: T.rose, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      <I.Trash /> Delete
                     </button>
-                    <button
-                      onClick={() => setViewMode('grid')}
-                      className={`rounded-lg p-1.5 transition ${
-                        viewMode === 'grid'
-                          ? 'bg-white shadow-sm text-slate-900'
-                          : 'text-slate-400 hover:text-slate-600'
-                      }`}
-                    >
-                      <Squares2X2Icon className="h-3.5 w-3.5" />
+                    <button onClick={() => setSelectedFiles(new Set())} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#7aa8ff', display: 'flex' }}>
+                      <I.X style={{ width: 16, height: 16 }} />
                     </button>
                   </div>
-
-                  <button
-                    onClick={handleExportFiles}
-                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition"
-                  >
-                    <ArrowDownTrayIcon className="h-3.5 w-3.5" />
-                    Export
-                  </button>
-
-                  {(search ||
-                    typeFilter !== 'all' ||
-                    range !== '30d' ||
-                    sortBy !== 'newest' ||
-                    statusFilter !== 'all') && (
-                    <button
-                      onClick={() => {
-                        setSearch('');
-                        setTypeFilter('all');
-                        setRange('30d');
-                        setSortBy('newest');
-                        setStatusFilter('all');
-                        setFilePage(1);
-                      }}
-                      className="flex items-center gap-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-100 transition"
-                    >
-                      <XMarkIcon className="h-3.5 w-3.5" />
-                      Clear
-                    </button>
-                  )}
-                </div>
+                )}
               </div>
+            </Card>
 
-              {/* Bulk actions */}
-              {selectedFiles.size > 0 && (
-                <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5">
-                  <span className="text-xs font-bold text-indigo-700">
-                    {selectedFiles.size} selected
-                  </span>
-                  <button
-                    onClick={() => handleBulkAction('approved')}
-                    className="rounded-lg bg-emerald-600 px-3 py-1 text-[11px] font-bold text-white hover:bg-emerald-700 transition"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    onClick={() => handleBulkAction('rejected')}
-                    className="rounded-lg bg-rose-600 px-3 py-1 text-[11px] font-bold text-white hover:bg-rose-700 transition"
-                  >
-                    Reject
-                  </button>
-                  <button
-                    onClick={() => handleBulkAction('reviewing')}
-                    className="rounded-lg bg-blue-600 px-3 py-1 text-[11px] font-bold text-white hover:bg-blue-700 transition"
-                  >
-                    Mark reviewing
-                  </button>
-                  <button
-                    onClick={handleBulkDelete}
-                    className="rounded-lg border border-rose-200 bg-white px-3 py-1 text-[11px] font-bold text-rose-600 hover:bg-rose-50 transition flex items-center gap-1"
-                  >
-                    <TrashIcon className="h-3 w-3" />
-                    Delete
-                  </button>
-                  <button
-                    onClick={() => setSelectedFiles(new Set())}
-                    className="ml-auto text-indigo-400 hover:text-indigo-600"
-                  >
-                    <XMarkIcon className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div style={{ borderRadius: 16, border: `1px solid ${T.glassBorder}`, background: T.glass, backdropFilter: 'blur(22px) saturate(160%)', WebkitBackdropFilter: 'blur(22px) saturate(160%)', overflow: 'hidden' }}>
               <FileList
                 files={paginatedFiles}
                 isAdmin
@@ -1805,20 +1642,9 @@ const AdminDashboard = () => {
                 onStatusChange={handleUpdateFileStatus}
                 onReview={setReviewFile}
                 selectedFiles={selectedFiles}
-                onSelectFile={(id) =>
-                  setSelectedFiles((p) => {
-                    const next = new Set(p);
-                    if (next.has(id)) next.delete(id);
-                    else next.add(id);
-                    return next;
-                  })
-                }
+                onSelectFile={(id) => setSelectedFiles((p) => { const next = new Set(p); next.has(id) ? next.delete(id) : next.add(id); return next; })}
               />
-              <Pagination
-                current={filePage}
-                total={totalFilePages}
-                onChange={setFilePage}
-              />
+              <Pagination current={filePage} total={totalFilePages} onChange={setFilePage} />
             </div>
           </section>
         )}
@@ -1827,316 +1653,159 @@ const AdminDashboard = () => {
         {/* ── TASKS TAB ── */}
         {/* ══════════════════════════════════════════════════════ */}
         {activeTab === 'tasks' && (
-          <section className="space-y-4">
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-              <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50">
-                    <PlusCircleIcon className="h-5 w-5 text-indigo-600" />
+          <section style={{ display: 'flex', flexDirection: 'column', gap: 14, animation: 'fadeIn 0.25s ease-out both' }}>
+            <div style={{ borderRadius: 16, border: `1px solid ${T.glassBorder}`, background: T.glass, backdropFilter: 'blur(22px) saturate(160%)', WebkitBackdropFilter: 'blur(22px) saturate(160%)', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${T.bdr1}`, padding: '16px 24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ display: 'flex', height: 34, width: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 11, background: T.accentL }}>
+                    <I.PlusCircle style={{ color: '#7aa8ff' }} />
                   </div>
                   <div>
-                    <h2 className="text-sm font-bold text-slate-900">
-                      Task Manager
-                    </h2>
-                    <p className="text-[11px] text-slate-500">
-                      Assign and track employee tasks
-                    </p>
+                    <h2 style={{ fontSize: 14, fontWeight: 600, color: T.txt0, margin: 0 }}>Task Manager</h2>
+                    <p style={{ fontSize: 11, color: T.txt2, margin: '2px 0 0' }}>Assign and track employee tasks</p>
                   </div>
                 </div>
-                <button
-                  onClick={() => setTaskFormOpen((p) => !p)}
-                  type="button"
-                  className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all
-                    ${
-                      taskFormOpen
-                        ? 'bg-slate-900 text-white'
-                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                    }`}
-                >
-                  {taskFormOpen ? (
-                    <XMarkIcon className="h-3.5 w-3.5" />
-                  ) : (
-                    <PlusCircleIcon className="h-3.5 w-3.5" />
-                  )}
+                <button onClick={() => setTaskFormOpen((p) => !p)} type="button" style={{
+                  display: 'flex', alignItems: 'center', gap: 7, borderRadius: 11, padding: '9px 16px', fontSize: 12, fontWeight: 700,
+                  border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                  background: taskFormOpen ? T.bg4 : T.accent, color: '#fff',
+                }}>
+                  {taskFormOpen ? <I.X /> : <I.PlusCircle />}
                   {taskFormOpen ? 'Discard' : 'New Task'}
                 </button>
               </div>
 
               {taskFormOpen && (
-                <form
-                  onSubmit={handleTaskSubmit}
-                  className="border-b border-slate-100 bg-gradient-to-br from-indigo-50/50 to-violet-50/50 px-6 py-5 space-y-4"
-                >
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    <div className="flex flex-col gap-1.5 lg:col-span-2">
-                      <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
-                        Task Title{' '}
-                        <span className="text-rose-400">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="title"
-                        value={taskForm.title}
-                        onChange={handleTaskChange}
-                        placeholder="e.g. Upload April payslip"
-                        required
-                        className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition"
-                      />
+                <form onSubmit={handleTaskSubmit} style={{ borderBottom: `1px solid ${T.bdr1}`, background: 'linear-gradient(135deg, rgba(59,124,255,0.05), rgba(167,139,250,0.04))', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 14 }}>
+                    <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <label style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: T.txt2 }}>Task Title <span style={{ color: T.rose }}>*</span></label>
+                      <input type="text" name="title" value={taskForm.title} onChange={handleTaskChange} placeholder="e.g. Upload April payslip" required
+                        style={{ borderRadius: 11, border: `1px solid ${T.bdr1}`, background: T.bg3, padding: '10px 14px', fontSize: 13, color: T.txt0, outline: 'none', fontFamily: 'inherit' }} />
                     </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
-                        Priority
-                      </label>
-                      <select
-                        name="priority"
-                        value={taskForm.priority}
-                        onChange={handleTaskChange}
-                        className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition"
-                      >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <label style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: T.txt2 }}>Priority</label>
+                      <select name="priority" value={taskForm.priority} onChange={handleTaskChange}
+                        style={{ borderRadius: 11, border: `1px solid ${T.bdr1}`, background: T.bg3, padding: '10px 14px', fontSize: 13, color: T.txt1, outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}>
                         <option value="low">Low</option>
                         <option value="medium">Medium</option>
                         <option value="high">High</option>
                       </select>
                     </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
-                        Assign To{' '}
-                        <span className="text-rose-400">*</span>
-                      </label>
-                      <input
-                        type="email"
-                        name="assignedToEmail"
-                        value={taskForm.assignedToEmail}
-                        onChange={handleTaskChange}
-                        placeholder="employee@company.com"
-                        required
-                        className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition"
-                      />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <label style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: T.txt2 }}>Assign To <span style={{ color: T.rose }}>*</span></label>
+                      <input type="email" name="assignedToEmail" value={taskForm.assignedToEmail} onChange={handleTaskChange} placeholder="employee@company.com" required
+                        style={{ borderRadius: 11, border: `1px solid ${T.bdr1}`, background: T.bg3, padding: '10px 14px', fontSize: 13, color: T.txt0, outline: 'none', fontFamily: 'inherit' }} />
                     </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
-                        Due Date
-                      </label>
-                      <input
-                        type="date"
-                        name="dueDate"
-                        value={taskForm.dueDate}
-                        onChange={handleTaskChange}
-                        className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition"
-                      />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <label style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: T.txt2 }}>Due Date</label>
+                      <input type="date" name="dueDate" value={taskForm.dueDate} onChange={handleTaskChange}
+                        style={{ borderRadius: 11, border: `1px solid ${T.bdr1}`, background: T.bg3, padding: '10px 14px', fontSize: 13, color: T.txt1, outline: 'none', fontFamily: 'inherit' }} />
                     </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
-                        Description
-                      </label>
-                      <input
-                        type="text"
-                        name="description"
-                        value={taskForm.description}
-                        onChange={handleTaskChange}
-                        placeholder="Short note for employee…"
-                        className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition"
-                      />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <label style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: T.txt2 }}>Description</label>
+                      <input type="text" name="description" value={taskForm.description} onChange={handleTaskChange} placeholder="Short note for employee…"
+                        style={{ borderRadius: 11, border: `1px solid ${T.bdr1}`, background: T.bg3, padding: '10px 14px', fontSize: 13, color: T.txt0, outline: 'none', fontFamily: 'inherit' }} />
                     </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
-                        Attach File
-                      </label>
-                      <input
-                        type="file"
-                        name="adminFile"
-                        onChange={handleTaskChange}
-                        className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs text-slate-600 file:mr-3 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200 transition"
-                      />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <label style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: T.txt2 }}>Attach File</label>
+                      <input type="file" name="adminFile" onChange={handleTaskChange}
+                        style={{ borderRadius: 11, border: `1px solid ${T.bdr1}`, background: T.bg3, padding: '8px 12px', fontSize: 11.5, color: T.txt1, fontFamily: 'inherit' }} />
                     </div>
                   </div>
-                  <div className="flex justify-end">
-                    <button
-                      type="submit"
-                      className="flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-indigo-700 active:scale-95 transition-all"
-                    >
-                      <CheckIcon className="h-4 w-4" />
-                      Create Task
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button type="submit" style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 11, background: T.accent, padding: '10px 24px', fontSize: 12, fontWeight: 700, color: '#fff', border: 'none', cursor: 'pointer', boxShadow: '0 4px 20px rgba(59,124,255,0.3)', fontFamily: 'inherit' }}>
+                      <I.Check /> Create Task
                     </button>
                   </div>
                 </form>
               )}
 
               {/* Task filters */}
-              <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-6 py-3 bg-slate-50/50">
-                <div className="relative flex-1 min-w-[160px]">
-                  <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Search tasks…"
-                    value={taskSearch}
-                    onChange={(e) => {
-                      setTaskSearch(e.target.value);
-                      setTaskPage(1);
-                    }}
-                    className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-8 pr-4 text-xs text-slate-700 placeholder-slate-400 focus:border-indigo-400 focus:outline-none"
-                  />
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, borderBottom: `1px solid ${T.bdr1}`, background: T.bg3, padding: '12px 24px' }}>
+                <div style={{ position: 'relative', flex: 1, minWidth: 160 }}>
+                  <I.Search style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: T.txt2, pointerEvents: 'none' }} />
+                  <input type="text" placeholder="Search tasks…" value={taskSearch} onChange={(e) => { setTaskSearch(e.target.value); setTaskPage(1); }}
+                    style={{ width: '100%', borderRadius: 10, border: `1px solid ${T.bdr1}`, background: T.bg2, padding: '8px 12px 8px 30px', fontSize: 12, color: T.txt0, outline: 'none', fontFamily: 'inherit' }} />
                 </div>
-                <select
-                  value={taskStatusFilter}
-                  onChange={(e) => {
-                    setTaskStatusFilter(e.target.value);
-                    setTaskPage(1);
-                  }}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 focus:border-indigo-400 focus:outline-none"
-                >
+                <select value={taskStatusFilter} onChange={(e) => { setTaskStatusFilter(e.target.value); setTaskPage(1); }}
+                  style={{ borderRadius: 10, border: `1px solid ${T.bdr1}`, background: T.bg2, padding: '8px 11px', fontSize: 12, color: T.txt1, outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}>
                   <option value="all">All statuses</option>
                   <option value="pending">Pending</option>
                   <option value="in_progress">In progress</option>
                   <option value="done">Done</option>
                 </select>
-                <select
-                  value={taskPriorityFilter}
-                  onChange={(e) => {
-                    setTaskPriorityFilter(e.target.value);
-                    setTaskPage(1);
-                  }}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 focus:border-indigo-400 focus:outline-none"
-                >
+                <select value={taskPriorityFilter} onChange={(e) => { setTaskPriorityFilter(e.target.value); setTaskPage(1); }}
+                  style={{ borderRadius: 10, border: `1px solid ${T.bdr1}`, background: T.bg2, padding: '8px 11px', fontSize: 12, color: T.txt1, outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}>
                   <option value="all">All priorities</option>
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
                   <option value="high">High</option>
                 </select>
-                <button
-                  onClick={handleExportTasks}
-                  className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition"
-                >
-                  <ArrowDownTrayIcon className="h-3.5 w-3.5" />
-                  Export
+                <button onClick={handleExportTasks} style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 10, border: `1px solid ${T.bdr1}`, background: T.bg2, padding: '8px 13px', fontSize: 12, fontWeight: 600, color: T.txt1, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <I.Download /> Export
                 </button>
-                <span className="ml-auto text-[11px] text-slate-400">
-                  {filteredTasks.length} task
-                  {filteredTasks.length !== 1 ? 's' : ''}
-                </span>
+                <span style={{ marginLeft: 'auto', fontSize: 11, color: T.txt2 }}>{filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''}</span>
               </div>
 
               {/* Task list */}
-              <div className="px-6 py-4">
+              <div style={{ padding: '16px 24px' }}>
                 {paginatedTasks.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 py-12 text-center">
-                    <ExclamationCircleIcon className="h-10 w-10 text-slate-300" />
-                    <p className="mt-2 text-sm font-bold text-slate-400">
-                      No tasks found
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      Try adjusting your filters or create a new task.
-                    </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: 16, border: `2px dashed ${T.bdr1}`, padding: '48px 0', textAlign: 'center' }}>
+                    <I.ExclCircle style={{ width: 36, height: 36, color: T.txt2 }} />
+                    <p style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: T.txt2 }}>No tasks found</p>
+                    <p style={{ fontSize: 11.5, color: T.txt2 }}>Try adjusting your filters or create a new task.</p>
                   </div>
                 ) : (
-                  <ul className="space-y-2">
+                  <ul style={{ display: 'flex', flexDirection: 'column', gap: 8, listStyle: 'none', margin: 0, padding: 0 }}>
                     {paginatedTasks.map((t) => {
-                      const statusCfg =
-                        TASK_STATUS_CONFIG[t.status] ||
-                        TASK_STATUS_CONFIG.pending;
-                      const priorityCfg =
-                        PRIORITY_CONFIG[t.priority] ||
-                        PRIORITY_CONFIG.medium;
-                      const overdue =
-                        isOverdue(t.dueDate) &&
-                        t.status !== 'done';
+                      const statusCfg = TASK_STATUS_CONFIG[t.status] || TASK_STATUS_CONFIG.pending;
+                      const priorityCfg = PRIORITY_CONFIG[t.priority] || PRIORITY_CONFIG.medium;
+                      const overdue = isOverdue(t.dueDate) && t.status !== 'done';
                       return (
-                        <li
-                          key={t.id}
-                          className={`flex items-start gap-4 rounded-xl border px-4 py-3.5 transition-all hover:shadow-sm ${
-                            overdue
-                              ? 'border-rose-200 bg-rose-50/30'
-                              : 'border-slate-100 bg-slate-50/50 hover:bg-white'
-                          }`}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="text-sm font-bold text-slate-800">
-                                {t.title}
-                              </p>
-                              {overdue && (
-                                <span className="rounded-full bg-rose-100 border border-rose-200 px-2 py-0.5 text-[10px] font-bold text-rose-600">
-                                  Overdue
-                                </span>
-                              )}
+                        <li key={t.id} style={{
+                          display: 'flex', alignItems: 'flex-start', gap: 14, borderRadius: 13, padding: '14px 16px', transition: 'all 0.15s',
+                          border: `1px solid ${overdue ? 'rgba(255,95,126,0.25)' : T.bdr0}`,
+                          background: overdue ? 'rgba(255,95,126,0.04)' : T.bg3,
+                        }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                              <p style={{ fontSize: 13.5, fontWeight: 700, color: T.txt0, margin: 0 }}>{t.title}</p>
+                              {overdue && <span style={{ borderRadius: 999, border: '1px solid rgba(255,95,126,0.25)', background: T.roseD, padding: '1px 8px', fontSize: 10, fontWeight: 700, color: T.rose }}>Overdue</span>}
                             </div>
-                            <div className="mt-1 flex items-center gap-3 flex-wrap">
-                              <span className="text-[11px] text-slate-500">
-                                {t.assignedToEmail}
-                              </span>
+                            <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: 11, color: T.txt2 }}>{t.assignedToEmail}</span>
                               {t.dueDate && (
-                                <span
-                                  className={`flex items-center gap-1 text-[11px] ${
-                                    overdue
-                                      ? 'text-rose-600 font-semibold'
-                                      : 'text-slate-400'
-                                  }`}
-                                >
-                                  <CalendarDaysIcon className="h-3 w-3" />
-                                  Due {formatDate(t.dueDate)}
+                                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: overdue ? 600 : 400, color: overdue ? T.rose : T.txt2 }}>
+                                  <I.Calendar /> Due {formatDate(t.dueDate)}
                                 </span>
                               )}
-                              {t.description && (
-                                <span className="text-[11px] text-slate-400 italic truncate max-w-xs">
-                                  {t.description}
-                                </span>
-                              )}
+                              {t.description && <span style={{ fontSize: 11, color: T.txt2, fontStyle: 'italic', maxWidth: 280, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{t.description}</span>}
                             </div>
                             {t.adminFile && (
-                              <div className="mt-1.5 flex items-center gap-1">
-                                <DocumentTextIcon className="h-3 w-3 text-indigo-500" />
-                                <a
-                                  href={
-                                    typeof t.adminFile === 'string'
-                                      ? t.adminFile
-                                      : URL.createObjectURL(t.adminFile)
-                                  }
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-[10px] font-semibold text-indigo-600 hover:underline"
-                                >
-                                  View attachment
-                                </a>
+                              <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
+                                <I.Doc style={{ width: 12, height: 12, color: '#7aa8ff' }} />
+                                <a href={typeof t.adminFile === 'string' ? t.adminFile : URL.createObjectURL(t.adminFile)} target="_blank" rel="noopener noreferrer"
+                                  style={{ fontSize: 10.5, fontWeight: 600, color: '#7aa8ff', textDecoration: 'none' }}>View attachment</a>
                               </div>
                             )}
                           </div>
-                          <div className="flex flex-shrink-0 items-center gap-2 flex-wrap justify-end">
-                            <span
-                              className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${priorityCfg.color} ${priorityCfg.bg} ${priorityCfg.border}`}
-                            >
-                              <FlagIcon className="h-2.5 w-2.5" />
-                              {priorityCfg.label}
+                          <div style={{ display: 'flex', flexShrink: 0, alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 999, padding: '2px 9px', fontSize: 10, fontWeight: 700, border: `1px solid ${priorityCfg.border}`, background: priorityCfg.bg, color: priorityCfg.color }}>
+                              <I.Flag /> {priorityCfg.label}
                             </span>
-                            <span
-                              className={`flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${statusCfg.color} ${statusCfg.bg} ${statusCfg.border}`}
-                            >
-                              <span
-                                className={`h-1.5 w-1.5 rounded-full ${statusCfg.dot}`}
-                              />
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 999, padding: '3px 11px', fontSize: 11, fontWeight: 600, border: `1px solid ${statusCfg.border}`, background: statusCfg.bg, color: statusCfg.color }}>
+                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusCfg.dot }} />
                               {statusCfg.label}
                             </span>
-                            <select
-                              value={t.status}
-                              onChange={(e) => {
-                                updateTaskStatus(t.id, e.target.value);
-                                logAction(
-                                  'Task Status Changed',
-                                  `${t.title} → ${e.target.value}`,
-                                );
-                              }}
-                              className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-400 cursor-pointer"
-                            >
+                            <select value={t.status} onChange={(e) => { updateTaskStatus(t.id, e.target.value); logAction('Task Status Changed', `${t.title} → ${e.target.value}`); }}
+                              style={{ borderRadius: 9, border: `1px solid ${T.bdr1}`, background: T.bg2, padding: '5px 9px', fontSize: 11, color: T.txt1, outline: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
                               <option value="pending">Pending</option>
-                              <option value="in_progress">
-                                In progress
-                              </option>
+                              <option value="in_progress">In progress</option>
                               <option value="done">Done</option>
                             </select>
-                            <button
-                              onClick={() => handleDeleteTask(t.id)}
-                              className="rounded-lg border border-rose-200 bg-rose-50 p-1.5 text-rose-500 hover:bg-rose-100 transition"
-                            >
-                              <TrashIcon className="h-3.5 w-3.5" />
+                            <button onClick={() => handleDeleteTask(t.id)} style={{ borderRadius: 9, border: '1px solid rgba(255,95,126,0.2)', background: T.roseD, padding: 7, color: T.rose, cursor: 'pointer', display: 'flex' }}>
+                              <I.Trash />
                             </button>
                           </div>
                         </li>
@@ -2144,11 +1813,7 @@ const AdminDashboard = () => {
                     })}
                   </ul>
                 )}
-                <Pagination
-                  current={taskPage}
-                  total={totalTaskPages}
-                  onChange={setTaskPage}
-                />
+                <Pagination current={taskPage} total={totalTaskPages} onChange={setTaskPage} />
               </div>
             </div>
           </section>
@@ -2158,190 +1823,290 @@ const AdminDashboard = () => {
         {/* ── EMPLOYEES TAB ── */}
         {/* ══════════════════════════════════════════════════════ */}
         {activeTab === 'employees' && (
-          <section className="space-y-4">
-            {/* Employee sub-tabs + search */}
-            <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex gap-1">
-                  {[
-                    {
-                      id: 'pending',
-                      label: 'Pending',
-                      count: pendingEmployees.length,
-                      badge: 'bg-amber-500',
-                    },
-                    {
-                      id: 'active',
-                      label: 'Active',
-                      count: activeEmployees.length,
-                      badge: 'bg-emerald-500',
-                    },
-                    {
-                      id: 'inactive',
-                      label: 'Deactivated',
-                      count: inactiveEmployees.length,
-                      badge: 'bg-slate-400',
-                    },
-                  ].map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => setEmpTab(t.id)}
-                      type="button"
-                      className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all
-                        ${
-                          empTab === t.id
-                            ? 'bg-slate-900 text-white'
-                            : 'text-slate-600 hover:bg-slate-100'
-                        }`}
-                    >
-                      {t.label}
-                      {t.count > 0 && (
-                        <span
-                          className={`rounded-full px-1.5 py-0.5 text-[9px] font-black text-white ${t.badge}`}
-                        >
-                          {t.count}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-                <div className="relative">
-                  <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Search employees…"
-                    value={empSearch}
-                    onChange={(e) => setEmpSearch(e.target.value)}
-                    className="min-w-[220px] rounded-xl border border-slate-200 bg-slate-50 py-2 pl-8 pr-4 text-xs text-slate-700 placeholder-slate-400 focus:border-indigo-400 focus:outline-none"
-                  />
+          <section style={{ display: 'flex', flexDirection: 'column', gap: 14, animation: 'fadeIn 0.25s ease-out both' }}>
+            <Card style={{ padding: '16px 20px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {[
+                      { id: 'pending', label: 'Pending', count: dashboardStats.pendingApprovals },
+                      { id: 'active', label: 'Active', count: dashboardStats.activeEmployees },
+                      { id: 'inactive', label: 'Deactivated', count: dashboardStats.inactiveEmployees },
+                    ].map((t) => (
+                      <button key={t.id} onClick={() => setEmpTab(t.id)} type="button" style={{
+                        display: 'flex', alignItems: 'center', gap: 7, borderRadius: 10, padding: '8px 15px', fontSize: 12, fontWeight: 700,
+                        border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                        background: empTab === t.id ? T.bg4 : 'transparent', color: empTab === t.id ? T.txt0 : T.txt1,
+                      }}>
+                        {t.label}
+                        {t.count > 0 && <span style={{ borderRadius: 999, padding: '1px 6px', fontSize: 9.5, fontWeight: 700, color: empTab === t.id ? '#000' : T.txt0, background: empTab === t.id ? T.txt0 : 'rgba(255,255,255,0.12)' }}>{t.count}</span>}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ position: 'relative' }}>
+                    <I.Search style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: T.txt2, pointerEvents: 'none' }} />
+                    <input type="text" placeholder="Search employees…" value={empSearch} onChange={(e) => setEmpSearch(e.target.value)}
+                      style={{ minWidth: 220, borderRadius: 10, border: `1px solid ${T.bdr1}`, background: T.bg3, padding: '8px 12px 8px 30px', fontSize: 12, color: T.txt0, outline: 'none', fontFamily: 'inherit' }} />
+                  </div>
                 </div>
               </div>
-            </div>
+            </Card>
 
             {adminError && (
-              <div className="flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4">
-                <ExclamationCircleIcon className="h-5 w-5 text-rose-500 flex-shrink-0" />
-                <p className="text-sm text-rose-700">{adminError}</p>
-                <button
-                  onClick={() => setAdminError('')}
-                  className="ml-auto"
-                >
-                  <XMarkIcon className="h-4 w-4 text-rose-400" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 14, border: '1px solid rgba(255,95,126,0.25)', background: T.roseD, padding: '14px 18px' }}>
+                <I.ExclCircle style={{ color: T.rose, flexShrink: 0 }} />
+                <p style={{ fontSize: 13, color: '#ffb8c6', margin: 0, flex: 1 }}>{adminError}</p>
+                <button onClick={() => setAdminError('')} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}>
+                  <I.X style={{ color: T.rose }} />
                 </button>
               </div>
             )}
 
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div style={{ borderRadius: 16, border: `1px solid ${T.glassBorder}`, background: T.glass, backdropFilter: 'blur(22px) saturate(160%)', WebkitBackdropFilter: 'blur(22px) saturate(160%)', overflow: 'hidden' }}>
               {filteredEmployees.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <UsersIcon className="h-12 w-12 text-slate-300" />
-                  <p className="mt-3 text-sm font-bold text-slate-400">
-                    No employees found
-                  </p>
-                  <p className="text-xs text-slate-400">
-                    {empSearch
-                      ? 'Try a different search term.'
-                      : `No ${empTab} employees.`}
-                  </p>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '64px 0', textAlign: 'center' }}>
+                  <I.Users style={{ width: 44, height: 44, color: T.txt2 }} />
+                  <p style={{ marginTop: 12, fontSize: 13.5, fontWeight: 700, color: T.txt2 }}>No employees found</p>
+                  <p style={{ fontSize: 11.5, color: T.txt2 }}>{empSearch ? 'Try a different search term.' : `No ${empTab} employees.`}</p>
                 </div>
               ) : (
-                <ul className="divide-y divide-slate-100">
-                  {filteredEmployees.map((emp) => (
-                    <li
-                      key={emp.id}
-                      className="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 transition-colors"
-                    >
-                      <div
-                        className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-sm font-black
-                        ${
-                          empTab === 'pending'
-                            ? 'bg-amber-100 text-amber-700'
-                            : empTab === 'active'
-                            ? 'bg-indigo-100 text-indigo-700'
-                            : 'bg-slate-200 text-slate-500'
-                        }`}
-                      >
-                        {(emp.name || emp.username || '?')
-                          .toUpperCase()
-                          .slice(0, 1)}
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                  {filteredEmployees.map((emp, i) => (
+                    <li key={emp.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 24px', borderTop: i > 0 ? `1px solid ${T.bdr0}` : 'none', transition: 'background 0.12s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.025)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      <div style={{
+                        display: 'flex', height: 38, width: 38, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontSize: 13.5, fontWeight: 700,
+                        background: 'rgba(255,255,255,0.07)', border: `1px solid ${T.bdr1}`, color: T.txt0,
+                      }}>
+                        {(emp.name || emp.username || '?').toUpperCase().slice(0, 1)}
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-bold text-slate-800">
-                            {emp.name || emp.username}
-                          </p>
-                          {emp.department && (
-                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-                              {emp.department}
-                            </span>
-                          )}
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <p style={{ fontSize: 13.5, fontWeight: 700, color: T.txt0, margin: 0 }}>{emp.name || emp.username}</p>
+                          {emp.department && <span style={{ borderRadius: 999, background: T.bg4, padding: '1px 9px', fontSize: 10, fontWeight: 600, color: T.txt1 }}>{emp.department}</span>}
                         </div>
-                        <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                          <span className="text-[11px] text-slate-500">
-                            {emp.email}
-                          </span>
-                          {emp.createdAt && (
-                            <span className="text-[10px] text-slate-400">
-                              Joined {formatDate(emp.createdAt)}
-                            </span>
-                          )}
+                        <div style={{ marginTop: 3, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 11.5, color: T.txt2 }}>{emp.email}</span>
+                          {emp.createdAt && <span style={{ fontSize: 10.5, color: T.txt2 }}>Joined {formatDate(emp.createdAt)}</span>}
                         </div>
                       </div>
-                      <div className="flex flex-shrink-0 items-center gap-2">
+                      <div style={{ display: 'flex', flexShrink: 0, alignItems: 'center', gap: 14 }}>
+                        <StatusPill mode={empTab === 'pending' ? 'pending' : empTab === 'active' ? 'active' : 'inactive'} />
                         {empTab === 'pending' && (
-                          <>
-                            <span className="rounded-full border border-amber-200 bg-amber-100 px-2.5 py-0.5 text-[10px] font-semibold text-amber-700">
-                              Pending
-                            </span>
-                            <button
-                              onClick={() => handleReject(emp.id)}
-                              className="flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-[11px] font-semibold text-rose-600 hover:bg-rose-100 active:scale-95 transition-all"
-                              type="button"
-                            >
-                              <NoSymbolIcon className="h-3.5 w-3.5" />
-                              Decline
-                            </button>
-                            <button
-                              onClick={() => handleApprove(emp.id)}
-                              className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-700 active:scale-95 transition-all"
-                              type="button"
-                            >
-                              <CheckCircleIcon className="h-3.5 w-3.5" />
-                              Approve
-                            </button>
-                          </>
+                          <EmployeeStatusToggle
+                            mode="pending"
+                            busy={busyEmployeeIds.has(emp.id)}
+                            onActivate={() => handleApprove(emp.id)}
+                            onDeactivate={() => handleReject(emp.id)}
+                          />
                         )}
                         {empTab === 'active' && (
-                          <>
-                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-700">
-                              Active
-                            </span>
-                            <button
-                              onClick={() => handleDeactivate(emp.id)}
-                              className="flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-[11px] font-semibold text-rose-600 hover:bg-rose-100 active:scale-95 transition-all"
-                              type="button"
-                            >
-                              <NoSymbolIcon className="h-3.5 w-3.5" />
-                              Deactivate
-                            </button>
-                          </>
+                          <EmployeeStatusToggle
+                            mode="active"
+                            busy={busyEmployeeIds.has(emp.id)}
+                            onActivate={() => {}}
+                            onDeactivate={() => handleDeactivate(emp.id)}
+                          />
                         )}
                         {empTab === 'inactive' && (
-                          <>
-                            <span className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-[10px] font-semibold text-slate-500">
-                              Deactivated
-                            </span>
-                            <button
-                              onClick={() => handleReactivate(emp.id)}
-                              className="flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-indigo-700 active:scale-95 transition-all"
-                              type="button"
-                            >
-                              <ArrowPathIcon className="h-3.5 w-3.5" />
-                              Reactivate
-                            </button>
-                          </>
+                          <EmployeeStatusToggle
+                            mode="inactive"
+                            busy={busyEmployeeIds.has(emp.id)}
+                            onActivate={() => handleReactivate(emp.id)}
+                            onDeactivate={() => {}}
+                          />
                         )}
                       </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* ══════════════════════════════════════════════════════ */}
+        {/* ── USER MANAGEMENT TAB ── */}
+        {/* ══════════════════════════════════════════════════════ */}
+        {activeTab === 'users' && (
+          <section style={{ display: 'flex', flexDirection: 'column', gap: 14, animation: 'fadeIn 0.25s ease-out both' }}>
+            {/* Header / create button */}
+            <div style={{ borderRadius: 18, border: `1px solid ${T.glassBorder}`, background: T.glass, backdropFilter: 'blur(22px) saturate(160%)', WebkitBackdropFilter: 'blur(22px) saturate(160%)', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '18px 24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ display: 'flex', height: 38, width: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: `1px solid ${T.bdr1}` }}>
+                    <I.UserPlus style={{ color: T.txt0 }} />
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: 14.5, fontWeight: 600, color: T.txt0, margin: 0 }}>User Management</h2>
+                    <p style={{ fontSize: 11.5, color: T.txt2, margin: '2px 0 0' }}>Create admin or employee accounts directly — no approval step needed</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setUserFormOpen((p) => !p); setUserFormError(''); }}
+                  type="button"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 7, borderRadius: 11, padding: '10px 18px', fontSize: 12.5, fontWeight: 700,
+                    border: `1px solid ${userFormOpen ? T.bdr2 : 'transparent'}`, cursor: 'pointer', fontFamily: 'inherit',
+                    background: userFormOpen ? 'rgba(255,255,255,0.08)' : T.txt0, color: userFormOpen ? T.txt0 : '#000',
+                  }}
+                >
+                  {userFormOpen ? <I.X /> : <I.UserPlus />}
+                  {userFormOpen ? 'Discard' : 'New User'}
+                </button>
+              </div>
+
+              {userFormOpen && (
+                <form onSubmit={handleCreateUser} style={{ borderTop: `1px solid ${T.bdr1}`, background: 'rgba(255,255,255,0.02)', padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {/* Role selector — segmented, no color: weight + fill communicate the active choice */}
+                  <div>
+                    <label style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: T.txt2, display: 'block', marginBottom: 8 }}>Account Type</label>
+                    <div style={{ display: 'inline-flex', borderRadius: 11, border: `1px solid ${T.bdr1}`, background: 'rgba(255,255,255,0.03)', padding: 3, gap: 2 }}>
+                      {[
+                        { id: 'employee', label: 'Employee', icon: I.Briefcase },
+                        { id: 'admin', label: 'Admin', icon: I.UserKey },
+                      ].map((r) => {
+                        const Icon = r.icon;
+                        const activeRole = userForm.role === r.id;
+                        return (
+                          <button
+                            key={r.id}
+                            type="button"
+                            onClick={() => setUserForm((p) => ({ ...p, role: r.id }))}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 7, borderRadius: 9, padding: '8px 18px', fontSize: 12.5, fontWeight: 700,
+                              border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                              background: activeRole ? T.txt0 : 'transparent', color: activeRole ? '#000' : T.txt1,
+                              transition: 'all 0.15s',
+                            }}
+                          >
+                            <Icon /> {r.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 14 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <label style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: T.txt2 }}>Full Name <span style={{ color: T.txt0 }}>*</span></label>
+                      <input type="text" name="name" value={userForm.name} onChange={handleUserFormChange} placeholder="e.g. Priya Sharma" required
+                        style={{ borderRadius: 11, border: `1px solid ${T.bdr1}`, background: 'rgba(255,255,255,0.04)', padding: '11px 14px', fontSize: 13, color: T.txt0, outline: 'none', fontFamily: 'inherit' }} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <label style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: T.txt2 }}>Company Email <span style={{ color: T.txt0 }}>*</span></label>
+                      <div style={{ position: 'relative' }}>
+                        <I.Mail style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: T.txt2, pointerEvents: 'none' }} />
+                        <input type="email" name="email" value={userForm.email} onChange={handleUserFormChange} placeholder="name@sskatt.com" required
+                          style={{ width: '100%', borderRadius: 11, border: `1px solid ${T.bdr1}`, background: 'rgba(255,255,255,0.04)', padding: '11px 14px 11px 36px', fontSize: 13, color: T.txt0, outline: 'none', fontFamily: 'inherit' }} />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <label style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: T.txt2 }}>Temporary Password <span style={{ color: T.txt0 }}>*</span></label>
+                      <div style={{ position: 'relative' }}>
+                        <I.Lock style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: T.txt2, pointerEvents: 'none' }} />
+                        <input type="password" name="password" value={userForm.password} onChange={handleUserFormChange} placeholder="Min. 6 characters" required minLength={6}
+                          style={{ width: '100%', borderRadius: 11, border: `1px solid ${T.bdr1}`, background: 'rgba(255,255,255,0.04)', padding: '11px 14px 11px 36px', fontSize: 13, color: T.txt0, outline: 'none', fontFamily: 'inherit' }} />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <label style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: T.txt2 }}>Department / Title</label>
+                      <input type="text" name="department" value={userForm.department} onChange={handleUserFormChange} placeholder={userForm.role === 'admin' ? 'Administration' : 'e.g. Engineering'}
+                        style={{ borderRadius: 11, border: `1px solid ${T.bdr1}`, background: 'rgba(255,255,255,0.04)', padding: '11px 14px', fontSize: 13, color: T.txt0, outline: 'none', fontFamily: 'inherit' }} />
+                    </div>
+                  </div>
+
+                  {userFormError && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, borderRadius: 11, border: `1px solid ${T.bdr1}`, background: 'rgba(255,255,255,0.04)', padding: '10px 14px' }}>
+                      <I.ExclCircle style={{ color: T.txt1, flexShrink: 0 }} />
+                      <p style={{ fontSize: 12.5, color: T.txt1, margin: 0 }}>{userFormError}</p>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <p style={{ fontSize: 11, color: T.txt2, margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <I.Sparkle style={{ color: T.txt2 }} />
+                      Account is created already approved and active — share the password with them securely.
+                    </p>
+                    <button type="submit" disabled={userFormSubmitting} style={{
+                      display: 'flex', alignItems: 'center', gap: 8, borderRadius: 11, background: T.txt0, padding: '11px 26px', fontSize: 12.5, fontWeight: 700,
+                      color: '#000', border: 'none', cursor: userFormSubmitting ? 'default' : 'pointer', opacity: userFormSubmitting ? 0.6 : 1, fontFamily: 'inherit',
+                    }}>
+                      {userFormSubmitting ? (
+                        <span style={{ width: 13, height: 13, borderRadius: '50%', border: '2px solid rgba(0,0,0,0.25)', borderTopColor: '#000', animation: 'spin 0.6s linear infinite', display: 'inline-block' }} />
+                      ) : <I.Check />}
+                      {userFormSubmitting ? 'Creating…' : `Create ${userForm.role === 'admin' ? 'Admin' : 'Employee'}`}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+
+            {/* Role breakdown */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12 }}>
+              <Card>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ display: 'flex', height: 34, width: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: `1px solid ${T.bdr1}` }}>
+                    <I.UserKey style={{ color: T.txt0 }} />
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 18, fontWeight: 700, color: T.txt0, margin: 0 }}>{employees.filter((e) => e.role === 'admin').length || 1}</p>
+                    <p style={{ fontSize: 10.5, color: T.txt2, margin: 0 }}>Admins</p>
+                  </div>
+                </div>
+              </Card>
+              <Card>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ display: 'flex', height: 34, width: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: `1px solid ${T.bdr1}` }}>
+                    <I.Briefcase style={{ color: T.txt0 }} />
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 18, fontWeight: 700, color: T.txt0, margin: 0 }}>{employees.filter((e) => (e.role ?? 'employee') !== 'admin').length}</p>
+                    <p style={{ fontSize: 10.5, color: T.txt2, margin: 0 }}>Employees</p>
+                  </div>
+                </div>
+              </Card>
+              <Card>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ display: 'flex', height: 34, width: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: `1px solid ${T.bdr1}` }}>
+                    <I.Clock style={{ color: T.txt0 }} />
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 18, fontWeight: 700, color: T.txt0, margin: 0 }}>{dashboardStats.pendingApprovals}</p>
+                    <p style={{ fontSize: 10.5, color: T.txt2, margin: 0 }}>Awaiting approval</p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            {/* Recently created (this session) */}
+            <div style={{ borderRadius: 16, border: `1px solid ${T.glassBorder}`, background: T.glass, backdropFilter: 'blur(22px) saturate(160%)', WebkitBackdropFilter: 'blur(22px) saturate(160%)', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${T.bdr1}`, padding: '14px 24px' }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: T.txt0, margin: 0 }}>Created this session</p>
+                <span style={{ fontSize: 11, color: T.txt2 }}>{createdUsersLog.length} account{createdUsersLog.length !== 1 ? 's' : ''}</span>
+              </div>
+              {createdUsersLog.length === 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 0', textAlign: 'center' }}>
+                  <I.UserPlus style={{ width: 36, height: 36, color: T.txt2 }} />
+                  <p style={{ marginTop: 10, fontSize: 13, fontWeight: 600, color: T.txt2 }}>No accounts created yet</p>
+                  <p style={{ fontSize: 11.5, color: T.txt2 }}>New admin or employee accounts you create will show up here.</p>
+                </div>
+              ) : (
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                  {createdUsersLog.map((u, i) => (
+                    <li key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 24px', borderTop: i > 0 ? `1px solid ${T.bdr0}` : 'none' }}>
+                      <div style={{ display: 'flex', height: 36, width: 36, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontSize: 13, fontWeight: 700, background: 'rgba(255,255,255,0.07)', border: `1px solid ${T.bdr1}`, color: T.txt0 }}>
+                        {u.name.slice(0, 1).toUpperCase()}
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: T.txt0, margin: 0 }}>{u.name}</p>
+                          <span style={{ borderRadius: 999, background: 'rgba(255,255,255,0.08)', padding: '1px 9px', fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: T.txt1 }}>{u.role}</span>
+                          <span style={{ borderRadius: 999, background: T.bg4, padding: '1px 9px', fontSize: 10, fontWeight: 600, color: T.txt1 }}>{u.department}</span>
+                        </div>
+                        <p style={{ fontSize: 11.5, color: T.txt2, margin: '2px 0 0' }}>{u.email}</p>
+                      </div>
+                      <span style={{ fontSize: 10.5, color: T.txt2, flexShrink: 0 }}>{timeAgo(u.time)}</span>
                     </li>
                   ))}
                 </ul>
@@ -2354,82 +2119,51 @@ const AdminDashboard = () => {
         {/* ── AUDIT LOG TAB ── */}
         {/* ══════════════════════════════════════════════════════ */}
         {activeTab === 'audit' && (
-          <section className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100">
-                  <ListBulletIcon className="h-5 w-5 text-slate-600" />
+          <section style={{ borderRadius: 16, border: `1px solid ${T.glassBorder}`, background: T.glass, backdropFilter: 'blur(22px) saturate(160%)', WebkitBackdropFilter: 'blur(22px) saturate(160%)', overflow: 'hidden', animation: 'fadeIn 0.25s ease-out both' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${T.bdr1}`, padding: '16px 24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ display: 'flex', height: 34, width: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 11, background: T.bg4 }}>
+                  <I.ListBullet style={{ color: T.txt1 }} />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-slate-900">
-                    Audit Log
-                  </h2>
-                  <p className="text-[11px] text-slate-500">
-                    All admin actions in this session
-                  </p>
+                  <h2 style={{ fontSize: 14, fontWeight: 600, color: T.txt0, margin: 0 }}>Audit Log</h2>
+                  <p style={{ fontSize: 11, color: T.txt2, margin: '2px 0 0' }}>All admin actions in this session</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-slate-400">
-                  {auditLog.length} entries
-                </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 11, color: T.txt2 }}>{auditLog.length} entries</span>
                 {auditLog.length > 0 && (
-                  <button
-                    onClick={() =>
-                      exportToCSV(
-                        auditLog.map((e) => ({
-                          action: e.action,
-                          detail: e.detail,
-                          admin: e.admin,
-                          time: e.time,
-                        })),
-                        'audit-log',
-                      )
-                    }
-                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition"
-                  >
-                    <ArrowDownTrayIcon className="h-3.5 w-3.5" />
-                    Export
+                  <button onClick={() => exportToCSV(auditLog.map((e) => ({ action: e.action, detail: e.detail, admin: e.admin, time: e.time })), 'audit-log')}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 10, border: `1px solid ${T.bdr1}`, background: T.bg3, padding: '7px 13px', fontSize: 11.5, fontWeight: 600, color: T.txt1, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    <I.Download /> Export
                   </button>
                 )}
               </div>
             </div>
 
-            <div className="px-6 py-5">
+            <div style={{ padding: '20px 24px' }}>
               {auditLog.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 py-14 text-center">
-                  <InformationCircleIcon className="h-10 w-10 text-slate-300" />
-                  <p className="mt-2 text-sm font-bold text-slate-400">
-                    No actions yet
-                  </p>
-                  <p className="text-xs text-slate-400">
-                    Admin actions will appear here as you use the dashboard.
-                  </p>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: 16, border: `2px dashed ${T.bdr1}`, padding: '56px 0', textAlign: 'center' }}>
+                  <I.Info style={{ width: 36, height: 36, color: T.txt2 }} />
+                  <p style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: T.txt2 }}>No actions yet</p>
+                  <p style={{ fontSize: 11.5, color: T.txt2 }}>Admin actions will appear here as you use the dashboard.</p>
                 </div>
               ) : (
-                <div className="relative">
-                  <div className="absolute left-4 top-0 bottom-0 w-px bg-slate-200" />
-                  <ul className="space-y-1 pl-10">
+                <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: 16, top: 0, bottom: 0, width: 1, background: T.bdr1 }} />
+                  <ul style={{ display: 'flex', flexDirection: 'column', gap: 4, listStyle: 'none', margin: 0, padding: '0 0 0 40px' }}>
                     {auditLog.map((entry) => (
-                      <li key={entry.id} className="relative">
-                        <div className="absolute -left-[26px] top-2 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-indigo-500 shadow-sm" />
-                        <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 hover:bg-white transition">
-                          <div className="flex items-start justify-between gap-2">
+                      <li key={entry.id} style={{ position: 'relative' }}>
+                        <div style={{ position: 'absolute', left: -26, top: 8, display: 'flex', height: 16, width: 16, alignItems: 'center', justifyContent: 'center', borderRadius: '50%', border: `2px solid ${T.bg2}`, background: T.accent, boxShadow: '0 0 0 1px rgba(0,0,0,0.2)' }} />
+                        <div style={{ borderRadius: 12, border: `1px solid ${T.bdr0}`, background: T.bg3, padding: '12px 16px', transition: 'background 0.12s' }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
                             <div>
-                              <p className="text-xs font-bold text-slate-800">
-                                {entry.action}
-                              </p>
-                              <p className="text-[11px] text-slate-500 mt-0.5">
-                                {entry.detail}
-                              </p>
+                              <p style={{ fontSize: 12, fontWeight: 700, color: T.txt0, margin: 0 }}>{entry.action}</p>
+                              <p style={{ fontSize: 11, color: T.txt2, margin: '3px 0 0' }}>{entry.detail}</p>
                             </div>
-                            <div className="text-right flex-shrink-0">
-                              <p className="text-[10px] font-semibold text-indigo-600">
-                                {entry.admin}
-                              </p>
-                              <p className="text-[10px] text-slate-400">
-                                {timeAgo(entry.time)}
-                              </p>
+                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                              <p style={{ fontSize: 10.5, fontWeight: 700, color: '#7aa8ff', margin: 0 }}>{entry.admin}</p>
+                              <p style={{ fontSize: 10, color: T.txt2, margin: '2px 0 0' }}>{timeAgo(entry.time)}</p>
                             </div>
                           </div>
                         </div>
