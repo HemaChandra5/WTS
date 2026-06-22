@@ -1,8 +1,3 @@
-// AdminDashboard.jsx — WTS Admin, restyled to ssKatt's dark SaaS/PaaS aesthetic
-// All state, handlers, memos, effects, and the WebSocket integration are unchanged
-// from the original Tailwind/Heroicons version. Only presentation (inline styles +
-// custom SVG icons instead of Tailwind classes + Heroicons) has been replaced.
-
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -19,10 +14,6 @@ import ReviewModal from '../components/ReviewModal';
 import StatusBadge from '../components/StatusBadge';
 import { isSameDay, isWithinDays } from '../utils/dateUtils';
 
-// ─── Design Tokens — true-black premium SaaS palette ──────────────────────
-// Pure black canvas (not navy-tinted) with glass-morphism surfaces: panels
-// are translucent + blurred rather than flat fills, so depth comes from
-// layering, not from saturated color.
 const T = {
   bg0: '#000000',
   bg1: '#000000',
@@ -51,8 +42,7 @@ const T = {
   violetD: 'rgba(167,139,250,0.10)',
   cyan: '#22d3ee',
   cyanD: 'rgba(34,211,238,0.10)',
-  // Neutral tone used for the "no-color" toggle/status look the dashboard
-  // standardizes on — active states read via weight/opacity, not hue.
+ 
   neutral: '#c4c9da',
   neutralDim: '#5c6178',
 };
@@ -268,21 +258,7 @@ const StatCard = ({ icon: Icon, label, value, sub, trend, color, onClick }) => {
 };
 
 
-// ─── Employee Status Toggle ────────────────────────────────────────────
-// A single sliding switch that fully replaces the old Approve/Decline and
-// Activate/Deactivate button pairs.
-//   pending  → slide right = Approve   · slide left = Decline (confirms)
-//   active   → slide right = stays Active · slide left = Deactivate (confirms)
-//   inactive → slide right = Reactivate  · slide left = stays Deactivated
-// The thumb position is fully controlled by `mode`, which reflects the real
-// employee record — not local optimistic state. This matters because
-// Deactivate/Decline route through a confirm dialog the admin can cancel;
-// if the thumb moved on click alone, cancelling would leave it stuck in the
-// wrong position. It only moves once refreshEmployees() confirms the change.
-//
-// Deliberately colorless: the switch communicates state through position,
-// weight, and opacity only (no green/red), matching the no-color request —
-// a status pill (StatusPill) carries the one allowed accent dot instead.
+
 const TOGGLE_COPY = {
   pending: { onLabel: 'Approve', offLabel: 'Decline', isOn: false },
   active: { onLabel: 'Active', offLabel: 'Deactivate', isOn: true },
@@ -370,9 +346,6 @@ const EmployeeStatusToggle = ({ mode, busy, onActivate, onDeactivate }) => {
   );
 };
 
-// StatusPill — small neutral badge used next to names instead of a colored
-// "Active" word; communicates state via a dot + weight, not hue, so lists
-// don't look like a stoplight.
 const StatusPill = ({ mode }) => {
   const copy = { pending: 'Pending', active: 'Active', inactive: 'Deactivated' }[mode] || mode;
   const dotOn = mode === 'active';
@@ -387,10 +360,6 @@ const StatusPill = ({ mode }) => {
   );
 };
 
-// Pagination — bottom-right, prev/next only. No page-number buttons: just
-// the current position ("3 of 12") and two arrows. The boundary arrow is
-// removed entirely (not just disabled) on the first/last page, since a
-// dimmed-but-present arrow still implies "you could click forward."
 const Pagination = ({ current, total, onChange }) => {
   if (total <= 1) return null;
   const btnBase = {
@@ -1199,10 +1168,10 @@ useEffect(() => {
   // below) — counts communicate via numerals, not a traffic-light of hues.
   const tabs = [
     { id: 'overview', label: 'Overview', icon: I.Chart },
-    { id: 'pending', label: 'Needs Review', icon: I.Clock, badge: needsAttention.length },
-    { id: 'files', label: 'All Files', icon: I.Doc, badge: dashboardStats.files },
-    { id: 'tasks', label: 'Tasks', icon: I.CheckCircle, badge: dashboardStats.pendingTasks || null },
-    { id: 'employees', label: 'Employees', icon: I.Users, badge: dashboardStats.pendingApprovals || null },
+    { id: 'pending', label: 'Needs Review', icon: I.Clock },
+    { id: 'files', label: 'All Files', icon: I.Doc },
+    { id: 'tasks', label: 'Tasks', icon: I.CheckCircle},
+    { id: 'employees', label: 'Employees', icon: I.Users},
     { id: 'users', label: 'User Management', icon: I.UserPlus },
     { id: 'audit', label: 'Audit Log', icon: I.ListBullet },
   ];
@@ -1829,9 +1798,9 @@ useEffect(() => {
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                   <div style={{ display: 'flex', gap: 4 }}>
                     {[
-                      { id: 'pending', label: 'Pending', count: dashboardStats.pendingApprovals },
-                      { id: 'active', label: 'Active', count: dashboardStats.activeEmployees },
-                      { id: 'inactive', label: 'Deactivated', count: dashboardStats.inactiveEmployees },
+                      { id: 'pending', label: 'Pending', count: null },
+                      { id: 'active', label: 'Active', count: null },
+                      { id: 'inactive', label: 'Deactivated', count: null },
                     ].map((t) => (
                       <button key={t.id} onClick={() => setEmpTab(t.id)} type="button" style={{
                         display: 'flex', alignItems: 'center', gap: 7, borderRadius: 10, padding: '8px 15px', fontSize: 12, fontWeight: 700,

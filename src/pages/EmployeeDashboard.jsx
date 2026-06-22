@@ -630,7 +630,13 @@ formData.append('size', file.size);
         const fileUserId = f.userId ?? f.user?.id ?? f.user?.userId;
         const fileUserEmail = f.userEmail ?? f.user?.email;
 
-        return fileUserId === user.id || fileUserEmail === user.email;
+        const idMatches = fileUserId != null && String(fileUserId) === String(user.id);
+        const emailMatches =
+          typeof fileUserEmail === 'string' &&
+          typeof user.email === 'string' &&
+          fileUserEmail.toLowerCase() === user.email.toLowerCase();
+
+        return idMatches || emailMatches;
       }),
     [files, user.id, user.email],
   );
@@ -750,7 +756,7 @@ formData.append('size', file.size);
   const tabs = [
     { id: 'overview',  label: 'Overview',  icon: ChartBarIcon    },
     { id: 'upload',    label: 'Upload',    icon: CloudArrowUpIcon },
-    { id: 'files',     label: 'My Files',  icon: DocumentTextIcon, badge: userFiles.length,         badgeColor: '#6366f1' },
+    { id: 'files',     label: 'My Files',  icon: DocumentTextIcon },
     { id: 'tasks',     label: 'My Tasks',  icon: CheckCircleIcon,  badge: stats.pendingTasks || null, badgeColor: stats.overdueTasks > 0 ? '#f43f5e' : '#f59e0b' },
     { id: 'activity',  label: 'Activity',  icon: ListBulletIcon   },
   ];
