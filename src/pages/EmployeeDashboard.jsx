@@ -1,7 +1,3 @@
-// src/pages/EmployeeDashboard.jsx
-// Production-ready SaaS/PaaS Employee Dashboard
-// REDESIGN v2: Rich-white glassmorphism, SaaS/PaaS production grade — all business logic 100% preserved.
-
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import {
   CalendarDaysIcon,
