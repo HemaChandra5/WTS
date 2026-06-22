@@ -2,22 +2,25 @@
 import React, { useState, useRef } from 'react';
 import { ArrowUpTrayIcon, DocumentTextIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
-/* ─── Ivory/gold employee tokens ────────────────────────────────────── */
+/* ─── Employee luxury-white tokens ──────────────────────────────────── */
 const L = {
-  glass:    'rgba(255,253,249,0.82)',
-  border:   'rgba(212,175,122,0.20)',
-  borderHov:'rgba(212,175,122,0.38)',
-  txt0:     '#1c1917',
-  txt1:     '#78716c',
-  txt2:     '#a8a29e',
-  accent:   '#a8761e',
-  accentL:  'rgba(168,118,30,0.08)',
-  accentL2: 'rgba(168,118,30,0.14)',
+  bg:       '#ffffff',
+  surface:  '#f8fafc',
+  border:   'rgba(15,23,42,0.08)',
+  borderActive: 'rgba(79,70,229,0.40)',
+  txt0:     '#0f172a',
+  txt1:     '#475569',
+  txt2:     '#94a3b8',
+  accent:   '#4f46e5',
+  accentL:  'rgba(79,70,229,0.07)',
+  accentL2: 'rgba(79,70,229,0.12)',
   emerald:  '#059669',
-  emeraldL: 'rgba(16,185,129,0.08)',
-  rose:     '#e11d48',
-  roseL:    'rgba(225,29,72,0.07)',
+  emeraldL: 'rgba(5,150,105,0.07)',
+  rose:     '#dc2626',
+  roseL:    'rgba(220,38,38,0.06)',
 };
+
+const FONT = "'Inter', 'DM Sans', system-ui, sans-serif";
 
 const FileUpload = ({ onUpload }) => {
   const [file, setFile] = useState(null);
@@ -90,34 +93,30 @@ const FileUpload = ({ onUpload }) => {
 
   return (
     <section style={{
-      borderRadius: 20,
-      background: L.glass,
-      backdropFilter: 'blur(20px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+      borderRadius: 16,
+      background: L.bg,
       border: `1px solid ${L.border}`,
-      boxShadow: '0 1px 2px rgba(120,98,53,0.04), 0 8px 24px rgba(120,98,53,0.07)',
-      padding: 28,
-      fontFamily: 'inherit',
+      boxShadow: '0 1px 3px rgba(15,23,42,0.06), 0 4px 16px rgba(15,23,42,0.04)',
+      padding: '28px 28px',
+      fontFamily: FONT,
     }}>
       {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
-          <div style={{
-            width: 38, height: 38, borderRadius: 11,
-            background: `linear-gradient(135deg, ${L.accentL2}, rgba(201,162,94,0.12))`,
-            border: `1px solid ${L.border}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <CloudUploadIcon />
-          </div>
-          <div>
-            <h2 style={{ fontSize: 15, fontWeight: 800, color: L.txt0, margin: 0, letterSpacing: '-0.01em' }}>
-              Upload a file
-            </h2>
-            <p style={{ fontSize: 11, color: L.txt2, margin: '2px 0 0', fontWeight: 500 }}>
-              Drag &amp; drop or click to browse
-            </p>
-          </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+        <div style={{
+          width: 38, height: 38, borderRadius: 10,
+          background: L.accentL2,
+          border: `1px solid rgba(79,70,229,0.18)`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <ArrowUpTrayIcon style={{ width: 18, height: 18, color: L.accent }} />
+        </div>
+        <div>
+          <h2 style={{ fontSize: 15, fontWeight: 700, color: L.txt0, margin: 0, letterSpacing: '-0.02em' }}>
+            Upload a file
+          </h2>
+          <p style={{ fontSize: 12, color: L.txt2, margin: '2px 0 0' }}>
+            Drag &amp; drop or click to browse
+          </p>
         </div>
       </div>
 
@@ -130,36 +129,35 @@ const FileUpload = ({ onUpload }) => {
           onClick={() => inputRef.current?.click()}
           style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            gap: 10, borderRadius: 16, padding: '36px 24px', textAlign: 'center',
-            cursor: 'pointer', transition: 'all 0.2s',
+            gap: 12, borderRadius: 12, padding: '40px 24px', textAlign: 'center', cursor: 'pointer',
+            transition: 'all 0.18s',
             border: isDragging
               ? `2px solid ${L.accent}`
               : file
-              ? '2px solid rgba(16,185,129,0.40)'
-              : `2px dashed ${L.borderHov}`,
+              ? `2px solid rgba(5,150,105,0.35)`
+              : `2px dashed ${L.border}`,
             background: isDragging
               ? L.accentL
               : file
               ? L.emeraldL
-              : 'rgba(212,175,122,0.035)',
-            boxShadow: isDragging ? `0 0 0 4px ${L.accentL}` : 'none',
+              : L.surface,
           }}
         >
           {file ? (
             <>
               <div style={{
-                width: 52, height: 52, borderRadius: 14,
+                width: 48, height: 48, borderRadius: 12,
                 background: L.emeraldL,
-                border: '1px solid rgba(16,185,129,0.25)',
+                border: `1px solid rgba(5,150,105,0.22)`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <DocumentTextIcon style={{ width: 26, height: 26, color: L.emerald }} />
+                <DocumentTextIcon style={{ width: 22, height: 22, color: L.emerald }} />
               </div>
               <div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: L.txt0, margin: '0 0 2px', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <p style={{ fontSize: 13.5, fontWeight: 600, color: L.txt0, margin: '0 0 3px', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
                   {file.name}
                 </p>
-                <p style={{ fontSize: 11, color: L.emerald, fontWeight: 600, margin: 0 }}>
+                <p style={{ fontSize: 12, color: L.emerald, fontWeight: 500, margin: 0 }}>
                   {formatSize(file.size)} · Ready to upload
                 </p>
               </div>
@@ -170,38 +168,40 @@ const FileUpload = ({ onUpload }) => {
                 onMouseLeave={() => setRemoveHov(false)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 5,
-                  background: removeHov ? 'rgba(225,29,72,0.12)' : L.roseL,
-                  border: '1px solid rgba(225,29,72,0.22)',
-                  borderRadius: 8, padding: '4px 10px', cursor: 'pointer', transition: 'background 0.15s',
-                  fontSize: 11, fontWeight: 600, color: L.rose,
+                  background: removeHov ? 'rgba(220,38,38,0.10)' : L.roseL,
+                  border: `1px solid rgba(220,38,38,0.18)`,
+                  borderRadius: 7, padding: '4px 10px', cursor: 'pointer', transition: 'background 0.14s',
+                  fontSize: 12, fontWeight: 600, color: L.rose, fontFamily: FONT,
                 }}
               >
-                <XMarkIcon style={{ width: 12, height: 12 }} /> Remove
+                <XMarkIcon style={{ width: 12, height: 12 }} />
+                Remove
               </button>
             </>
           ) : (
             <>
               <div style={{
-                width: 52, height: 52, borderRadius: 14,
+                width: 48, height: 48, borderRadius: 12,
                 background: isDragging ? L.accentL2 : L.accentL,
-                border: `1px solid ${isDragging ? L.borderHov : L.border}`,
+                border: `1px solid ${isDragging ? 'rgba(79,70,229,0.28)' : 'rgba(79,70,229,0.14)'}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 0.2s',
+                transition: 'all 0.18s',
               }}>
-                <ArrowUpTrayIcon style={{ width: 24, height: 24, color: isDragging ? L.accent : '#c9a25e' }} />
+                <ArrowUpTrayIcon style={{ width: 22, height: 22, color: isDragging ? L.accent : '#818cf8' }} />
               </div>
               <div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: L.txt1, margin: '0 0 3px' }}>
+                <p style={{ fontSize: 13.5, fontWeight: 600, color: L.txt1, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
                   {isDragging ? 'Drop your file here' : 'Drag & drop files here'}
                 </p>
-                <p style={{ fontSize: 11, color: L.txt2, margin: 0 }}>or click to browse from your device</p>
+                <p style={{ fontSize: 12, color: L.txt2, margin: 0 }}>or click to browse from your device</p>
               </div>
               <span style={{
-                fontSize: 10, fontWeight: 700, color: L.txt2,
-                background: L.accentL, border: `1px solid ${L.border}`,
-                borderRadius: 6, padding: '3px 10px', letterSpacing: '0.06em', textTransform: 'uppercase',
+                fontSize: 10.5, fontWeight: 600, color: L.txt2,
+                background: '#f1f5f9',
+                border: `1px solid ${L.border}`,
+                borderRadius: 5, padding: '3px 9px', letterSpacing: '0.05em', textTransform: 'uppercase',
               }}>
-                Any file type accepted
+                All file types accepted
               </span>
             </>
           )}
@@ -210,8 +210,8 @@ const FileUpload = ({ onUpload }) => {
 
         {/* Notes */}
         <div>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: L.txt1, marginBottom: 6, letterSpacing: '0.01em' }}>
-            Notes <span style={{ color: L.txt2, fontWeight: 500 }}>(optional)</span>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: L.txt1, marginBottom: 7, letterSpacing: '-0.01em' }}>
+            Notes <span style={{ color: L.txt2, fontWeight: 400 }}>(optional)</span>
           </label>
           <textarea
             value={description}
@@ -221,13 +221,13 @@ const FileUpload = ({ onUpload }) => {
             onFocus={() => setNoteFocus(true)}
             onBlur={() => setNoteFocus(false)}
             style={{
-              width: '100%', borderRadius: 12,
+              width: '100%', borderRadius: 10,
               border: `1px solid ${noteFocus ? L.accent : L.border}`,
-              background: 'rgba(212,175,122,0.035)',
-              padding: '10px 14px', fontSize: 13, color: L.txt0,
-              resize: 'none', outline: 'none', transition: 'all 0.18s',
-              fontFamily: 'inherit', boxSizing: 'border-box',
-              boxShadow: noteFocus ? `0 0 0 3px ${L.accentL}` : 'none',
+              background: noteFocus ? '#ffffff' : L.surface,
+              padding: '10px 13px', fontSize: 13, color: L.txt0,
+              resize: 'none', outline: 'none', transition: 'all 0.15s',
+              fontFamily: FONT, boxSizing: 'border-box',
+              boxShadow: noteFocus ? `0 0 0 3px rgba(79,70,229,0.10)` : 'none',
             }}
           />
         </div>
@@ -236,17 +236,17 @@ const FileUpload = ({ onUpload }) => {
         {error && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8,
-            borderRadius: 10, padding: '8px 12px',
-            background: L.roseL, border: '1px solid rgba(225,29,72,0.22)',
+            borderRadius: 8, padding: '9px 12px',
+            background: L.roseL, border: `1px solid rgba(220,38,38,0.16)`,
           }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: L.rose, flexShrink: 0 }} />
-            <p style={{ fontSize: 12, color: L.rose, margin: 0, fontWeight: 500 }}>{error}</p>
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: L.rose, flexShrink: 0 }} />
+            <p style={{ fontSize: 12.5, color: L.rose, margin: 0, fontWeight: 500 }}>{error}</p>
           </div>
         )}
 
         {/* Footer */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <p style={{ fontSize: 11, color: L.txt2, margin: 0, lineHeight: 1.4 }}>
+          <p style={{ fontSize: 12, color: L.txt2, margin: 0, lineHeight: 1.5 }}>
             You can share your work later from the list using the "Share" action.
           </p>
           <button
@@ -254,13 +254,15 @@ const FileUpload = ({ onUpload }) => {
             disabled={uploading}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 7,
-              borderRadius: 12, padding: '10px 22px',
-              background: uploading ? 'rgba(168,118,30,0.40)' : `linear-gradient(135deg, ${L.accent}, #8f6118)`,
+              borderRadius: 9, padding: '10px 20px',
+              background: uploading
+                ? 'rgba(79,70,229,0.40)'
+                : '#4f46e5',
               border: 'none', cursor: uploading ? 'not-allowed' : 'pointer',
-              fontSize: 13, fontWeight: 700, color: '#fff',
-              boxShadow: uploading ? 'none' : '0 4px 16px rgba(168,118,30,0.28), 0 1px 0 rgba(255,255,255,0.18) inset',
-              transition: 'all 0.2s', whiteSpace: 'nowrap',
-              letterSpacing: '0.01em',
+              fontSize: 13, fontWeight: 600, color: '#fff',
+              boxShadow: uploading ? 'none' : '0 1px 3px rgba(79,70,229,0.30), 0 4px 14px rgba(79,70,229,0.20)',
+              transition: 'all 0.18s', whiteSpace: 'nowrap', letterSpacing: '-0.01em',
+              fontFamily: FONT,
             }}
           >
             {uploading ? (
@@ -270,7 +272,7 @@ const FileUpload = ({ onUpload }) => {
               </>
             ) : (
               <>
-                <ArrowUpTrayIcon style={{ width: 15, height: 15 }} />
+                <ArrowUpTrayIcon style={{ width: 14, height: 14 }} />
                 Upload file
               </>
             )}
@@ -281,17 +283,11 @@ const FileUpload = ({ onUpload }) => {
   );
 };
 
-const CloudUploadIcon = () => (
-  <svg width="20" height="20" fill="none" stroke="#a8761e" strokeWidth="1.7" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 16V8m0 0l-3 3m3-3l3 3M6.5 19a4.5 4.5 0 01-.916-8.916A6 6 0 0112 4a6 6 0 015.416 8.084A4.5 4.5 0 0117.5 19h-11z" />
-  </svg>
-);
-
 const SpinnerIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ animation: 'sskatt-spin 0.8s linear infinite' }}>
-    <style>{`@keyframes sskatt-spin { to { transform: rotate(360deg); } }`}</style>
-    <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.35)" strokeWidth="3" />
-    <path d="M12 3a9 9 0 019 9" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ animation: 'fuSpin 0.75s linear infinite' }}>
+    <style>{`@keyframes fuSpin { to { transform: rotate(360deg); } }`}</style>
+    <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.25)" strokeWidth="2.5" />
+    <path d="M12 3a9 9 0 019 9" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" />
   </svg>
 );
 
