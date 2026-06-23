@@ -33,8 +33,13 @@ const normalizeFile = (raw = {}) => {
 export const FilesProvider = ({ children }) => {
   const [files, setFiles] = useState([]);
   const syncInFlightRef = useRef(false);
+  const getAuthToken = () => localStorage.getItem('token');
 
   const fetchFiles = useCallback(async () => {
+    if (!getAuthToken()) {
+      return;
+    }
+
     if (syncInFlightRef.current) {
       return;
     }
@@ -68,6 +73,7 @@ export const FilesProvider = ({ children }) => {
 
     const runSync = () => {
       if (!shouldSync()) return;
+      if (!getAuthToken()) return;
       fetchFiles();
     };
 

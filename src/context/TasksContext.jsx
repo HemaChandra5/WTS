@@ -31,8 +31,13 @@ export const TasksProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [taskRealtimeEventCount, setTaskRealtimeEventCount] = useState(0);
   const syncInFlightRef = useRef(false);
+  const getAuthToken = () => localStorage.getItem('token');
 
   const fetchTasks = useCallback(async ({ silent = false } = {}) => {
+    if (!getAuthToken()) {
+      return { success: false, skipped: true };
+    }
+
     if (syncInFlightRef.current) {
       return { success: true, skipped: true };
     }
@@ -73,6 +78,7 @@ export const TasksProvider = ({ children }) => {
 
     const runSync = () => {
       if (!shouldSync()) return;
+      if (!getAuthToken()) return;
       fetchTasks({ silent: true });
     };
 
@@ -95,7 +101,7 @@ export const TasksProvider = ({ children }) => {
 
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
   const WS_BASE_URL = import.meta.env.VITE_WS_URL || API_BASE_URL.replace(/^http/, 'ws').replace(/\/api$/, '');
-  const token = localStorage.getItem('token');
+  const token = getAuthToken();
 
   useWebSocket(
     token ? `${WS_BASE_URL}/ws/tasks/` : null,

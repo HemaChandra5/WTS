@@ -112,6 +112,26 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
  
   }, []);
+
+  useEffect(() => {
+    const clearUserSession = () => {
+      setUser(null);
+    };
+
+    const onStorage = (event) => {
+      if (event.key === 'token' && !event.newValue) {
+        clearUserSession();
+      }
+    };
+
+    window.addEventListener('auth:session-expired', clearUserSession);
+    window.addEventListener('storage', onStorage);
+
+    return () => {
+      window.removeEventListener('auth:session-expired', clearUserSession);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, []);
  
   // ───────────────────────────────────────────
   // LOGIN
