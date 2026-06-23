@@ -111,6 +111,28 @@ const upsertById = (arr, item) => {
   return copy;
 };
 
+const ACTIVITY_ACTION_LABELS = {
+  upload_file: 'File Uploaded',
+  update_task: 'Task Status Updated',
+  create_task: 'Task Created',
+  delete_task: 'Task Deleted',
+  delete_file: 'File Deleted',
+  approve_file: 'File Approved',
+  reject_file: 'File Rejected',
+  login: 'Login',
+  register: 'Register',
+};
+
+const formatActivityAction = (action = '') => {
+  if (!action) return 'Activity';
+  if (ACTIVITY_ACTION_LABELS[action]) return ACTIVITY_ACTION_LABELS[action];
+  return action
+    .split('_')
+    .map((part) => part ? part.charAt(0).toUpperCase() + part.slice(1) : '')
+    .join(' ')
+    .trim();
+};
+
 const formatDate = (date) => {
   if (!date) return '—';
   return new Date(date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -858,6 +880,7 @@ const EmployeeDashboard = () => {
       addToast('File uploaded successfully', 'success');
       await fetchNotifications();
       await fetchFiles();
+      await fetchActivityLogs();
     } catch (error) {
       console.error(error);
       addToast('File upload failed', 'error');
@@ -867,16 +890,11 @@ const EmployeeDashboard = () => {
   const handleTaskStatusChange = useCallback(async (taskId, status) => {
     const previous = taskList;
     setTaskList(prev => prev.map(t => t.id === taskId ? { ...t, status } : t));
-
-    const result = await updateTaskStatus(taskId, status);
-    if (!result?.success) {
-      setTaskList(previous);
-      addToast(result?.error || 'Failed to update task status', 'error');
-      return;
-    }
-
+    updateTaskStatus(taskId, status);
+    const task = taskList.find(t => t.id === taskId);
+    logActivity('Task Status Updated', `"${task?.title || taskId}" → ${status}`);
     addToast(`Task marked as ${status.replace('_', ' ')}`, 'success');
-  }, [taskList, updateTaskStatus, addToast]);
+  }, [taskList, updateTaskStatus, logActivity, addToast]);
 
   const toggleTaskSection = (status) =>
     setTaskSectionsOpen(prev => ({ ...prev, [status]:!prev[status] }));
@@ -1528,7 +1546,7 @@ const EmployeeDashboard = () => {
                   </div>
                   <div>
                     <p style={{ fontSize:15.5, fontWeight:700, color:'#12161C', margin:0, letterSpacing:'-0.02em', fontFamily:'IBM Plex Sans, sans-serif' }}>Activity Log</p>
-                    <p style={{ fontSize:12, color:'#94989F', margin:'2px 0 0' }}>Server-side history with live updates</p>
+                    <p style={{ fontSize:12, color:'#94989F', margin:'2px 0 0' }}>Your actions this session</p>
                   </div>
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', justifyContent:'flex-end' }}>
