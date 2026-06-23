@@ -111,6 +111,28 @@ const upsertById = (arr, item) => {
   return copy;
 };
 
+const ACTIVITY_ACTION_LABELS = {
+  upload_file: 'File Uploaded',
+  update_task: 'Task Status Updated',
+  create_task: 'Task Created',
+  delete_task: 'Task Deleted',
+  delete_file: 'File Deleted',
+  approve_file: 'File Approved',
+  reject_file: 'File Rejected',
+  login: 'Login',
+  register: 'Register',
+};
+
+const formatActivityAction = (action = '') => {
+  if (!action) return 'Activity';
+  if (ACTIVITY_ACTION_LABELS[action]) return ACTIVITY_ACTION_LABELS[action];
+  return action
+    .split('_')
+    .map((part) => part ? part.charAt(0).toUpperCase() + part.slice(1) : '')
+    .join(' ')
+    .trim();
+};
+
 const formatDate = (date) => {
   if (!date) return '—';
   return new Date(date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -608,6 +630,30 @@ const EmployeeDashboard = () => {
   }, []);
   const removeToast = (id) => setToasts(p => p.filter(t => t.id !== id));
 
+  const fetchActivityLogs = useCallback(async () => {
+    try {
+      const response = await api.get('/activity/');
+      const rows = Array.isArray(response.data)
+        ? response.data
+        : (response.data?.results || []);
+
+      const normalized = rows.map((entry) => ({
+        id: entry.id,
+        action: formatActivityAction(entry.action),
+        detail: entry.description || '',
+        time: entry.created_at,
+      }));
+
+      setActivityLog(normalized);
+    } catch (error) {
+      console.error('Failed to fetch activity logs:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchActivityLogs();
+  }, [fetchActivityLogs]);
+
   /* ── Activity log ── */
   const logActivity = useCallback((action, detail) => {
     setActivityLog(p => [{ id:Date.now(), action, detail, time:new Date().toISOString() }, ...p].slice(0, 50));
@@ -675,6 +721,7 @@ const EmployeeDashboard = () => {
       logActivity('File Uploaded', file.name || 'Unknown file');
       addToast('File uploaded successfully', 'success');
       await fetchFiles();
+      await fetchActivityLogs();
     } catch (error) {
       console.error(error);
       addToast('File upload failed', 'error');
@@ -683,11 +730,15 @@ const EmployeeDashboard = () => {
 
   const handleTaskStatusChange = useCallback((taskId, status) => {
     setTaskList(prev => prev.map(t => t.id === taskId ? { ...t, status } : t));
-    updateTaskStatus(taskId, status);
     const task = taskList.find(t => t.id === taskId);
     logActivity('Task Status Updated', `"${task?.title || taskId}" → ${status}`);
     addToast(`Task marked as ${status.replace('_', ' ')}`, 'success');
-  }, [taskList, updateTaskStatus, logActivity, addToast]);
+    Promise.resolve(updateTaskStatus(taskId, status))
+      .then(fetchActivityLogs)
+      .catch((error) => {
+        console.error('Failed to refresh activity logs after status update:', error);
+      });
+  }, [taskList, updateTaskStatus, logActivity, addToast, fetchActivityLogs]);
 
   const toggleTaskSection = (status) =>
     setTaskSectionsOpen(prev => ({ ...prev, [status]:!prev[status] }));
@@ -1340,7 +1391,7 @@ const EmployeeDashboard = () => {
                   </div>
                   <div>
                     <p style={{ fontSize:15.5, fontWeight:700, color:'#12161C', margin:0, letterSpacing:'-0.02em', fontFamily:'IBM Plex Sans, sans-serif' }}>Activity Log</p>
-                    <p style={{ fontSize:12, color:'#94989F', margin:'2px 0 0' }}>Your actions this session</p>
+                    <p style={{ fontSize:12, color:'#94989F', margin:'2px 0 0' }}>Recent activity from your account</p>
                   </div>
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:12 }}>

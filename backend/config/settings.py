@@ -4,9 +4,10 @@ from dotenv import load_dotenv
 import dj_database_url
 import cloudinary
 
-load_dotenv()
-
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Always load backend/.env so management commands behave the same from any cwd.
+load_dotenv(BASE_DIR / '.env', override=True)
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-me')
 
@@ -88,7 +89,7 @@ else:
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': os.getenv('DATABASE_NAME', 'sskatt_wts_db'),
             'USER': os.getenv('DATABASE_USER', 'postgres'),
-            'PASSWORD': os.getenv('DATABASE_PASSWORD', '#Chandu3'),
+            'PASSWORD': os.getenv('DATABASE_PASSWORD', '#Chandra3'),
             'HOST': os.getenv('DATABASE_HOST', 'localhost'),
             'PORT': os.getenv('DATABASE_PORT', '5432'),
         }

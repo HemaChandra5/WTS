@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import (
     AllowAny,
     IsAuthenticated,
-    IsAdminUser,
+    BasePermission,
 )
 
 from django.contrib.auth import authenticate
@@ -19,6 +19,23 @@ from accounts.serializers import (
 from accounts.utils import create_jwt_token
 from activity_logs.services import create_activity
 from notifications.services import create_notification
+
+
+class IsRoleAdmin(BasePermission):
+    message = 'You do not have permission to perform this action.'
+
+    def has_permission(self, request, view):
+        user = request.user
+        return bool(
+            user
+            and user.is_authenticated
+            and getattr(user, 'role', None) == 'admin'
+        )
+
+
+# Keep existing decorators/class assignments unchanged while switching
+# this module to role-based admin authorization.
+IsAdminUser = IsRoleAdmin
 
 
 # ─────────────────────────────────────────────
@@ -317,6 +334,56 @@ class AdminViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.filter(role='admin')
     serializer_class = UserSerializer
     permission_classes = [IsAdminUser]
+
+    @action(
+        detail=False,
+        methods=['post'],
+        permission_classes=[IsAdminUser],
+    )
+    def create_user(self, request):
+        role = request.data.get('role', 'employee')
+
+        if role not in ['employee', 'admin']:
+            return Response(
+                {'message': 'Invalid role. Use employee or admin.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer_class = (
+            AdminRegistrationSerializer
+            if role == 'admin'
+            else UserRegistrationSerializer
+        )
+
+        serializer = serializer_class(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = serializer.save()
+
+        if role == 'employee':
+            user.is_active = request.data.get('is_active', True)
+            user.is_approved = request.data.get('is_approved', True)
+            user.is_rejected = False
+            user.save(update_fields=['is_active', 'is_approved', 'is_rejected'])
+
+        create_activity(
+            request.user,
+            'create_admin' if role == 'admin' else 'register',
+            f'Created {role} {user.email}',
+        )
+
+        return Response(
+            {
+                'message': f'{role.title()} account created successfully',
+                'user': UserSerializer(user).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
     # ─────────────────────────────────────────
     # REGISTER ADMIN
