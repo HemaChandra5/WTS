@@ -4,12 +4,10 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { useAuth } from '../context/AuthContext';
 import { useFiles } from '../context/FilesContext';
 import { useTasks } from '../context/TasksContext';
-import { useNotifications } from '../context/NotificationsContext';
 import { api } from '../api';
 
 import FileList from '../components/FileList';
 import PreviewModal from '../components/PreviewModal';
-import ShareModal from '../components/ShareModal';
 import ReviewModal from '../components/ReviewModal';
 import StatusBadge from '../components/StatusBadge';
 import { isSameDay, isWithinDays } from '../utils/dateUtils';
@@ -487,9 +485,8 @@ const AdminDashboard = () => {
   if (user?.role !== 'admin') {
   return null;
 }
-  const { files, updateFileStatus } = useFiles();
+  const { files, updateFileStatus, bulkUpdateFileStatus, fetchFiles } = useFiles();
   const { tasks, addTask, updateTaskStatus, deleteTask } = useTasks();
-  const { pushNotification } = useNotifications();
 
   /* ── State ── */
   const [fileList, setFileList] = useState(files || []);
@@ -517,12 +514,28 @@ const AdminDashboard = () => {
   const fetchActivityLogs = useCallback(async () => {
   try {
     const response = await api.get('/activity/');
-    setAuditLog(response.data);
+    const payload = response.data;
+    const rows = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.results)
+      ? payload.results
+      : [];
+
+    const normalized = rows.map((entry) => ({
+      id: entry.id,
+      action: (entry.action || 'activity').replace(/_/g, ' '),
+      detail: entry.description || entry.detail || '',
+      admin: entry.user_email || entry.admin || 'System',
+      time: entry.created_at || entry.time || new Date().toISOString(),
+    }));
+
+    setAuditLog(normalized);
   } catch (error) {
     console.error(
       'Failed to fetch activity logs:',
       error
     );
+    setAuditLog([]);
   }
 }, []);
 
@@ -544,7 +557,7 @@ const fetchDashboardStats = useCallback(async () => {
   const [busyEmployeeIds, setBusyEmployeeIds] = useState(new Set());
 
   /* ── File Filters ── */
-  const [range, setRange] = useState('30d');
+  const [range, setRange] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
@@ -569,7 +582,6 @@ const fetchDashboardStats = useCallback(async () => {
 
   /* ── Modals ── */
   const [previewFile, setPreviewFile] = useState(null);
-  const [shareFile, setShareFile] = useState(null);
   const [reviewFile, setReviewFile] = useState(null);
 
   /* ── User Management (create admin/employee accounts directly) ── */
@@ -669,11 +681,6 @@ useEffect(() => {
       if (!data?.type) return;
       if (data.type === 'file_notification' && data.file) {
         setFileList((prev) => upsertById(prev, data.file));
-        pushNotification(
-          'New file uploaded',
-          `${data.file.userName} uploaded ${data.file.originalName}`,
-          'file',
-        );
         addToast(`New file: ${data.file.originalName}`, 'info');
       }
       if (data.type === 'file_status_update') {
@@ -685,6 +692,15 @@ useEffect(() => {
       }
       if (data.type === 'file_list' && Array.isArray(data.files)) {
         setFileList(data.files);
+      }
+      if (data.type === 'file_share_update' && data.file) {
+        setFileList((prev) => upsertById(prev, data.file));
+        if (data.action === 'shared') {
+          addToast('File sharing updated in realtime', 'info');
+        }
+        if (data.action === 'unshared') {
+          addToast('File unsharing updated in realtime', 'info');
+        }
       }
     },
     (error) => console.error('WebSocket error:', error),
@@ -711,11 +727,6 @@ useEffect(() => {
       setAdminError('');
       const emp = employees.find((e) => e.id === id);
       logAction('Employee Approved', emp?.email || id);
-      pushNotification(
-        'Employee approved',
-        `${emp?.name || emp?.email || 'Employee'} can now log in`,
-        'employee',
-      );
       addToast('Employee approved successfully', 'success');
     }
     await refreshEmployees();
@@ -770,7 +781,7 @@ useEffect(() => {
 
   /* ── File status update ── */
   const handleUpdateFileStatus = useCallback(
-    (...args) => {
+    async (...args) => {
       // Flexible signature: either (payload) or (fileId, status, note)
       if (typeof args[0] === 'object' && args[0]?.id) {
         const payload = args[0];
@@ -779,35 +790,58 @@ useEffect(() => {
           'File Status Updated',
           `${payload.originalName} → ${payload.status}`,
         );
-        addToast(`File marked as ${payload.status}`, 'success');
-        return updateFileStatus(payload);
+        return { success: true, file: payload };
       }
       const [fileId, status, adminNote] = args;
       const file = fileList.find((f) => f.id === fileId);
-      setFileList((prev) =>
-        prev.map((f) =>
-          f.id === fileId
-            ? { ...f, status, ...(adminNote ? { adminNote } : {}) }
-            : f,
-        ),
-      );
+
+      const previousFileList = fileList;
+      setFileList((prev) => prev.map((f) => (f.id === fileId ? { ...f, status, ...(adminNote ? { adminNote } : {}) } : f)));
+
+      const result = await updateFileStatus(fileId, status, adminNote);
+      if (!result?.success) {
+        setFileList(previousFileList);
+        addToast(result?.error || 'Failed to update file status', 'error');
+        return result;
+      }
+
       logAction(
         'File Status Updated',
         `${file?.originalName || fileId} → ${status}`,
       );
       addToast(`File marked as ${status}`, 'success');
-      return updateFileStatus(fileId, status, adminNote);
+      fetchDashboardStats();
+      fetchActivityLogs();
+      return result;
     },
-    [updateFileStatus, fileList, logAction, addToast],
+    [updateFileStatus, fileList, logAction, addToast, fetchDashboardStats, fetchActivityLogs],
   );
 
   /* ── Bulk file actions ── */
-  const handleBulkAction = (action) => {
+  const handleBulkAction = async (action) => {
     if (!selectedFiles.size) return;
     const ids = [...selectedFiles];
-    ids.forEach((id) => handleUpdateFileStatus(id, action));
+
+    const result = await bulkUpdateFileStatus(ids, action);
+    if (!result?.success) {
+      addToast(result?.error || `Failed to bulk mark files as ${action}`, 'error');
+      return;
+    }
+
+    setFileList((prev) => {
+      const updates = new Map((result.files || []).map((f) => [String(f.id), f]));
+      return prev.map((f) => updates.get(String(f.id)) || f);
+    });
+
+    fetchDashboardStats();
+    fetchActivityLogs();
+
     setSelectedFiles(new Set());
-    addToast(`${ids.length} file(s) marked as ${action}`, 'success');
+    if ((result.updatedCount || 0) === ids.length) {
+      addToast(`${ids.length} file(s) marked as ${action}`, 'success');
+    } else {
+      addToast(`${result.updatedCount || 0}/${ids.length} file(s) marked as ${action}`, (result.updatedCount || 0) > 0 ? 'info' : 'error');
+    }
   };
 
   const handleBulkDelete = () => {
@@ -835,10 +869,10 @@ useEffect(() => {
     }
   };
 
-  const handleTaskSubmit = (e) => {
+  const handleTaskSubmit = async (e) => {
     e.preventDefault();
     if (!taskForm.title.trim() || !taskForm.assignedToEmail.trim()) return;
-    addTask({
+    const result = await addTask({
       title: taskForm.title.trim(),
       description: taskForm.description.trim(),
       assignedToEmail: taskForm.assignedToEmail.trim(),
@@ -847,6 +881,12 @@ useEffect(() => {
       priority: taskForm.priority,
       adminFile: taskForm.adminFile,
     });
+
+    if (!result?.success) {
+      addToast(result?.error || 'Failed to create task', 'error');
+      return;
+    }
+
     logAction(
       'Task Created',
       `"${taskForm.title}" assigned to ${taskForm.assignedToEmail}`,
@@ -868,8 +908,13 @@ useEffect(() => {
       title: 'Delete Task?',
       message: 'This task will be permanently removed.',
       danger: true,
-      onConfirm: () => {
-        deleteTask?.(id);
+      onConfirm: async () => {
+        const result = await deleteTask?.(id);
+        if (result && !result.success) {
+          addToast(result.error || 'Failed to delete task', 'error');
+          setConfirmDialog(null);
+          return;
+        }
         logAction('Task Deleted', id);
         addToast('Task deleted', 'info');
         setConfirmDialog(null);
@@ -971,7 +1016,7 @@ useEffect(() => {
   }, [empTab, pendingEmployees, activeEmployees, inactiveEmployees, empSearch]);
 
   const stats = useMemo(() => {
-    const totalFiles = dashboardStats.files;
+    const totalFiles = fileList.length;
     const totalSize = fileList.reduce(
       (sum, f) => sum + (f.size || 0),
       0,
@@ -1038,6 +1083,38 @@ useEffect(() => {
     return days;
   }, [fileList]);
 
+  const weeklyTrendDelta = useMemo(() => {
+    const now = new Date();
+    const currentStart = new Date(now);
+    currentStart.setDate(now.getDate() - 6);
+
+    const previousEnd = new Date(currentStart);
+    previousEnd.setDate(currentStart.getDate() - 1);
+    const previousStart = new Date(previousEnd);
+    previousStart.setDate(previousEnd.getDate() - 6);
+
+    let currentCount = 0;
+    let previousCount = 0;
+
+    for (const file of fileList) {
+      if (!file?.createdAt) continue;
+      const created = new Date(file.createdAt);
+      if (Number.isNaN(created.getTime())) continue;
+
+      if (created >= currentStart && created <= now) {
+        currentCount += 1;
+      } else if (created >= previousStart && created <= previousEnd) {
+        previousCount += 1;
+      }
+    }
+
+    if (previousCount === 0) {
+      return currentCount > 0 ? 100 : 0;
+    }
+
+    return Math.round(((currentCount - previousCount) / previousCount) * 100);
+  }, [fileList]);
+
   // Status distribution
   const statusDistribution = useMemo(
     () => [
@@ -1048,6 +1125,26 @@ useEffect(() => {
     ],
     [stats],
   );
+
+  const employeeSummary = useMemo(() => {
+    const active = employees.filter(
+      (e) => (e.is_approved ?? e.isApproved) && (e.is_active ?? e.isActive) !== false,
+    ).length;
+    const pendingApproval = employees.filter(
+      (e) => !(e.is_approved ?? e.isApproved) && !(e.is_rejected ?? e.isRejected),
+    ).length;
+    const deactivated = employees.filter(
+      (e) => (e.is_approved ?? e.isApproved) && (e.is_active ?? e.isActive) === false,
+    ).length;
+
+    return {
+      active,
+      pendingApproval,
+      deactivated,
+      tasksOpen: stats.pendingTasks,
+      tasksDone: stats.doneTasks,
+    };
+  }, [employees, stats.pendingTasks, stats.doneTasks]);
 
   const needsAttention = useMemo(
     () =>
@@ -1262,11 +1359,11 @@ useEffect(() => {
 
         {/* ── Stat cards ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 12 }}>
-          <StatCard icon={I.Doc} label="Total Files" value={dashboardStats.files} sub={`${stats.todayCount} today`} color="indigo" trend={12} onClick={() => setActiveTab('files')} />
-          <StatCard icon={I.Clock} label="Pending" value={dashboardStats.pendingFiles} sub={`${stats.reviewing} reviewing`} color="amber" onClick={() => setActiveTab('pending')} />
-          <StatCard icon={I.Shield} label="Approved" value={dashboardStats.approvedFiles} sub={`${dashboardStats.rejectedFiles} rejected`} color="emerald" onClick={() => { setActiveTab('files'); setStatusFilter('approved'); }} />
-          <StatCard icon={I.Users} label="Employees" value={dashboardStats.employees} sub={`${dashboardStats.pendingApprovals} pending`} color="violet" onClick={() => setActiveTab('employees')} />
-          <StatCard icon={I.CheckCircle} label="Tasks" value={dashboardStats.tasks} sub={`${dashboardStats.pendingTasks} open`} color="sky" onClick={() => setActiveTab('tasks')} />
+          <StatCard icon={I.Doc} label="Total Files" value={stats.totalFiles} sub={`${stats.todayCount} today`} color="indigo" trend={weeklyTrendDelta} onClick={() => setActiveTab('files')} />
+          <StatCard icon={I.Clock} label="Pending" value={stats.pending} sub={`${stats.reviewing} reviewing`} color="amber" onClick={() => setActiveTab('pending')} />
+          <StatCard icon={I.Shield} label="Approved" value={stats.approved} sub={`${stats.rejected} rejected`} color="emerald" onClick={() => { setActiveTab('files'); setStatusFilter('approved'); }} />
+          <StatCard icon={I.Users} label="Employees" value={employees.length} sub={`${employeeSummary.pendingApproval} pending`} color="violet" onClick={() => setActiveTab('employees')} />
+          <StatCard icon={I.CheckCircle} label="Tasks" value={tasks.length} sub={`${stats.pendingTasks} open`} color="sky" onClick={() => setActiveTab('tasks')} />
           <StatCard icon={I.Download} label="Storage" value={formatBytes(stats.totalSize)} sub="total uploaded" color="rose" onClick={() => setActiveTab('files')} />
         </div>
 
@@ -1370,7 +1467,7 @@ useEffect(() => {
                 <p style={{ fontSize: 13.5, fontWeight: 600, color: T.txt0, margin: 0 }}>Recent Uploads</p>
                 <button onClick={() => setActiveTab('files')} style={{ fontSize: 11, color: '#7aa8ff', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit' }}>View all</button>
               </div>
-              {dashboardStats.files === 0 ? (
+              {recentFiles.length === 0 ? (
 <div
   style={{
     textAlign: 'center',
@@ -1430,11 +1527,11 @@ useEffect(() => {
               <p style={{ fontSize: 13.5, fontWeight: 600, color: T.txt0, margin: '0 0 16px' }}>Employee Summary</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {[
-                  { label: 'Active', value: dashboardStats.activeEmployees, color: T.emerald },
-                  { label: 'Pending approval', value: dashboardStats.pendingApprovals, color: T.amber },
-                  { label: 'Deactivated', value: dashboardStats.inactiveEmployees, color: T.txt2 },
-                  { label: 'Tasks open', value: dashboardStats.pendingTasks, color: T.accent },
-                  { label: 'Tasks done', value: dashboardStats.completedTasks, color: T.emerald },
+                  { label: 'Active', value: employeeSummary.active, color: T.emerald },
+                  { label: 'Pending approval', value: employeeSummary.pendingApproval, color: T.amber },
+                  { label: 'Deactivated', value: employeeSummary.deactivated, color: T.txt2 },
+                  { label: 'Tasks open', value: employeeSummary.tasksOpen, color: T.accent },
+                  { label: 'Tasks done', value: employeeSummary.tasksDone, color: T.emerald },
                 ].map((item) => (
                   <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1575,8 +1672,8 @@ useEffect(() => {
                       <I.Download /> Export
                     </button>
 
-                    {(search || typeFilter !== 'all' || range !== '30d' || sortBy !== 'newest' || statusFilter !== 'all') && (
-                      <button onClick={() => { setSearch(''); setTypeFilter('all'); setRange('30d'); setSortBy('newest'); setStatusFilter('all'); setFilePage(1); }}
+                    {(search || typeFilter !== 'all' || range !== 'all' || sortBy !== 'newest' || statusFilter !== 'all') && (
+                      <button onClick={() => { setSearch(''); setTypeFilter('all'); setRange('all'); setSortBy('newest'); setStatusFilter('all'); setFilePage(1); }}
                         style={{ display: 'flex', alignItems: 'center', gap: 5, borderRadius: 10, border: '1px solid rgba(255,95,126,0.25)', background: T.roseD, padding: '8px 13px', fontSize: 12, fontWeight: 600, color: T.rose, cursor: 'pointer', fontFamily: 'inherit' }}>
                         <I.X /> Clear
                       </button>
@@ -1607,7 +1704,6 @@ useEffect(() => {
                 files={paginatedFiles}
                 isAdmin
                 onPreview={setPreviewFile}
-                onShare={setShareFile}
                 onStatusChange={handleUpdateFileStatus}
                 onReview={setReviewFile}
                 selectedFiles={selectedFiles}
@@ -1767,7 +1863,15 @@ useEffect(() => {
                               <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusCfg.dot }} />
                               {statusCfg.label}
                             </span>
-                            <select value={t.status} onChange={(e) => { updateTaskStatus(t.id, e.target.value); logAction('Task Status Changed', `${t.title} → ${e.target.value}`); }}
+                            <select value={t.status} onChange={async (e) => {
+                              const result = await updateTaskStatus(t.id, e.target.value);
+                              if (result?.success) {
+                                logAction('Task Status Changed', `${t.title} → ${e.target.value}`);
+                                addToast(`Task marked as ${e.target.value.replace('_', ' ')}`, 'success');
+                              } else {
+                                addToast(result?.error || 'Failed to update task status', 'error');
+                              }
+                            }}
                               style={{ borderRadius: 9, border: `1px solid ${T.bdr1}`, background: T.bg2, padding: '5px 9px', fontSize: 11, color: T.txt1, outline: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
                               <option value="pending">Pending</option>
                               <option value="in_progress">In progress</option>
@@ -2041,7 +2145,7 @@ useEffect(() => {
                     <I.Clock style={{ color: T.txt0 }} />
                   </div>
                   <div>
-                    <p style={{ fontSize: 18, fontWeight: 700, color: T.txt0, margin: 0 }}>{dashboardStats.pendingApprovals}</p>
+                    <p style={{ fontSize: 18, fontWeight: 700, color: T.txt0, margin: 0 }}>{employeeSummary.pendingApproval}</p>
                     <p style={{ fontSize: 10.5, color: T.txt2, margin: 0 }}>Awaiting approval</p>
                   </div>
                 </div>
@@ -2151,11 +2255,6 @@ useEffect(() => {
         file={previewFile}
         open={!!previewFile}
         onClose={() => setPreviewFile(null)}
-      />
-      <ShareModal
-        file={shareFile}
-        open={!!shareFile}
-        onClose={() => setShareFile(null)}
       />
       <ReviewModal
         file={reviewFile}

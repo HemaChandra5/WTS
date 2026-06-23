@@ -4,17 +4,30 @@ from asgiref.sync import sync_to_async
 from django.utils.text import slugify
 from tasks.models import Task
 
+
 class TaskConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.user_email = self.scope['user'].email if self.scope['user'].is_authenticated else None
-        # Convert email to valid group name: user@example.com → user-examplecom
-        self.user_slug = slugify(self.user_email) if self.user_email else 'anonymous'
+        if not self.scope['user'].is_authenticated:
+            await self.close()
+            return
+
+        self.user_email = self.scope['user'].email
+        self.is_admin = getattr(self.scope['user'], 'role', None) == 'admin'
+        # Convert email to valid group name: user@example.com -> user-examplecom
+        self.user_slug = slugify(self.user_email)
         self.room_group_name = f'tasks_{self.user_slug}'
 
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
+
+        if self.is_admin:
+            await self.channel_layer.group_add(
+                'tasks_admin',
+                self.channel_name
+            )
+
         await self.accept()
         print(f"✅ User {self.user_email} connected to {self.room_group_name}")
 
@@ -23,6 +36,13 @@ class TaskConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             self.channel_name
         )
+
+        if getattr(self, 'is_admin', False):
+            await self.channel_layer.group_discard(
+                'tasks_admin',
+                self.channel_name
+            )
+
         print(f"❌ User {self.user_email} disconnected")
 
     async def receive(self, text_data):
@@ -76,6 +96,6 @@ class TaskConsumer(AsyncWebsocketConsumer):
         tasks = Task.objects.filter(
             assigned_to_email=self.user_email
         ).values(
-            'id', 'title', 'description', 'status', 'dueDate', 'created_at'
+            'id', 'title', 'description', 'status', 'due_date', 'created_at'
         )
         return list(tasks)

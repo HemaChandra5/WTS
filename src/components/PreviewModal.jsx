@@ -84,9 +84,15 @@ const PreviewModal = ({ file, open, onClose }) => {
 
   if (!open || !file) return null;
 
+  const resolvedUrl = file.url || file.downloadUrl || null;
+
   const downloadFile = () => {
+    if (!resolvedUrl) {
+      window.alert('File link is not available for this record yet.');
+      return;
+    }
     const link = document.createElement('a');
-    link.href = file.url;
+    link.href = resolvedUrl;
     link.download = file.originalName;
     document.body.appendChild(link);
     link.click();
@@ -204,7 +210,7 @@ const PreviewModal = ({ file, open, onClose }) => {
               {isImage && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: L.surface, borderRadius: 16, padding: 16, border: `1px solid ${L.border}` }}>
                   <img
-                    src={file.url}
+                    src={resolvedUrl}
                     alt={file.originalName}
                     style={{ maxHeight: 600, maxWidth: '100%', borderRadius: 10, objectFit: 'contain' }}
                     onError={() => setPreviewError(true)}
@@ -216,7 +222,7 @@ const PreviewModal = ({ file, open, onClose }) => {
               {isPdf && (
                 <div style={{ width: '100%', height: 700, borderRadius: 16, overflow: 'hidden', background: L.surface, border: `1px solid ${L.border}` }}>
                   <iframe
-                    src={file.url}
+                    src={resolvedUrl}
                     style={{ width: '100%', height: '100%', border: 0 }}
                     title={file.originalName}
                     onError={() => setPreviewError(true)}

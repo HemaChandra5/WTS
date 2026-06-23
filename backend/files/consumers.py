@@ -119,6 +119,20 @@ class FileConsumer(AsyncWebsocketConsumer):
             )
         )
 
+    async def file_share_update(self, event):
+        """Broadcast file share/unshare update"""
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "file_share_update",
+                    "action": event.get("action"),
+                    "actorEmail": event.get("actorEmail", ""),
+                    "file": event.get("file"),
+                    "targetUserIds": event.get("targetUserIds", []),
+                }
+            )
+        )
+
     # ------------------------------------------------------------------
     # DB helpers
     # ------------------------------------------------------------------
@@ -144,8 +158,14 @@ class FileConsumer(AsyncWebsocketConsumer):
                     "status": getattr(f, "status", None),
                     "userName": getattr(f.user, "first_name", "") if getattr(f, "user", None) else "",
                     "userEmail": getattr(f.user, "email", "") if getattr(f, "user", None) else "",
-                    "createdAt": f.created_at.isoformat() if getattr(f, "createdAt", None) else None,
+                    "createdAt": f.created_at.isoformat() if getattr(f, "created_at", None) else None,
+                    "updatedAt": f.updated_at.isoformat() if getattr(f, "updated_at", None) else None,
                     "description": getattr(f, "description", ""),
+                    "url": getattr(f, "url", ""),
+                    "mimeType": getattr(f, "mime_type", ""),
+                    "fileName": getattr(f, "file_name", ""),
+                    "cloudinaryId": getattr(f, "cloudinary_id", ""),
+                    "shared": getattr(f, "shared", False),
                 }
             )
         return result

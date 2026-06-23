@@ -45,11 +45,11 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { useAuth } from '../context/AuthContext';
 import { useFiles } from '../context/FilesContext';
 import { useTasks } from '../context/TasksContext';
+import { useNotifications } from '../context/NotificationsContext';
 
 import FileUpload from '../components/FileUpload';
 import FileList from '../components/FileList';
 import PreviewModal from '../components/PreviewModal';
-import ShareModal from '../components/ShareModal';
 import StatusBadge from '../components/StatusBadge';
 
 import {
@@ -126,6 +126,44 @@ const timeAgo = (date) => {
   if (hrs < 24) return `${hrs}h ago`;
   return `${Math.floor(hrs / 24)}d ago`;
 };
+
+const ACTION_LABELS = {
+  login: 'Login',
+  register: 'Register',
+  approve_user: 'User Approved',
+  reject_user: 'User Rejected',
+  create_task: 'Task Created',
+  update_task: 'Task Updated',
+  delete_task: 'Task Deleted',
+  upload_file: 'File Uploaded',
+  review_file: 'File Reviewing',
+  approve_file: 'File Approved',
+  reject_file: 'File Rejected',
+  delete_file: 'File Deleted',
+  share_file: 'File Shared',
+  unshare_file: 'File Unshared',
+};
+
+const ACTIVITY_DATE_RANGE_OPTIONS = [
+  { value: 'today', label: 'Today' },
+  { value: '7d', label: 'Last 7 days' },
+  { value: '30d', label: 'Last 30 days' },
+  { value: '90d', label: 'Last 90 days' },
+  { value: 'all', label: 'All time' },
+];
+
+const ACTIVITY_ACTION_OPTIONS = [
+  { value: 'all', label: 'All actions' },
+  ...Object.entries(ACTION_LABELS).map(([value, label]) => ({ value, label })),
+];
+
+const normalizeActivityEntry = (entry = {}) => ({
+  id: entry.id,
+  action: ACTION_LABELS[entry.action] || (entry.action || 'Activity').replace(/_/g, ' '),
+  detail: entry.description || '',
+  time: entry.created_at || entry.time || new Date().toISOString(),
+  rawAction: entry.action || '',
+});
 
 const exportToCSV = (data, filename) => {
   if (!data.length) return;
@@ -552,8 +590,9 @@ const TaskSection = ({ title, status, tasks, count, isOpen, onToggle, onStatusCh
    ════════════════════════════════════════════════════════════════════════ */
 const EmployeeDashboard = () => {
   const { user }                        = useAuth();
-  const { files, addFile, fetchFiles }  = useFiles();
+  const { files, addFile, fetchFiles, applyRealtimeFileUpdate }  = useFiles();
   const { tasks, updateTaskStatus }     = useTasks();
+  const { fetchNotifications }          = useNotifications();
 
   if (!user) {
     return (
@@ -565,11 +604,17 @@ const EmployeeDashboard = () => {
 
   /* ── State ── */
   const [taskList,           setTaskList]           = useState(tasks || []);
-  const [notifications,      setNotifications]      = useState([]);
   const [toasts,             setToasts]             = useState([]);
   const [activityLog,        setActivityLog]        = useState([]);
+  const [activityLoading,    setActivityLoading]    = useState(false);
+  const [activityLoadingMore,setActivityLoadingMore]= useState(false);
+  const [activityHasMore,    setActivityHasMore]    = useState(true);
+  const [activityPage,       setActivityPage]       = useState(1);
+  const [activityAction,     setActivityAction]     = useState('all');
+  const [activityDateRange,  setActivityDateRange]  = useState('30d');
   const [activeTab,          setActiveTab]          = useState('overview');
   const [viewMode,           setViewMode]           = useState('list');
+  const activitySentinelRef = useRef(null);
 
   /* ── Filter State ── */
   const [typeFilter,    setTypeFilter]   = useState('all');
@@ -589,7 +634,6 @@ const EmployeeDashboard = () => {
 
   /* ── Modals ── */
   const [previewFile, setPreviewFile] = useState(null);
-  const [shareFile,   setShareFile]   = useState(null);
 
   useEffect(() => {
     console.log('Current User:', user);
@@ -608,23 +652,124 @@ const EmployeeDashboard = () => {
   }, []);
   const removeToast = (id) => setToasts(p => p.filter(t => t.id !== id));
 
-  /* ── Activity log ── */
-  const logActivity = useCallback((action, detail) => {
-    setActivityLog(p => [{ id:Date.now(), action, detail, time:new Date().toISOString() }, ...p].slice(0, 50));
-  }, []);
+  const activityPassesActiveFilters = useCallback((entry) => {
+    if (!entry) return false;
 
-  /* ── Notification helper ── */
-  const pushNotif = useCallback((title, message, type = 'info') => {
-    setNotifications(p => [{ id:Date.now(), title, message, type, time:new Date().toISOString() }, ...p].slice(0, 20));
-  }, []);
+    if (activityAction !== 'all' && entry.rawAction !== activityAction) {
+      return false;
+    }
+
+    if (activityDateRange === 'all') {
+      return true;
+    }
+
+    const timestamp = entry.time;
+    if (!timestamp) return false;
+
+    if (activityDateRange === 'today') {
+      return isSameDay(timestamp);
+    }
+
+    if (activityDateRange === '7d') {
+      return isWithinDays(timestamp, 7);
+    }
+
+    if (activityDateRange === '30d') {
+      return isWithinDays(timestamp, 30);
+    }
+
+    if (activityDateRange === '90d') {
+      return isWithinDays(timestamp, 90);
+    }
+
+    return true;
+  }, [activityAction, activityDateRange]);
+
+  const fetchActivityLogs = useCallback(async ({ page = 1, append = false } = {}) => {
+    if (append) {
+      setActivityLoadingMore(true);
+    } else {
+      setActivityLoading(true);
+    }
+
+    try {
+      const response = await api.get('/activity/', {
+        params: {
+          page,
+          page_size: 20,
+          action: activityAction,
+          date_range: activityDateRange,
+        },
+      });
+
+      const payload = response.data;
+      const rows = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.results)
+        ? payload.results
+        : [];
+
+      const normalized = rows.map(normalizeActivityEntry);
+
+      setActivityLog((prev) => {
+        if (!append) {
+          return normalized;
+        }
+
+        const existing = new Set(prev.map((entry) => String(entry.id)));
+        const deduped = normalized.filter((entry) => !existing.has(String(entry.id)));
+        return [...prev, ...deduped];
+      });
+
+      const hasNext = !Array.isArray(payload) && Boolean(payload?.next);
+      setActivityHasMore(hasNext);
+      setActivityPage(page);
+    } catch (error) {
+      console.error('Failed to fetch activity logs:', error);
+      addToast('Failed to load activity log', 'error');
+    } finally {
+      if (append) {
+        setActivityLoadingMore(false);
+      } else {
+        setActivityLoading(false);
+      }
+    }
+  }, [activityAction, activityDateRange, addToast]);
 
   useEffect(() => {
-    window.__empNotifications  = notifications;
-    window.__empPushNotif      = pushNotif;
-    window.__empClearNotif     = (id) => setNotifications(p => p.filter(n => n.id !== id));
-    window.__empClearAllNotifs = () => setNotifications([]);
-    window.dispatchEvent(new CustomEvent('emp-notif-update', { detail:{ count:notifications.length } }));
-  }, [notifications, pushNotif]);
+    setActivityLog([]);
+    setActivityPage(1);
+    setActivityHasMore(true);
+    fetchActivityLogs({ page: 1, append: false });
+  }, [fetchActivityLogs]);
+
+  useEffect(() => {
+    if (activeTab !== 'activity') return;
+
+    const target = activitySentinelRef.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (!entry?.isIntersecting) return;
+        if (activityLoading || activityLoadingMore || !activityHasMore) return;
+
+        fetchActivityLogs({ page: activityPage + 1, append: true });
+      },
+      {
+        root: null,
+        rootMargin: '240px 0px',
+        threshold: 0,
+      },
+    );
+
+    observer.observe(target);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [activeTab, activityHasMore, activityLoading, activityLoadingMore, activityPage, fetchActivityLogs]);
 
   /* ── WebSocket: tasks ── */
   useWebSocket(
@@ -632,7 +777,6 @@ const EmployeeDashboard = () => {
     (data) => {
       if (data?.type === 'task_notification' && data.task) {
         setTaskList(prev => upsertById(prev, data.task));
-        pushNotif('New task assigned', `Admin assigned: ${data.task.title}`, 'task');
         addToast(`New task: ${data.task.title}`, 'info');
       }
       if (data?.type === 'task_status_update') {
@@ -649,18 +793,57 @@ const EmployeeDashboard = () => {
   useWebSocket(
     `${WS_BASE_URL}/ws/files/`,
     (data) => {
+      if (data?.type === 'file_notification' && data.file) {
+        applyRealtimeFileUpdate(data.file);
+      }
+
       if (data?.type === 'file_status_update' && data.fileId) {
         if (data.status === 'approved') {
-          pushNotif('File approved', 'One of your files was approved by admin', 'approval');
           addToast('File approved by admin!', 'success');
         }
         if (data.status === 'rejected') {
-          pushNotif('File rejected', 'One of your files was rejected by admin', 'rejection');
           addToast('A file was rejected. Check your files tab.', 'error');
+        }
+      }
+
+      if (data?.type === 'file_share_update' && data.file) {
+        applyRealtimeFileUpdate(data.file);
+
+        const targetIds = Array.isArray(data.targetUserIds) ? data.targetUserIds.map(String) : [];
+        const isTarget = targetIds.includes(String(user.id));
+
+        if (isTarget && data.action === 'shared') {
+          addToast('A file was shared with you.', 'info');
+        }
+        if (isTarget && data.action === 'unshared') {
+          addToast('A shared file was removed from your access.', 'info');
         }
       }
     },
     (error) => console.error('WS files error:', error),
+  );
+
+  /* ── WebSocket: activity ── */
+  useWebSocket(
+    `${WS_BASE_URL}/ws/activity/`,
+    (data) => {
+      if (data?.type !== 'activity_event' || !data.activity) {
+        return;
+      }
+
+      const normalized = normalizeActivityEntry(data.activity);
+      if (!activityPassesActiveFilters(normalized)) {
+        return;
+      }
+
+      setActivityLog((prev) => {
+        if (prev.some((entry) => String(entry.id) === String(normalized.id))) {
+          return prev;
+        }
+        return [normalized, ...prev];
+      });
+    },
+    (error) => console.error('WS activity error:', error),
   );
 
   const handleUpload = async (file, description) => {
@@ -672,8 +855,8 @@ const EmployeeDashboard = () => {
       formData.append('mime_type', file.type);
       formData.append('size', file.size);
       await api.post('/files/', formData, { headers:{ 'Content-Type':'multipart/form-data' } });
-      logActivity('File Uploaded', file.name || 'Unknown file');
       addToast('File uploaded successfully', 'success');
+      await fetchNotifications();
       await fetchFiles();
     } catch (error) {
       console.error(error);
@@ -681,13 +864,19 @@ const EmployeeDashboard = () => {
     }
   };
 
-  const handleTaskStatusChange = useCallback((taskId, status) => {
+  const handleTaskStatusChange = useCallback(async (taskId, status) => {
+    const previous = taskList;
     setTaskList(prev => prev.map(t => t.id === taskId ? { ...t, status } : t));
-    updateTaskStatus(taskId, status);
-    const task = taskList.find(t => t.id === taskId);
-    logActivity('Task Status Updated', `"${task?.title || taskId}" → ${status}`);
+
+    const result = await updateTaskStatus(taskId, status);
+    if (!result?.success) {
+      setTaskList(previous);
+      addToast(result?.error || 'Failed to update task status', 'error');
+      return;
+    }
+
     addToast(`Task marked as ${status.replace('_', ' ')}`, 'success');
-  }, [taskList, updateTaskStatus, logActivity, addToast]);
+  }, [taskList, updateTaskStatus, addToast]);
 
   const toggleTaskSection = (status) =>
     setTaskSectionsOpen(prev => ({ ...prev, [status]:!prev[status] }));
@@ -781,7 +970,6 @@ const EmployeeDashboard = () => {
   const handleExportFiles = () => {
     exportToCSV(filteredFiles.map(f => ({ name:f.originalName||'', status:f.status||'', size:formatBytes(f.size), description:f.description||'', uploaded:formatDate(f.createdAt) })), 'my-files-export');
     addToast('Files exported to CSV', 'success');
-    logActivity('Export', `${filteredFiles.length} files`);
   };
   const handleExportTasks = () => {
     exportToCSV(myTasks.map(t => ({ title:t.title||'', status:t.status||'', priority:t.priority||'', dueDate:formatDate(t.dueDate), description:t.description||'' })), 'my-tasks-export');
@@ -1239,7 +1427,7 @@ const EmployeeDashboard = () => {
             </div>
 
             <div style={{ ...panelSx }}>
-              <FileList files={paginatedFiles} onPreview={setPreviewFile} onShare={setShareFile} />
+              <FileList files={paginatedFiles} onPreview={setPreviewFile} />
               <Pagination current={filePage} total={totalFilePages} onChange={setFilePage} />
             </div>
           </section>
@@ -1340,10 +1528,20 @@ const EmployeeDashboard = () => {
                   </div>
                   <div>
                     <p style={{ fontSize:15.5, fontWeight:700, color:'#12161C', margin:0, letterSpacing:'-0.02em', fontFamily:'IBM Plex Sans, sans-serif' }}>Activity Log</p>
-                    <p style={{ fontSize:12, color:'#94989F', margin:'2px 0 0' }}>Your actions this session</p>
+                    <p style={{ fontSize:12, color:'#94989F', margin:'2px 0 0' }}>Server-side history with live updates</p>
                   </div>
                 </div>
-                <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', justifyContent:'flex-end' }}>
+                  <select value={activityAction} onChange={(e) => setActivityAction(e.target.value)} style={{ ...inputSx, cursor:'pointer' }} onFocus={focusInput} onBlur={blurInput}>
+                    {ACTIVITY_ACTION_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                  <select value={activityDateRange} onChange={(e) => setActivityDateRange(e.target.value)} style={{ ...inputSx, cursor:'pointer' }} onFocus={focusInput} onBlur={blurInput}>
+                    {ACTIVITY_DATE_RANGE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
                   <span style={{ fontSize:12.5, color:'#94989F', fontWeight:500 }}>{activityLog.length} entries</span>
                   {activityLog.length > 0 && (
                     <button onClick={() => exportToCSV(activityLog.map(e=>({ action:e.action, detail:e.detail, time:e.time })), 'activity-log')}
@@ -1358,11 +1556,18 @@ const EmployeeDashboard = () => {
 
               <div style={{ padding:'24px 32px 32px' }}>
                 {activityLog.length === 0 ? (
+                  activityLoading ? (
+                    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', border:'1px dashed #E9E7E1', borderRadius:12, padding:'64px 24px', textAlign:'center' }}>
+                      <InformationCircleIcon style={{ width:44, height:44, color:'#D6D3CB' }} />
+                      <p style={{ marginTop:16, fontSize:16, fontWeight:700, color:'#94989F', letterSpacing:'-0.02em', fontFamily:'IBM Plex Sans, sans-serif' }}>Loading activity log...</p>
+                    </div>
+                  ) : (
                   <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', border:'1px dashed #E9E7E1', borderRadius:12, padding:'64px 24px', textAlign:'center' }}>
                     <InformationCircleIcon style={{ width:44, height:44, color:'#D6D3CB' }} />
                     <p style={{ marginTop:16, fontSize:16, fontWeight:700, color:'#94989F', letterSpacing:'-0.02em', fontFamily:'IBM Plex Sans, sans-serif' }}>No activity yet</p>
                     <p style={{ fontSize:13.5, color:'#D6D3CB', margin:'6px 0 0' }}>Uploads and task updates will appear here.</p>
                   </div>
+                  )
                 ) : (
                   <div style={{ position:'relative' }}>
                     {/* Timeline line */}
@@ -1386,6 +1591,20 @@ const EmployeeDashboard = () => {
                         </li>
                       ))}
                     </ul>
+
+                    {activityLoadingMore && (
+                      <div style={{ display:'flex', justifyContent:'center', padding:'16px 0 8px', fontSize:12.5, color:'#94989F', fontWeight:500 }}>
+                        Loading more activity...
+                      </div>
+                    )}
+
+                    {!activityHasMore && activityLog.length > 0 && (
+                      <div style={{ display:'flex', justifyContent:'center', padding:'16px 0 8px', fontSize:12.5, color:'#94989F', fontWeight:500 }}>
+                        End of activity history
+                      </div>
+                    )}
+
+                    <div ref={activitySentinelRef} style={{ height:1 }} />
                   </div>
                 )}
               </div>
@@ -1397,7 +1616,6 @@ const EmployeeDashboard = () => {
 
       {/* ── MODALS ── */}
       <PreviewModal file={previewFile} open={!!previewFile} onClose={() => setPreviewFile(null)} />
-      <ShareModal   file={shareFile}   open={!!shareFile}   onClose={() => setShareFile(null)}   />
 
       {/* ── TOASTS ── */}
       <Toast toasts={toasts} removeToast={removeToast} />

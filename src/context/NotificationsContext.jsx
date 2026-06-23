@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useState,
   useEffect,
+  useMemo,
 } from 'react';
 
 import { api } from '../api';
@@ -11,98 +12,91 @@ import { useWebSocket } from '../hooks/useWebSocket';
 
 const NotificationsContext = createContext(null);
 
-const MAX_NOTIFICATIONS = 20;
+const normalizeNotification = (n = {}) => ({
+  id: n.id,
+  title: n.title || '',
+  message: n.message || '',
+  type: n.type ?? n.notification_type ?? 'system',
+  time: n.time ?? n.created_at ?? new Date().toISOString(),
+  isRead: n.isRead ?? n.is_read ?? false,
+});
 
 export const NotificationsProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
-  const pushRealtimeNotification = (data) => {
-  setNotifications((prev) => {
-    const exists = prev.some(
-      (n) => n.id === data.id
-    );
+  const [loading, setLoading] = useState(false);
 
-    if (exists) {
-      return prev;
+  const pushRealtimeNotification = useCallback((data) => {
+    const incoming = normalizeNotification(data);
+    setNotifications((prev) => {
+      const exists = prev.some((n) => n.id === incoming.id);
+      if (exists) return prev;
+      return [incoming, ...prev];
+    });
+  }, []);
+
+  const fetchNotifications = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/notifications/');
+      const rows = Array.isArray(response.data)
+        ? response.data
+        : Array.isArray(response.data?.results)
+        ? response.data.results
+        : [];
+      setNotifications(rows.map(normalizeNotification));
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+    } finally {
+      setLoading(false);
     }
-
-    return [data, ...prev];
-  });
-};
-
-const fetchNotifications = async () => {
-  try {
-    const response = await api.get('/notifications/');
-
-    const data = response.data.map((n) => ({
-      id: n.id,
-      title: n.title,
-      message: n.message,
-      type: n.notification_type,
-      time: n.created_at,
-      isRead: n.is_read,
-    }));
-
-    setNotifications(data);
-  } catch (error) {
-    console.error(
-      'Failed to fetch notifications:',
-      error
-    );
-  }
-};
-
-useEffect(() => {
-  fetchNotifications();
-}, []);
-
-const WS_BASE_URL =
-  import.meta.env.VITE_WS_URL;
-
-const token = localStorage.getItem('token');
-
-useWebSocket(
-  token
-    ? `${WS_BASE_URL}/ws/notifications/`
-    : null,
-  (data) => {
-    console.log(
-      '🔔 Realtime notification received:',
-      data
-    );
-
-    pushRealtimeNotification(data);
-  }
-);
-  
-
-
-
-  const pushNotification = useCallback((title, message, type = 'info') => {
-    const notification = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      title,
-      message,
-      type,
-      time: new Date().toISOString(),
-    };
-    setNotifications((prev) => [notification, ...prev].slice(0, MAX_NOTIFICATIONS));
   }, []);
 
-  const clearNotification = useCallback((id) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+  const WS_BASE_URL = import.meta.env.VITE_WS_URL || API_BASE_URL.replace(/^http/, 'ws').replace(/\/api$/, '');
+  const token = localStorage.getItem('token');
+
+  useWebSocket(
+    token ? `${WS_BASE_URL}/ws/notifications/` : null,
+    (data) => {
+      pushRealtimeNotification(data);
+    },
+    (error) => {
+      console.error('Notification websocket error:', error);
+    },
+  );
+
+  const clearNotification = useCallback(async (id) => {
+    try {
+      await api.delete(`/notifications/${id}/`);
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+    } catch (error) {
+      console.error('Failed to clear notification:', error);
+    }
   }, []);
 
-  const clearAllNotifications = useCallback(() => {
-    setNotifications([]);
+  const clearAllNotifications = useCallback(async () => {
+    try {
+      await api.delete('/notifications/clear_all/');
+      setNotifications([]);
+    } catch (error) {
+      console.error('Failed to clear all notifications:', error);
+    }
   }, []);
 
- const value = {
-  notifications,
-  pushNotification,
-  clearNotification,
-  clearAllNotifications,
-  fetchNotifications,
-};
+  const value = useMemo(
+    () => ({
+      notifications,
+      loading,
+      clearNotification,
+      clearAllNotifications,
+      fetchNotifications,
+    }),
+    [notifications, loading, clearNotification, clearAllNotifications, fetchNotifications],
+  );
 
   return (
     <NotificationsContext.Provider value={value}>
@@ -114,14 +108,12 @@ useWebSocket(
 export const useNotifications = () => {
   const ctx = useContext(NotificationsContext);
   if (!ctx) {
-    // Fail soft rather than crash the app if a page renders outside the
-    // provider during incremental rollout — bell will just show empty state.
     return {
       notifications: [],
-      pushNotification: () => {},
-      clearNotification: () => {},
-      clearAllNotifications: () => {},
-      fetchNotifications: () => {},
+      loading: false,
+      clearNotification: async () => {},
+      clearAllNotifications: async () => {},
+      fetchNotifications: async () => {},
     };
   }
   return ctx;

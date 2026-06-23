@@ -1,48 +1,47 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationsContext';
 
 import companyLogo from '../assets/logo.png';
 
-/* ─── Dark design tokens (admin) — mirrors AdminDashboard.jsx's `T` ───── */
 const D = {
-  bg1:      '#000000',
-  glass:    'rgba(20,20,22,0.55)',
-  glassHov: 'rgba(255,255,255,0.07)',
-  glassBorder: 'rgba(255,255,255,0.09)',
-  bdr0:     'rgba(255,255,255,0.05)',
-  bdr1:     'rgba(255,255,255,0.09)',
-  bdr2:     'rgba(255,255,255,0.15)',
-  txt0:     '#f5f6fa',
-  txt1:     '#9aa1b8',
-  txt2:     '#5c6178',
-  accent:   '#5b8def',
-  accentL:  'rgba(91,141,239,0.14)',
-  emerald:  '#34d399',
-  amber:    '#f0b14d',
-  rose:     '#f0708a',
-  roseD:    'rgba(240,112,138,0.12)',
+  glass: 'rgba(20,20,22,0.62)',
+  border: 'rgba(255,255,255,0.09)',
+  text: '#f5f6fa',
+  textMuted: '#9aa1b8',
+  textDim: '#5c6178',
+  accent: '#5b8def',
+  accentSoft: 'rgba(91,141,239,0.14)',
+  danger: '#f0708a',
+  dangerSoft: 'rgba(240,112,138,0.12)',
+  panel: '#121216',
+  panelEdge: 'rgba(255,255,255,0.11)',
 };
 
-/* ─── Light design tokens (employee) — rich-white luxury, mirrors
-   EmployeeDashboard.jsx's ivory/gold glass surfaces ──────────────────── */
 const L = {
-  bg:      '#fffdf9',
-  glass:   'rgba(255,253,249,0.72)',
-  border:  'rgba(212,175,122,0.20)',
-  borderHov: 'rgba(212,175,122,0.38)',
-  shadow:  '0 1px 2px rgba(120,98,53,0.04), 0 8px 24px rgba(120,98,53,0.06)',
-  txt0:    '#1c1917',
-  txt1:    '#78716c',
-  txt2:    '#a8a29e',
-  accent:  '#a8761e',
-  accentL: 'rgba(168,118,30,0.10)',
-  rose:    '#e11d48',
-  roseL:   '#fff1f2',
+  bg: '#fffdf9',
+  glass: 'rgba(255,253,249,0.78)',
+  border: 'rgba(212,175,122,0.25)',
+  text: '#1c1917',
+  textMuted: '#78716c',
+  textDim: '#a8a29e',
+  accent: '#a8761e',
+  accentSoft: 'rgba(168,118,30,0.10)',
+  danger: '#e11d48',
+  dangerSoft: '#fff1f2',
+  panel: '#fffefb',
+  panelEdge: 'rgba(212,175,122,0.22)',
 };
 
-/* ─── Shared timeAgo ─────────────────────────────────────────────────── */
+const TYPE_ACCENTS = {
+  task: { dot: '#2563eb', chip: 'rgba(37,99,235,0.12)' },
+  file: { dot: '#0f766e', chip: 'rgba(15,118,110,0.12)' },
+  approval: { dot: '#059669', chip: 'rgba(5,150,105,0.12)' },
+  rejection: { dot: '#e11d48', chip: 'rgba(225,29,72,0.12)' },
+  system: { dot: '#6b7280', chip: 'rgba(107,114,128,0.14)' },
+};
+
 const timeAgo = (date) => {
   if (!date) return '';
   const diff = Date.now() - new Date(date).getTime();
@@ -54,25 +53,27 @@ const timeAgo = (date) => {
   return `${Math.floor(hrs / 24)}d ago`;
 };
 
-/* ─── Inline SVG icons (professional / SaaS-style line icons) ──────────── */
 const BellIcon = (p) => (
   <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...p}>
     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
     <path d="M13.73 21a2 2 0 0 1-3.46 0" />
   </svg>
 );
+
 const BellSolidIcon = (p) => (
   <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" {...p}>
     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
     <path d="M13.73 21a2 2 0 0 1-3.46 0" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
   </svg>
 );
+
 const CloseIcon = (p) => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" {...p}>
-    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
-/* Professional "sign out" glyph — door + arrow, slightly more refined weight */
+
 const LogoutIcon = (p) => (
   <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -81,402 +82,349 @@ const LogoutIcon = (p) => (
   </svg>
 );
 
-/* ─── Admin Notification Panel (dark) ───────────────────────────────── */
-const AdminNotificationPanel = ({ notifications, onClear, onClearAll }) => (
-  <div style={{
-    position: 'absolute', right: 0, top: 'calc(100% + 14px)', zIndex: 200, width: 320,
-    borderRadius: 16, border: `1px solid ${D.glassBorder}`, background: '#161618',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.6)', overflow: 'visible',
-  }}>
-    {/* Caret pointing back to the bell */}
-    <div style={{
-      position: 'absolute', top: -7, right: 12, width: 14, height: 14,
-      background: '#161618', borderLeft: `1px solid ${D.glassBorder}`, borderTop: `1px solid ${D.glassBorder}`,
-      transform: 'rotate(45deg)', borderRadius: '3px 0 0 0',
-    }} />
-    <div style={{ borderRadius: 16, overflow: 'hidden', position: 'relative' }}>
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${D.bdr1}`, padding: '14px 16px' }}>
-      <p style={{ fontSize: 14, fontWeight: 600, color: D.txt0, margin: 0 }}>Notifications</p>
-      {notifications.length > 0 && (
-        <button onClick={onClearAll} style={{ fontSize: 12, color: D.txt0, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit' }}>
-          Clear all
-        </button>
-      )}
-    </div>
-    <div style={{ maxHeight: 340, overflowY: 'auto' }}>
-      {notifications.length === 0 ? (
-        <div style={{ padding: '44px 0', textAlign: 'center' }}>
-          <BellIcon style={{ width: 30, height: 30, color: D.txt2, margin: '0 auto', display: 'block', opacity: 0.4 }} />
-          <p style={{ marginTop: 10, fontSize: 13, color: D.txt2 }}>No notifications</p>
-        </div>
-      ) : (
-        notifications.map((n) => (
-          <div key={n.id}
-            style={{ display: 'flex', alignItems: 'flex-start', gap: 10, borderBottom: `1px solid ${D.bdr0}`, padding: '12px 16px', transition: 'background 0.12s', cursor: 'default' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-            <div style={{
-              marginTop: 5, width: 7, height: 7, flexShrink: 0, borderRadius: '50%',
-              background: n.type === 'file' ? D.accent : n.type === 'employee' ? D.amber : D.emerald,
-            }} />
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: D.txt0, margin: 0 }}>{n.title}</p>
-              <p style={{ fontSize: 12, color: D.txt1, margin: '3px 0 0' }}>{n.message}</p>
-              <p style={{ fontSize: 11, color: D.txt2, margin: '3px 0 0' }}>{timeAgo(n.time)}</p>
-            </div>
-            <button onClick={() => onClear(n.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: D.txt2, display: 'flex', padding: 0, flexShrink: 0 }}>
-              <CloseIcon />
-            </button>
-          </div>
-        ))
-      )}
-    </div>
-    </div>
-  </div>
-);
+const NotificationPanel = ({ notifications, onClear, onClearAll, isAdmin }) => {
+  const t = isAdmin ? D : L;
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        right: 0,
+        top: 'calc(100% + 14px)',
+        zIndex: 200,
+        width: 'min(380px, calc(100vw - 24px))',
+        borderRadius: 20,
+        border: `1px solid ${t.panelEdge}`,
+        background: t.panel,
+        boxShadow: isAdmin
+          ? '0 30px 80px rgba(0,0,0,0.65)'
+          : '0 30px 70px rgba(120,98,53,0.24)',
+        overflow: 'visible',
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          top: -7,
+          right: 14,
+          width: 14,
+          height: 14,
+          background: t.panel,
+          borderLeft: `1px solid ${t.panelEdge}`,
+          borderTop: `1px solid ${t.panelEdge}`,
+          transform: 'rotate(45deg)',
+          borderRadius: '3px 0 0 0',
+        }}
+      />
 
-/* ─── Employee Notification Panel (light) ───────────────────────────── */
-const EmployeeNotificationPanel = ({ notifications, onClear, onClearAll }) => (
-  <div style={{
-    position: 'absolute', right: 0, top: 'calc(100% + 14px)', zIndex: 200, width: 340,
-    borderRadius: 18, border: `1px solid ${L.border}`, background: '#fffefb',
-    boxShadow: '0 24px 60px rgba(120,98,53,0.22)', overflow: 'visible',
-  }}>
-    {/* Caret pointing back to the bell */}
-    <div style={{
-      position: 'absolute', top: -7, right: 13, width: 14, height: 14,
-      background: '#fffefb', borderLeft: `1px solid ${L.border}`, borderTop: `1px solid ${L.border}`,
-      transform: 'rotate(45deg)', borderRadius: '3px 0 0 0',
-    }} />
-    <div style={{ borderRadius: 18, overflow: 'hidden', position: 'relative' }}>
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${L.border}`, padding: '14px 18px' }}>
-      <p style={{ fontSize: 15, fontWeight: 700, color: L.txt0, margin: 0 }}>Notifications</p>
-      {notifications.length > 0 && (
-        <button onClick={onClearAll} style={{ fontSize: 13, color: L.accent, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit' }}>
-          Clear all
-        </button>
-      )}
-    </div>
-    <div style={{ maxHeight: 360, overflowY: 'auto' }}>
-      {notifications.length === 0 ? (
-        <div style={{ padding: '48px 0', textAlign: 'center' }}>
-          <BellIcon style={{ width: 36, height: 36, color: L.txt2, margin: '0 auto', display: 'block' }} />
-          <p style={{ marginTop: 10, fontSize: 14, color: L.txt1, fontWeight: 500 }}>No notifications yet</p>
-          <p style={{ fontSize: 12, color: L.txt2, margin: '4px 0 0' }}>Task & file updates will appear here</p>
-        </div>
-      ) : (
-        notifications.map((n) => (
-          <div key={n.id}
-            style={{ display: 'flex', alignItems: 'flex-start', gap: 12, borderBottom: `1px solid rgba(212,175,122,0.12)`, padding: '13px 18px', transition: 'background 0.1s', cursor: 'default' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(212,175,122,0.06)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-            <div style={{
-              marginTop: 6, width: 8, height: 8, flexShrink: 0, borderRadius: '50%',
-              background: n.type === 'task' ? '#d97706' : n.type === 'approval' ? '#059669' : n.type === 'rejection' ? '#e11d48' : L.accent,
-            }} />
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <p style={{ fontSize: 14, fontWeight: 600, color: L.txt0, margin: 0 }}>{n.title}</p>
-              <p style={{ fontSize: 13, color: L.txt1, margin: '3px 0 0' }}>{n.message}</p>
-              <p style={{ fontSize: 11, color: L.txt2, margin: '4px 0 0' }}>{timeAgo(n.time)}</p>
+      <div style={{ borderRadius: 20, overflow: 'hidden' }}>
+        <div
+          style={{
+            padding: '16px 18px 14px',
+            borderBottom: `1px solid ${isAdmin ? 'rgba(255,255,255,0.08)' : 'rgba(212,175,122,0.18)'}`,
+            background: isAdmin
+              ? 'linear-gradient(135deg, rgba(91,141,239,0.16), rgba(255,255,255,0.01))'
+              : 'linear-gradient(135deg, rgba(168,118,30,0.13), rgba(255,255,255,0.55))',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: t.text, letterSpacing: '-0.01em' }}>Live notifications</p>
+              <p style={{ margin: '2px 0 0', fontSize: 11.5, color: t.textMuted }}>
+                {notifications.length > 0 ? `${notifications.length} recent update${notifications.length > 1 ? 's' : ''}` : 'No updates yet'}
+              </p>
             </div>
-            <button onClick={() => onClear(n.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: L.txt2, display: 'flex', padding: 0, flexShrink: 0, transition: 'color 0.12s' }}
-              onMouseEnter={e => e.currentTarget.style.color = L.txt0}
-              onMouseLeave={e => e.currentTarget.style.color = L.txt2}>
-              <CloseIcon />
-            </button>
+            {notifications.length > 0 && (
+              <button
+                onClick={onClearAll}
+                style={{
+                  border: 'none',
+                  background: isAdmin ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.68)',
+                  color: t.text,
+                  borderRadius: 999,
+                  padding: '6px 10px',
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                Clear all
+              </button>
+            )}
           </div>
-        ))
-      )}
-    </div>
-    </div>
-  </div>
-);
+        </div>
 
-/* ════════════════════════════════════════════════════════════════════════
-   MAIN NAVBAR COMPONENT
-   ════════════════════════════════════════════════════════════════════════ */
+        <div style={{ maxHeight: 380, overflowY: 'auto' }}>
+          {notifications.length === 0 ? (
+            <div style={{ padding: '54px 20px', textAlign: 'center' }}>
+              <BellIcon style={{ width: 34, height: 34, color: t.textDim, margin: '0 auto', display: 'block' }} />
+              <p style={{ marginTop: 10, marginBottom: 0, fontSize: 13.5, color: t.textMuted, fontWeight: 600 }}>
+                Inbox is clear
+              </p>
+            </div>
+          ) : (
+            notifications.map((n) => {
+              const accent = TYPE_ACCENTS[n.type] || TYPE_ACCENTS.system;
+              return (
+                <div
+                  key={n.id}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '8px 1fr auto',
+                    alignItems: 'start',
+                    gap: 12,
+                    padding: '13px 16px',
+                    borderBottom: `1px solid ${isAdmin ? 'rgba(255,255,255,0.06)' : 'rgba(212,175,122,0.14)'}`,
+                  }}
+                >
+                  <span
+                    style={{
+                      marginTop: 6,
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      background: accent.dot,
+                      boxShadow: `0 0 0 4px ${accent.chip}`,
+                    }}
+                  />
+
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ margin: 0, color: t.text, fontWeight: 700, fontSize: 13.5, letterSpacing: '-0.01em' }}>{n.title}</p>
+                    <p style={{ margin: '2px 0 0', color: t.textMuted, fontSize: 12.5, lineHeight: 1.45 }}>{n.message}</p>
+                    <p style={{ margin: '4px 0 0', color: t.textDim, fontSize: 11 }}>{timeAgo(n.time)}</p>
+                  </div>
+
+                  <button
+                    onClick={() => onClear(n.id)}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      color: t.textDim,
+                      cursor: 'pointer',
+                      padding: 4,
+                      borderRadius: 8,
+                    }}
+                  >
+                    <CloseIcon />
+                  </button>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Navbar = () => {
-  const { user, logout }                                      = useAuth();
-const {
-  notifications,
-  clearNotification,
-  clearAllNotifications,
-  fetchNotifications,
-} = useNotifications();
+  const { user, logout } = useAuth();
+  const { notifications, clearNotification, clearAllNotifications, fetchNotifications } = useNotifications();
 
-const navigate = useNavigate();
-useEffect(() => {
-  fetchNotifications();
-}, []);
-
-  const [showNotifications,      setShowNotifications]      = useState(false);
-  const [empNotifications,       setEmpNotifications]       = useState([]);
-  const [logoutHov,              setLogoutHov]              = useState(false);
-  const [bellHov,                 setBellHov]                = useState(false);
+  const navigate = useNavigate();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [logoutHov, setLogoutHov] = useState(false);
+  const [bellHov, setBellHov] = useState(false);
   const notifRef = useRef(null);
 
-  if (!user) return null;
-
-  const isAdmin = user.role === 'admin';
-
-  /* Designation shown under the name for employees — falls back through
-     common field names so it works regardless of how the backend labels it. */
-  const designation = user.designation || user.title || user.position || user.department || '';
-
-  /* ── Employee notifications: synced from EmployeeDashboard via window ── */
   useEffect(() => {
-    if (isAdmin) return;
+    fetchNotifications();
+  }, [fetchNotifications]);
 
-    // Initial read
-    if (window.__empNotifications) setEmpNotifications(window.__empNotifications);
-
-    const handler = (e) => {
-      if (window.__empNotifications) setEmpNotifications([...window.__empNotifications]);
-    };
-    window.addEventListener('emp-notif-update', handler);
-    return () => window.removeEventListener('emp-notif-update', handler);
-  }, [isAdmin]);
-
-  const empClearNotif    = useCallback((id) => { window.__empClearNotif?.(id);    if (window.__empNotifications) setEmpNotifications([...window.__empNotifications]); }, []);
-  const empClearAllNotif = useCallback(()  => { window.__empClearAllNotifs?.();  setEmpNotifications([]); }, []);
-
-  /* ── Close panel on outside click ── */
   useEffect(() => {
     const handler = (e) => {
-      if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifications(false);
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifications(false);
+      }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  if (!user) return null;
+
+  const isAdmin = user.role === 'admin';
+  const t = isAdmin ? D : L;
+  const designation = user.designation || user.title || user.position || user.department || '';
+  const hasNotifs = notifications.length > 0;
+  const notifCount = notifications.length;
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  /* ── Derived notification data ── */
-  const adminNotifCount = notifications.length;
-  const empNotifCount   = empNotifications.length;
-  const hasNotifs       = isAdmin ? adminNotifCount > 0 : empNotifCount > 0;
-  const notifCount      = isAdmin ? adminNotifCount     : empNotifCount;
-
-  /* ════════════════════════════════════════════════════════ ADMIN ═════ */
-  if (isAdmin) {
-    return (
-      <header style={{
-        position: 'relative', zIndex: 30,
-        borderBottom: `1px solid ${D.glassBorder}`,
-        background: D.glass, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+  return (
+    <header
+      style={{
+        position: 'relative',
+        zIndex: 30,
         isolation: 'isolate',
-      }}>
-        <div style={{ margin: '0 auto', maxWidth: 1400, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 32px' }}>
-
-          {/* Logo */}
-          <Link to="/admin" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
-            <img src={companyLogo} alt="ssKatt logo" style={{ height: 52, width: 52, objectFit: 'contain' }} />
-            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
-              <span style={{ fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.02em', background: 'linear-gradient(90deg,#5b8def,#a78bfa)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
-                ssKatt
-              </span>
-              <span style={{ fontSize: 12.5, fontWeight: 500, color: D.txt2, marginTop: 2 }}>Work Tracking System</span>
-            </div>
-          </Link>
-
-          <div style={{ flex: 1 }} />
-
-          {/* Right section */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
-
-            {/* Notification bell — borderless */}
-            <div ref={notifRef} style={{ position: 'relative' }}>
-              <button
-                onClick={() => setShowNotifications(p => !p)}
-                onMouseEnter={() => setBellHov(true)}
-                onMouseLeave={() => setBellHov(false)}
-                type="button"
-                aria-label="Notifications"
-                style={{
-                  position: 'relative', display: 'flex', height: 38, width: 38,
-                  alignItems: 'center', justifyContent: 'center', borderRadius: 11,
-                  border: 'none', background: bellHov || showNotifications ? D.glassHov : 'transparent',
-                  color: D.txt1, cursor: 'pointer', transition: 'background 0.15s',
-                }}
-              >
-                {hasNotifs
-                  ? <BellSolidIcon style={{ color: D.accent }} />
-                  : <BellIcon />
-                }
-                {hasNotifs && (
-                  <span style={{
-                    position: 'absolute', top: -3, right: -3, display: 'flex', height: 16, width: 16,
-                    alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: D.rose,
-                    fontSize: 9.5, fontWeight: 700, color: '#fff', border: `2px solid #000`,
-                  }}>
-                    {notifCount > 9 ? '9+' : notifCount}
-                  </span>
-                )}
-              </button>
-              {showNotifications && (
-                <AdminNotificationPanel
-                  notifications={notifications}
-                  onClear={clearNotification}
-                  onClearAll={clearAllNotifications}
-                />
-              )}
-            </div>
-
-            {/* Divider */}
-            <div style={{ width: 1, height: 26, background: D.bdr1, flexShrink: 0, margin: '0 2px' }} />
-
-            {/* User info — just name + "Admin" */}
-            <div className="navbar-user-info" style={{ textAlign: 'right' }}>
-              <div style={{ maxWidth: 240, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', fontSize: 14, fontWeight: 600, color: D.txt0 }}>
-                {user.name}
-              </div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: D.txt2, marginTop: 2 }}>
-                Admin
-              </div>
-            </div>
-
-            {/* Logout — borderless */}
-            <button
-              type="button"
-              onClick={handleLogout}
-              title="Logout"
-              onMouseEnter={() => setLogoutHov(true)}
-              onMouseLeave={() => setLogoutHov(false)}
+        borderBottom: `1px solid ${t.border}`,
+        background: t.glass,
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        boxShadow: isAdmin ? 'none' : '0 1px 2px rgba(120,98,53,0.04), 0 8px 24px rgba(120,98,53,0.06)',
+      }}
+    >
+      <div
+        style={{
+          margin: '0 auto',
+          maxWidth: isAdmin ? 1400 : 1280,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: isAdmin ? '14px 32px' : '0 36px',
+          height: isAdmin ? 'auto' : 72,
+        }}
+      >
+        <Link
+          to={isAdmin ? '/admin' : '/employee'}
+          style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', flexShrink: 0 }}
+        >
+          <img src={companyLogo} alt="ssKatt logo" style={{ height: isAdmin ? 52 : 44, width: isAdmin ? 52 : 44, objectFit: 'contain' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
+            <span
               style={{
-                display: 'inline-flex', height: 38, width: 38, alignItems: 'center', justifyContent: 'center',
-                borderRadius: 11, border: 'none', cursor: 'pointer', transition: 'all 0.15s',
-                background: logoutHov ? D.roseD : 'transparent',
-                color: logoutHov ? D.rose : D.txt1,
+                fontSize: isAdmin ? '1.75rem' : '1.5rem',
+                fontWeight: isAdmin ? 700 : 800,
+                letterSpacing: '-0.02em',
+                background: isAdmin
+                  ? 'linear-gradient(90deg,#5b8def,#67d6ff)'
+                  : 'linear-gradient(90deg,#a8761e,#c9a25e)',
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text',
+                color: 'transparent',
               }}
             >
-              <LogoutIcon />
-            </button>
-          </div>
-        </div>
-
-        <style>{`
-          @media(max-width:767px){.navbar-user-info{display:none!important}}
-        `}</style>
-      </header>
-    );
-  }
-
-  /* ════════════════════════════════════════════════════════ EMPLOYEE ══ */
-  return (
-    <header style={{
-      borderBottom: `1px solid ${L.border}`,
-      background: L.glass,
-      backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-      boxShadow: L.shadow,
-      position: 'relative',
-      zIndex: 30,
-      isolation: 'isolate',
-    }}>
-      <div style={{ margin: '0 auto', maxWidth: 1280, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 36px', height: 72 }}>
-
-        {/* Logo */}
-        <Link to="/employee" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', flexShrink: 0 }}>
-          <img src={companyLogo} alt="ssKatt logo" style={{ height: 44, width: 44, objectFit: 'contain' }} />
-          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-            <span style={{
-              fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.02em',
-              background: 'linear-gradient(90deg,#a8761e,#c9a25e)',
-              WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent',
-            }}>
               ssKatt
             </span>
-            <span style={{ fontSize: 11.5, fontWeight: 500, color: L.txt2, letterSpacing: '0.01em' }}>Work Tracking System</span>
+            <span style={{ fontSize: isAdmin ? 12.5 : 11.5, fontWeight: 500, color: t.textDim, marginTop: 2 }}>
+              Work Tracking System
+            </span>
           </div>
         </Link>
 
         <div style={{ flex: 1 }} />
 
-        {/* Right section */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
-
-          {/* Notification bell — borderless */}
           <div ref={notifRef} style={{ position: 'relative' }}>
             <button
-              onClick={() => setShowNotifications(p => !p)}
+              onClick={() => setShowNotifications((p) => !p)}
               onMouseEnter={() => setBellHov(true)}
               onMouseLeave={() => setBellHov(false)}
               type="button"
               aria-label={`Notifications${notifCount > 0 ? ` (${notifCount} unread)` : ''}`}
               style={{
-                position: 'relative', display: 'flex', height: 40, width: 40,
-                alignItems: 'center', justifyContent: 'center', borderRadius: 12,
+                position: 'relative',
+                display: 'flex',
+                height: isAdmin ? 38 : 40,
+                width: isAdmin ? 38 : 40,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 12,
                 border: 'none',
-                background: bellHov || showNotifications ? L.accentL : 'transparent',
-                color: showNotifications ? L.accent : L.txt1,
-                cursor: 'pointer', transition: 'all 0.15s', outline: 'none',
+                background: bellHov || showNotifications ? t.accentSoft : 'transparent',
+                color: showNotifications ? t.accent : t.textMuted,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                outline: 'none',
               }}
             >
-              {hasNotifs
-                ? <BellSolidIcon style={{ color: L.accent }} />
-                : <BellIcon style={{ color: L.txt1 }} />
-              }
+              {hasNotifs ? <BellSolidIcon style={{ color: t.accent }} /> : <BellIcon style={{ color: t.textMuted }} />}
               {hasNotifs && (
-                <span style={{
-                  position: 'absolute', top: -3, right: -3, display: 'flex', height: 17, width: 17,
-                  alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: L.rose,
-                  fontSize: 10, fontWeight: 700, color: '#fff', border: `2px solid ${L.bg}`,
-                  fontFamily: 'inherit',
-                }}>
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: -3,
+                    right: -3,
+                    display: 'flex',
+                    height: 17,
+                    width: 17,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '50%',
+                    background: t.danger,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: '#fff',
+                    border: `2px solid ${isAdmin ? '#000' : t.bg}`,
+                  }}
+                >
                   {notifCount > 9 ? '9+' : notifCount}
                 </span>
               )}
             </button>
+
             {showNotifications && (
-              <EmployeeNotificationPanel
-                notifications={empNotifications}
-                onClear={empClearNotif}
-                onClearAll={empClearAllNotif}
+              <NotificationPanel
+                notifications={notifications}
+                onClear={clearNotification}
+                onClearAll={clearAllNotifications}
+                isAdmin={isAdmin}
               />
             )}
           </div>
 
-          {/* Divider */}
-          <div style={{ width: 1, height: 30, background: L.border, flexShrink: 0, margin: '0 2px' }} />
+          <div style={{ width: 1, height: isAdmin ? 26 : 30, background: t.border, flexShrink: 0, margin: '0 2px' }} />
 
-          {/* User info (desktop) — name + designation, no avatar */}
           <div className="navbar-user-info" style={{ textAlign: 'right' }}>
-            <div style={{
-              maxWidth: 220, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
-              fontSize: 14, fontWeight: 700, color: L.txt0,
-            }}>
+            <div
+              style={{
+                maxWidth: isAdmin ? 240 : 220,
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+                textOverflow: 'ellipsis',
+                fontSize: 14,
+                fontWeight: isAdmin ? 600 : 700,
+                color: t.text,
+              }}
+            >
               {user.name}
             </div>
-            {designation && (
-              <div style={{ fontSize: 12, fontWeight: 500, color: L.txt2, textTransform: 'capitalize', marginTop: 2 }}>
-                {designation}
-              </div>
-            )}
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 500,
+                color: t.textDim,
+                marginTop: 2,
+                textTransform: designation ? 'capitalize' : 'none',
+              }}
+            >
+              {isAdmin ? 'Admin' : designation || 'Employee'}
+            </div>
           </div>
 
-          {/* Logout — borderless */}
           <button
             type="button"
             onClick={handleLogout}
             title="Logout"
-            onMouseEnter={e => { e.currentTarget.style.background = L.roseL; e.currentTarget.style.color = L.rose; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = L.txt1; }}
+            onMouseEnter={() => setLogoutHov(true)}
+            onMouseLeave={() => setLogoutHov(false)}
             style={{
-              display: 'inline-flex', height: 40, width: 40, alignItems: 'center', justifyContent: 'center',
-              borderRadius: 12, border: 'none', background: 'transparent',
-              color: L.txt1, cursor: 'pointer', transition: 'all 0.15s', outline: 'none',
+              display: 'inline-flex',
+              height: isAdmin ? 38 : 40,
+              width: isAdmin ? 38 : 40,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 12,
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+              background: logoutHov ? t.dangerSoft : 'transparent',
+              color: logoutHov ? t.danger : t.textMuted,
+              outline: 'none',
             }}
           >
             <LogoutIcon />
           </button>
         </div>
-
       </div>
 
       <style>{`
-        @media(max-width:767px){.navbar-user-info{display:none!important}}
+        @media (max-width: 767px) {
+          .navbar-user-info { display: none !important; }
+        }
       `}</style>
     </header>
   );

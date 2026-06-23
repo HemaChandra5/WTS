@@ -11,6 +11,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
 
     serializer_class = NotificationSerializer
     permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'delete', 'patch', 'head', 'options']
 
     def get_queryset(self):
         return Notification.objects.filter(
@@ -37,18 +38,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
         )
 
         return Response({
-            "message":
-            "All notifications marked as read"
-        })
-
-    @action(detail=True, methods=['delete'])
-    def delete_notification(self, request, pk=None):
-
-        notification = self.get_object()
-        notification.delete()
-
-        return Response({
-            'message': 'Notification deleted'
+            'message': 'All notifications marked as read'
         })
 
     @action(detail=False, methods=['delete'])

@@ -18,25 +18,22 @@ def create_notification(
 
     channel_layer = get_channel_layer()
 
-    print(
-    f'Sending notification to notifications_{user.id}'
-        )
-
-    async_to_sync(
-        channel_layer.group_send
-    )(
-        f'notifications_{user.id}',
-        {
-            'type': 'notification_message',
-            'notification': {
-                'id': notification.id,
-                'title': notification.title,
-                'message': notification.message,
-                'type': notification.notification_type,
-                'time': notification.created_at.isoformat(),
-                'isRead': notification.is_read,
+    if channel_layer is not None:
+        async_to_sync(
+            channel_layer.group_send
+        )(
+            f'notifications_{user.id}',
+            {
+                'type': 'notification_message',
+                'notification': {
+                    'id': notification.id,
+                    'title': notification.title,
+                    'message': notification.message,
+                    'type': notification.notification_type,
+                    'time': notification.created_at.isoformat(),
+                    'isRead': notification.is_read,
+                }
             }
-        }
-    )
+        )
 
     return notification

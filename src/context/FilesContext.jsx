@@ -27,29 +27,22 @@ const normalizeFile = (raw = {}) => {
 
 export const FilesProvider = ({ children }) => {
   const [files, setFiles] = useState([]);
-  useEffect(() => {
-  console.log('Files state changed:', files);
-}, [files]);
 
   const fetchFiles = async () => {
-  try {
-    console.log('Fetching files...');
+    try {
+      const response = await api.get('/files/');
+      const rows = Array.isArray(response.data)
+        ? response.data
+        : Array.isArray(response.data?.results)
+        ? response.data.results
+        : [];
 
-    const response = await api.get('/files/');
-    const rows = Array.isArray(response.data)
-      ? response.data
-      : Array.isArray(response.data?.results)
-      ? response.data.results
-      : [];
-
-    console.log('Files response:', response.data);
-
-    setFiles(rows.map(normalizeFile));
-  } catch (error) {
-    console.error('Failed to load files:', error);
-    console.error('Response:', error.response?.data);
-  }
-};
+      setFiles(rows.map(normalizeFile));
+    } catch (error) {
+      console.error('Failed to load files:', error);
+      console.error('Response:', error.response?.data);
+    }
+  };
 
   useEffect(() => {
     fetchFiles();
@@ -80,19 +73,62 @@ export const FilesProvider = ({ children }) => {
     setFiles((prev) => [normalizeFile(newFile), ...prev]);
   };
 
-  const updateFileStatus = (id, status, adminNote = '') => {
-    setFiles((prev) =>
-      prev.map((f) =>
-        f.id === id
-          ? {
-              ...f,
-              status,
-              adminNote,
-              reviewedAt: new Date().toISOString(),
-            }
-          : f
-      )
-    );
+  const updateFileStatus = async (id, status, adminNote = '') => {
+    try {
+      const response = await api.patch(`/files/${id}/update_status/`, {
+        status,
+        adminNote,
+      });
+
+      const updated = normalizeFile(response.data);
+      setFiles((prev) =>
+        prev.map((f) => (f.id === id ? { ...f, ...updated } : f))
+      );
+
+      return { success: true, file: updated };
+    } catch (error) {
+      console.error('Failed to update file status:', error);
+      return {
+        success: false,
+        error:
+          error?.response?.data?.detail ||
+          error?.response?.data?.status?.[0] ||
+          'Failed to update file status',
+      };
+    }
+  };
+
+  const bulkUpdateFileStatus = async (ids, status, adminNote = '') => {
+    try {
+      const response = await api.patch('/files/bulk_update_status/', {
+        ids,
+        status,
+        adminNote,
+      });
+
+      const rows = Array.isArray(response.data?.files)
+        ? response.data.files
+        : [];
+      const normalized = rows.map(normalizeFile);
+      const normalizedMap = new Map(normalized.map((f) => [String(f.id), f]));
+
+      setFiles((prev) =>
+        prev.map((f) => normalizedMap.get(String(f.id)) || f)
+      );
+
+      return {
+        success: true,
+        updatedCount: response.data?.updatedCount ?? normalized.length,
+        files: normalized,
+      };
+    } catch (error) {
+      console.error('Failed to bulk update file status:', error);
+      return {
+        success: false,
+        error: error?.response?.data?.detail || 'Failed to bulk update file status',
+        missingIds: error?.response?.data?.missingIds || [],
+      };
+    }
   };
 
   const toggleShared = (id, value) => {
@@ -101,7 +137,80 @@ export const FilesProvider = ({ children }) => {
     );
   };
 
-  const value = { files, addFile, updateFileStatus, toggleShared, fetchFiles };
+  const applyRealtimeFileUpdate = (rawFile) => {
+    if (!rawFile) return;
+
+    const normalized = normalizeFile(rawFile);
+    setFiles((prev) => {
+      const idx = prev.findIndex((f) => String(f.id) === String(normalized.id));
+      if (idx === -1) {
+        return [normalized, ...prev];
+      }
+
+      const next = [...prev];
+      next[idx] = { ...next[idx], ...normalized };
+      return next;
+    });
+  };
+
+  const fetchShareTargets = async () => {
+    try {
+      const response = await api.get('/files/share_targets/');
+      const rows = Array.isArray(response.data) ? response.data : [];
+      return { success: true, users: rows };
+    } catch (error) {
+      console.error('Failed to fetch share targets:', error);
+      return {
+        success: false,
+        users: [],
+        error: error?.response?.data?.detail || 'Failed to fetch share targets',
+      };
+    }
+  };
+
+  const shareFileWithUsers = async (fileId, userIds = []) => {
+    try {
+      await api.post(`/files/${fileId}/share_file/`, { user_ids: userIds });
+      setFiles((prev) =>
+        prev.map((f) =>
+          String(f.id) === String(fileId) ? { ...f, shared: true } : f
+        )
+      );
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to share file:', error);
+      return {
+        success: false,
+        error: error?.response?.data?.message || error?.response?.data?.detail || 'Failed to share file',
+      };
+    }
+  };
+
+  const unshareFileWithUsers = async (fileId, userIds = []) => {
+    try {
+      await api.post(`/files/${fileId}/unshare_file/`, { user_ids: userIds });
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to unshare file:', error);
+      return {
+        success: false,
+        error: error?.response?.data?.message || error?.response?.data?.detail || 'Failed to unshare file',
+      };
+    }
+  };
+
+  const value = {
+    files,
+    addFile,
+    updateFileStatus,
+    bulkUpdateFileStatus,
+    toggleShared,
+    fetchFiles,
+    fetchShareTargets,
+    shareFileWithUsers,
+    unshareFileWithUsers,
+    applyRealtimeFileUpdate,
+  };
 
   return (
     <FilesContext.Provider value={value}>{children}</FilesContext.Provider>

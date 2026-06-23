@@ -12,6 +12,7 @@ class ActivityLog(models.Model):
     ('update_task', 'Update Task'),
     ('delete_task', 'Delete Task'),
     ('upload_file', 'Upload File'),
+    ('review_file', 'Review File'),
     ('approve_file', 'Approve File'),
     ('reject_file', 'Reject File'),
     ('delete_file', 'Delete File'),

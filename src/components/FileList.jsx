@@ -3,12 +3,11 @@ import React from 'react';
 import {
   DocumentTextIcon,
   EyeIcon,
-  ShareIcon,
   ArrowDownTrayIcon,
-  EllipsisVerticalIcon,
   CheckCircleIcon,
 } from '@heroicons/react/24/outline';
 import StatusBadge from './StatusBadge';
+import { api } from '../api';
 
 /* ─── Obsidian-Slate dark tokens (admin) ────────────────────────────── */
 const D = {
@@ -57,7 +56,6 @@ const getFriendlyFileType = (mimeType = '', fileName = '') => {
 };
 
 /* File-type accent colors stay constant across themes — they're identity
-   colors (red=PDF, blue=Word, etc.), only their background opacity differs
    slightly per theme for contrast. */
 const FILE_TYPE_STYLES = (dark) => ({
   pdf:   { bg: dark ? 'rgba(240,112,138,0.12)' : 'rgba(239,68,68,0.10)',  border: dark ? 'rgba(240,112,138,0.25)' : 'rgba(239,68,68,0.20)',  color: dark ? '#f0708a' : '#dc2626', label: 'PDF' },
@@ -142,9 +140,70 @@ const ActionBtn = ({ onClick, title, children, accent, dark }) => {
   );
 };
 
-const FileList = ({ files = [], isAdmin = false, onPreview, onShare, onStatusChange, onReview }) => {
+const FileList = ({ files = [], isAdmin = false, onPreview, onStatusChange, onReview, onDownload }) => {
   const dark = isAdmin;
   const T = dark ? D : L;
+
+  const getFileUrl = (file) => file?.url || file?.downloadUrl || null;
+
+  const triggerBlobDownload = (blob, fileName) => {
+    const objectUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = fileName || 'download';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(objectUrl);
+  };
+
+  const downloadViaApi = async (file) => {
+    if (!file?.id) return false;
+
+    try {
+      const response = await api.get(`/files/${file.id}/download/`, {
+        responseType: 'blob',
+      });
+
+      if (!(response.data instanceof Blob)) {
+        return false;
+      }
+
+      triggerBlobDownload(response.data, file.originalName || file.fileName || 'download');
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const defaultDownload = async (file) => {
+    const fileUrl = getFileUrl(file);
+    if (!fileUrl) {
+      window.alert('This file cannot be downloaded because its storage link is missing.');
+      return;
+    }
+
+    const link = document.createElement('a');
+    link.href = fileUrl;
+    link.download = file.originalName || 'download';
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownload = async (file) => {
+    if (typeof onDownload === 'function') {
+      await onDownload(file);
+      return;
+    }
+
+    const downloadedFromApi = await downloadViaApi(file);
+    if (downloadedFromApi) return;
+
+    await defaultDownload(file);
+  };
 
   if (!files || files.length === 0) {
     return (
@@ -294,20 +353,8 @@ const FileList = ({ files = [], isAdmin = false, onPreview, onShare, onStatusCha
                     <ActionBtn onClick={() => onPreview?.(file)} title="Preview file" accent="blue" dark={dark}>
                       <EyeIcon style={{ width: 15, height: 15 }} />
                     </ActionBtn>
-                    <ActionBtn onClick={() => onShare?.(file)} title="Share file" accent="green" dark={dark}>
-                      <ShareIcon style={{ width: 15, height: 15 }} />
-                    </ActionBtn>
                     <ActionBtn
-                      onClick={() => {
-                        if (file.url) {
-                          const link = document.createElement('a');
-                          link.href = file.url;
-                          link.download = file.originalName;
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
-                        }
-                      }}
+                      onClick={() => handleDownload(file)}
                       title="Download file"
                       accent="amber"
                       dark={dark}
@@ -319,9 +366,6 @@ const FileList = ({ files = [], isAdmin = false, onPreview, onShare, onStatusCha
                         <CheckCircleIcon style={{ width: 15, height: 15 }} />
                       </ActionBtn>
                     )}
-                    <ActionBtn title="More options" accent="default" dark={dark}>
-                      <EllipsisVerticalIcon style={{ width: 15, height: 15 }} />
-                    </ActionBtn>
                   </div>
                 </td>
               </tr>

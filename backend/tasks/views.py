@@ -71,15 +71,22 @@ class TaskViewSet(viewsets.ModelViewSet):
         )
 
         if task.assigned_to_user:
-            print("INSIDE NOTIFICATION BLOCK")
-            print(task.assigned_to_user)
-
             create_notification(
                 user=task.assigned_to_user,
                 title='New Task Assigned',
                 message=f'You have been assigned "{task.title}".',
                 notification_type='task'
             )
+
+        if self.request.user.role != 'admin':
+            admins = CustomUser.objects.filter(role='admin', is_active=True)
+            for admin in admins:
+                create_notification(
+                    user=admin,
+                    title='Task Created By Employee',
+                    message=f'{self.request.user.email} created task "{task.title}".',
+                    notification_type='task'
+                )
 
         assigned_email = serializer.validated_data.get(
             "assigned_to_email"
@@ -97,6 +104,24 @@ class TaskViewSet(viewsets.ModelViewSet):
                     'assignedToEmail': task.assigned_to_email,
                     'status': task.status,
                     'createdAt': task.created_at.isoformat()
+                }
+            }
+        )
+
+        async_to_sync(get_channel_layer().group_send)(
+            'tasks_admin',
+            {
+                'type': 'task_notification',
+                'message': f"Task created: {task.title}",
+                'task': {
+                    'id': str(task.id),
+                    'title': task.title,
+                    'description': task.description,
+                    'assignedToEmail': task.assigned_to_email,
+                    'status': task.status,
+                    'priority': task.priority,
+                    'createdAt': task.created_at.isoformat(),
+                    'updatedAt': task.updated_at.isoformat(),
                 }
             }
         )
@@ -153,6 +178,34 @@ class TaskViewSet(viewsets.ModelViewSet):
                 'status': task.status
             }
         )
+
+        async_to_sync(get_channel_layer().group_send)(
+            'tasks_admin',
+            {
+                'type': 'task_status_update',
+                'taskId': str(task.id),
+                'status': task.status,
+                'updatedBy': request.user.email,
+            }
+        )
+
+        if request.user.role == 'admin' and task.assigned_to_user:
+            create_notification(
+                user=task.assigned_to_user,
+                title='Task Status Updated',
+                message=f'Admin updated "{task.title}" to {task.status.replace("_", " ")}.',
+                notification_type='task'
+            )
+
+        if request.user.role != 'admin':
+            admins = CustomUser.objects.filter(role='admin', is_active=True)
+            for admin in admins:
+                create_notification(
+                    user=admin,
+                    title='Task Status Updated',
+                    message=f'{request.user.email} updated "{task.title}" to {task.status.replace("_", " ")}.',
+                    notification_type='task'
+                )
 
         return Response(
             TaskSerializer(task).data,

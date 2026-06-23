@@ -1,6 +1,7 @@
 // src/components/ShareModal.jsx
-import React, { useState } from 'react';
-import { XMarkIcon, LinkIcon } from '@heroicons/react/24/outline';
+import React, { useEffect, useMemo, useState } from 'react';
+import { XMarkIcon, LinkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { useFiles } from '../context/FilesContext';
 
 /* ─── Ivory/gold employee tokens ────────────────────────────────────── */
 const L = {
@@ -13,13 +14,68 @@ const L = {
   surface:  '#fffefb',
 };
 
-const ShareModal = ({ file, open, onClose }) => {
+const ShareModal = ({ file, open, onClose, onShared }) => {
+  const { fetchShareTargets, shareFileWithUsers } = useFiles();
+  const [targets, setTargets] = useState([]);
+  const [query, setQuery] = useState('');
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [loadingTargets, setLoadingTargets] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [copied, setCopied] = useState(false);
   const [closeHov, setCloseHov] = useState(false);
 
+  useEffect(() => {
+    if (!open || !file) {
+      setTargets([]);
+      setQuery('');
+      setSelectedIds([]);
+      setError('');
+      setSuccessMessage('');
+      return;
+    }
+
+    const loadTargets = async () => {
+      setLoadingTargets(true);
+      setError('');
+      const result = await fetchShareTargets();
+      if (!result?.success) {
+        setError(result?.error || 'Failed to load users');
+        setTargets([]);
+      } else {
+        setTargets(Array.isArray(result.users) ? result.users : []);
+      }
+      setLoadingTargets(false);
+    };
+
+    loadTargets();
+  }, [open, file, fetchShareTargets]);
+
   if (!open || !file) return null;
 
-  const shareUrl = `https://your-company.example.com/share/${file.id}`;
+  const shareUrl = file.url || `${window.location.origin}/files/${file.id}`;
+
+  const filteredTargets = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return targets;
+
+    return targets.filter((user) => {
+      const name = (user.name || '').toLowerCase();
+      const email = (user.email || '').toLowerCase();
+      const role = (user.role || '').toLowerCase();
+      return name.includes(q) || email.includes(q) || role.includes(q);
+    });
+  }, [targets, query]);
+
+  const toggleUserSelection = (userId) => {
+    const idAsString = String(userId);
+    setSelectedIds((prev) =>
+      prev.includes(idAsString)
+        ? prev.filter((id) => id !== idAsString)
+        : [...prev, idAsString]
+    );
+  };
 
   const copyLink = async () => {
     try {
@@ -29,6 +85,30 @@ const ShareModal = ({ file, open, onClose }) => {
     } catch (e) {
       console.error(e);
     }
+  };
+
+  const handleShare = async () => {
+    if (!selectedIds.length || !file?.id) {
+      setError('Select at least one user to share.');
+      return;
+    }
+
+    setSharing(true);
+    setError('');
+    setSuccessMessage('');
+
+    const result = await shareFileWithUsers(file.id, selectedIds);
+    setSharing(false);
+
+    if (!result?.success) {
+      setError(result?.error || 'Failed to share file');
+      return;
+    }
+
+    const message = `File shared with ${selectedIds.length} user${selectedIds.length > 1 ? 's' : ''}.`;
+    setSuccessMessage(message);
+    onShared?.(message);
+    setSelectedIds([]);
   };
 
   return (
@@ -51,8 +131,7 @@ const ShareModal = ({ file, open, onClose }) => {
               Share this document
             </h2>
             <p style={{ marginTop: 5, fontSize: 11.5, color: L.txt2, lineHeight: 1.5 }}>
-              Generate a share link to send this file to HR or your manager.
-              (Actual access control will be handled in backend.)
+              Share this file securely with specific users. Access is enforced by backend permissions.
             </p>
           </div>
           <button
@@ -109,10 +188,90 @@ const ShareModal = ({ file, open, onClose }) => {
           </div>
         </div>
 
-        <p style={{ marginTop: 14, fontSize: 11.5, color: L.txt2, lineHeight: 1.5 }}>
-          In a real deployment you can extend this panel to send the link by
-          email, restrict access per user, or set expiry dates.
-        </p>
+        <div style={{ marginTop: 14 }}>
+          <label style={{ marginBottom: 6, display: 'block', fontSize: 11.5, fontWeight: 700, color: L.txt1 }}>
+            Share with users
+          </label>
+
+          <div style={{ position: 'relative', marginBottom: 8 }}>
+            <MagnifyingGlassIcon style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: L.txt2 }} />
+            <input
+              type="text"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search name, email, role"
+              style={{
+                width: '100%',
+                borderRadius: 10,
+                border: `1px solid ${L.border}`,
+                padding: '8px 10px 8px 32px',
+                fontSize: 12,
+                color: L.txt0,
+                background: '#fff',
+                outline: 'none',
+                fontFamily: 'inherit',
+              }}
+            />
+          </div>
+
+          <div style={{ maxHeight: 180, overflowY: 'auto', border: `1px solid ${L.border}`, borderRadius: 10, background: '#fff' }}>
+            {loadingTargets && (
+              <div style={{ padding: 10, fontSize: 12, color: L.txt2 }}>Loading users...</div>
+            )}
+
+            {!loadingTargets && filteredTargets.length === 0 && (
+              <div style={{ padding: 10, fontSize: 12, color: L.txt2 }}>No users found.</div>
+            )}
+
+            {!loadingTargets && filteredTargets.map((user) => {
+              const checked = selectedIds.includes(String(user.id));
+              return (
+                <label key={user.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px', borderBottom: `1px solid ${L.border}`, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleUserSelection(user.id)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ margin: 0, fontSize: 12.5, fontWeight: 700, color: L.txt0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name || user.email}</p>
+                    <p style={{ margin: '1px 0 0', fontSize: 11.5, color: L.txt2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email} · {(user.role || 'user').toUpperCase()}</p>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
+        {error && (
+          <p style={{ marginTop: 10, fontSize: 12, color: '#b42318', fontWeight: 600 }}>
+            {error}
+          </p>
+        )}
+
+        {successMessage && (
+          <p style={{ marginTop: 10, fontSize: 12, color: '#166534', fontWeight: 600 }}>
+            {successMessage}
+          </p>
+        )}
+
+        <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{ borderRadius: 10, border: `1px solid ${L.border}`, background: '#fff', padding: '8px 14px', fontSize: 12, fontWeight: 700, color: L.txt1, cursor: 'pointer' }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={sharing || !selectedIds.length}
+            onClick={handleShare}
+            style={{ borderRadius: 10, border: 'none', background: sharing || !selectedIds.length ? '#c4b08a' : L.accent, padding: '8px 14px', fontSize: 12, fontWeight: 700, color: '#fff', cursor: sharing || !selectedIds.length ? 'not-allowed' : 'pointer' }}
+          >
+            {sharing ? 'Sharing...' : `Share (${selectedIds.length})`}
+          </button>
+        </div>
       </div>
     </div>
   );
