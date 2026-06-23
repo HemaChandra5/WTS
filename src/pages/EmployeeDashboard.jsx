@@ -45,7 +45,6 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { useAuth } from '../context/AuthContext';
 import { useFiles } from '../context/FilesContext';
 import { useTasks } from '../context/TasksContext';
-import { useNotifications } from '../context/NotificationsContext';
 
 import FileUpload from '../components/FileUpload';
 import FileList from '../components/FileList';
@@ -614,7 +613,6 @@ const EmployeeDashboard = () => {
   const { user }                        = useAuth();
   const { files, addFile, fetchFiles, applyRealtimeFileUpdate }  = useFiles();
   const { tasks, updateTaskStatus }     = useTasks();
-  const { fetchNotifications }          = useNotifications();
 
   if (!user) {
     return (
@@ -626,6 +624,7 @@ const EmployeeDashboard = () => {
 
   /* ── State ── */
   const [taskList,           setTaskList]           = useState(tasks || []);
+  const [taskEventBadge,     setTaskEventBadge]     = useState(0);
   const [toasts,             setToasts]             = useState([]);
   const [activityLog,        setActivityLog]        = useState([]);
   const [activityLoading,    setActivityLoading]    = useState(false);
@@ -657,14 +656,13 @@ const EmployeeDashboard = () => {
   /* ── Modals ── */
   const [previewFile, setPreviewFile] = useState(null);
 
-  useEffect(() => {
-    console.log('Current User:', user);
-    console.log('Files:', files);
-    window.testUser  = user;
-    window.testFiles = files;
-  }, [user, files]);
-
   useEffect(() => { setTaskList(tasks || []); }, [tasks]);
+
+  useEffect(() => {
+    if (activeTab === 'tasks' && taskEventBadge > 0) {
+      setTaskEventBadge(0);
+    }
+  }, [activeTab, taskEventBadge]);
 
   /* ── Toast helpers ── */
   const addToast = useCallback((message, type = 'info') => {
@@ -799,10 +797,15 @@ const EmployeeDashboard = () => {
     (data) => {
       if (data?.type === 'task_notification' && data.task) {
         setTaskList(prev => upsertById(prev, data.task));
-        addToast(`New task: ${data.task.title}`, 'info');
+        if (activeTab !== 'tasks') {
+          setTaskEventBadge((count) => count + 1);
+        }
       }
       if (data?.type === 'task_status_update') {
         setTaskList(prev => prev.map(t => t.id === data.taskId ? { ...t, status:data.status } : t));
+        if (activeTab !== 'tasks') {
+          setTaskEventBadge((count) => count + 1);
+        }
       }
       if (data?.type === 'task_list' && Array.isArray(data.tasks)) {
         setTaskList(data.tasks);
@@ -878,7 +881,6 @@ const EmployeeDashboard = () => {
       formData.append('size', file.size);
       await api.post('/files/', formData, { headers:{ 'Content-Type':'multipart/form-data' } });
       addToast('File uploaded successfully', 'success');
-      await fetchNotifications();
       await fetchFiles();
       await fetchActivityLogs();
     } catch (error) {
@@ -891,10 +893,8 @@ const EmployeeDashboard = () => {
     const previous = taskList;
     setTaskList(prev => prev.map(t => t.id === taskId ? { ...t, status } : t));
     updateTaskStatus(taskId, status);
-    const task = taskList.find(t => t.id === taskId);
-    logActivity('Task Status Updated', `"${task?.title || taskId}" → ${status}`);
     addToast(`Task marked as ${status.replace('_', ' ')}`, 'success');
-  }, [taskList, updateTaskStatus, logActivity, addToast]);
+  }, [taskList, updateTaskStatus, addToast]);
 
   const toggleTaskSection = (status) =>
     setTaskSectionsOpen(prev => ({ ...prev, [status]:!prev[status] }));
@@ -1003,7 +1003,7 @@ const EmployeeDashboard = () => {
     { id:'overview', label:'Overview',  icon:ChartBarIcon    },
     { id:'upload',   label:'Upload',    icon:CloudArrowUpIcon },
     { id:'files',    label:'My Files',  icon:DocumentTextIcon },
-    { id:'tasks',    label:'My Tasks',  icon:CheckCircleIcon,  badge:stats.pendingTasks||null, badgeColor:stats.overdueTasks>0?'#A3342B':'#B5790F' },
+    { id:'tasks',    label:'My Tasks',  icon:CheckCircleIcon,  badge:taskEventBadge||null, badgeColor:'#16332E' },
     { id:'activity', label:'Activity',  icon:ListBulletIcon   },
   ];
 

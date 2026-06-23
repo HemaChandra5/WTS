@@ -161,9 +161,6 @@ class UserRegistrationSerializer(
  
         user.save()
  
-        print("EMPLOYEE CREATED:")
-        print(user.email)
- 
         return user
  
  
@@ -306,9 +303,6 @@ class AdminRegistrationSerializer(
         )
  
         user.save()
- 
-        print("ADMIN CREATED:")
-        print(user.email)
  
         return user
  

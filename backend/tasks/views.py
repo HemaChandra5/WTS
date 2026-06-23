@@ -49,14 +49,16 @@ class TaskViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Called after validation, before saving"""
         employee = CustomUser.objects.filter(
-            email=self.request.data.get(
-                "assigned_to_email"
-            )
+            email=self.request.data.get("assigned_to_email"),
+            role='employee',
+            is_active=True,
+            is_approved=True,
+            is_rejected=False,
         ).first()
 
         if not employee:
             raise ValidationError(
-                "Employee not found"
+                "Assigned user must be an active approved employee"
             )
 
         task = serializer.save(
@@ -140,7 +142,7 @@ class TaskViewSet(viewsets.ModelViewSet):
     def update_status(self, request, pk=None):
         """
         PATCH /tasks/{id}/update_status/
-        Body: { "status": "completed" }
+        Body: { "status": "done" }
         """
         task = self.get_object()
         new_status = request.data.get("status")
@@ -149,6 +151,20 @@ class TaskViewSet(viewsets.ModelViewSet):
             return Response(
                 {"detail": "status is required"},
                 status=400
+            )
+
+        allowed_statuses = {'pending', 'in_progress', 'done'}
+        if new_status not in allowed_statuses:
+            return Response(
+                {"detail": "Invalid status"},
+                status=400
+            )
+
+        # Task progress should be updated by the assigned employee, not admin.
+        if not task.assigned_to_user or str(task.assigned_to_user.id) != str(request.user.id):
+            return Response(
+                {"detail": "Only the assigned employee can update task status"},
+                status=403
             )
 
         task.status = new_status
@@ -189,23 +205,14 @@ class TaskViewSet(viewsets.ModelViewSet):
             }
         )
 
-        if request.user.role == 'admin' and task.assigned_to_user:
+        admins = CustomUser.objects.filter(role='admin', is_active=True)
+        for admin in admins:
             create_notification(
-                user=task.assigned_to_user,
+                user=admin,
                 title='Task Status Updated',
-                message=f'Admin updated "{task.title}" to {task.status.replace("_", " ")}.',
+                message=f'{request.user.email} updated "{task.title}" to {task.status.replace("_", " ")}.',
                 notification_type='task'
             )
-
-        if request.user.role != 'admin':
-            admins = CustomUser.objects.filter(role='admin', is_active=True)
-            for admin in admins:
-                create_notification(
-                    user=admin,
-                    title='Task Status Updated',
-                    message=f'{request.user.email} updated "{task.title}" to {task.status.replace("_", " ")}.',
-                    notification_type='task'
-                )
 
         return Response(
             TaskSerializer(task).data,

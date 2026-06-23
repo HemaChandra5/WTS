@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Register = () => {
-  const { register } = useAuth();
+  const { signup } = useAuth();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
@@ -31,12 +31,18 @@ const Register = () => {
 
     try {
       setLoading(true);
-      await register({
+      const result = await signup({
         name: form.name,
         email: form.email,
         password: form.password,
-        role: 'employee'
+        department: 'General',
       });
+
+      if (!result?.success) {
+        setError(result?.error || 'Registration failed. Please check your details.');
+        return;
+      }
+
       navigate('/', { replace: true });
     } catch (err) {
       console.error(err);

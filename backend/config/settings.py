@@ -3,17 +3,27 @@ from pathlib import Path
 from dotenv import load_dotenv
 import dj_database_url
 import cloudinary
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Always load backend/.env so management commands behave the same from any cwd.
 load_dotenv(BASE_DIR / '.env', override=True)
 
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-me')
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
+SECRET_KEY = os.getenv('SECRET_KEY')
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = 'django-insecure-dev-only'
+    else:
+        raise ImproperlyConfigured('SECRET_KEY must be set when DEBUG is False')
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+    if host.strip()
+]
 
 INSTALLED_APPS = [
     'daphne',
@@ -69,12 +79,6 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 ASGI_APPLICATION = "config.asgi.application"
 
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
-    }
-}
-
 redis_url = os.getenv('REDIS_URL')
 if redis_url:
     CHANNEL_LAYERS = {
@@ -85,11 +89,19 @@ if redis_url:
             },
         },
     }
+elif DEBUG:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        }
+    }
+else:
+    raise ImproperlyConfigured('REDIS_URL must be set when DEBUG is False')
 database_url = os.getenv('DATABASE_URL')
 
 if database_url:
     DATABASES = {
-        'default': dj_database_url.config(
+        'default': dj_database_url.config( 
             default=database_url,
             conn_max_age=600,
         )
@@ -100,7 +112,7 @@ else:
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': os.getenv('DATABASE_NAME', 'sskatt_wts_db'),
             'USER': os.getenv('DATABASE_USER', 'postgres'),
-            'PASSWORD': os.getenv('DATABASE_PASSWORD', '#Chandra3'),
+            'PASSWORD': os.getenv('DATABASE_PASSWORD', ''),
             'HOST': os.getenv('DATABASE_HOST', 'localhost'),
             'PORT': os.getenv('DATABASE_PORT', '5432'),
         }
@@ -146,8 +158,17 @@ REST_FRAMEWORK = {
     ],
 }
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'False') == 'True'
 CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        'CORS_ALLOWED_ORIGINS',
+        'http://localhost:5173,http://127.0.0.1:5173',
+    ).split(',')
+    if origin.strip()
+]
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
 

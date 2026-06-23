@@ -5,12 +5,18 @@ import React, {
   useState,
   useEffect,
   useMemo,
+  useRef,
 } from 'react';
 
 import { api } from '../api';
 import { useWebSocket } from '../hooks/useWebSocket';
 
 const NotificationsContext = createContext(null);
+const SILENT_SYNC_SECONDS = Number(import.meta.env.VITE_SILENT_SYNC_SECONDS ?? 12);
+const SILENT_SYNC_MS =
+  Number.isFinite(SILENT_SYNC_SECONDS) && SILENT_SYNC_SECONDS > 0
+    ? Math.max(5000, Math.floor(SILENT_SYNC_SECONDS * 1000))
+    : 0;
 
 const normalizeNotification = (n = {}) => ({
   id: n.id,
@@ -24,6 +30,7 @@ const normalizeNotification = (n = {}) => ({
 export const NotificationsProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
+  const syncInFlightRef = useRef(false);
 
   const pushRealtimeNotification = useCallback((data) => {
     const incoming = normalizeNotification(data);
@@ -34,8 +41,15 @@ export const NotificationsProvider = ({ children }) => {
     });
   }, []);
 
-  const fetchNotifications = useCallback(async () => {
-    setLoading(true);
+  const fetchNotifications = useCallback(async ({ silent = false } = {}) => {
+    if (syncInFlightRef.current) {
+      return;
+    }
+
+    syncInFlightRef.current = true;
+    if (!silent) {
+      setLoading(true);
+    }
     try {
       const response = await api.get('/notifications/');
       const rows = Array.isArray(response.data)
@@ -47,12 +61,43 @@ export const NotificationsProvider = ({ children }) => {
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
+      syncInFlightRef.current = false;
     }
   }, []);
 
   useEffect(() => {
     fetchNotifications();
+  }, [fetchNotifications]);
+
+  useEffect(() => {
+    if (!SILENT_SYNC_MS) return undefined;
+
+    const shouldSync = () =>
+      document.visibilityState === 'visible' && navigator.onLine;
+
+    const runSync = () => {
+      if (!shouldSync()) return;
+      fetchNotifications({ silent: true });
+    };
+
+    const id = window.setInterval(runSync, SILENT_SYNC_MS);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        runSync();
+      }
+    };
+
+    window.addEventListener('online', runSync);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener('online', runSync);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [fetchNotifications]);
 
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';

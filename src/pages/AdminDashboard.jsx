@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useAuth } from '../context/AuthContext';
@@ -49,7 +49,7 @@ const T = {
 const ITEMS_PER_PAGE = 10;
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 const WS_BASE_URL = import.meta.env.VITE_WS_URL || API_BASE_URL.replace(/^http/, 'ws').replace(/\/api$/, '');
-console.log('WS URL:', WS_BASE_URL);
+const CREATED_USERS_LOG_KEY_PREFIX = 'adminCreatedUsersLog';
 
 const PRIORITY_CONFIG = {
   low: { label: 'Low', color: T.txt1, bg: 'rgba(160,168,192,0.1)', border: 'rgba(160,168,192,0.15)', dot: T.txt2 },
@@ -136,6 +136,69 @@ const exportToCSV = (data, filename) => {
   a.click();
   URL.revokeObjectURL(url);
 };
+
+const getCollectionRows = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.results)) return payload.results;
+  return [];
+};
+
+const normalizePersonRecord = (record = {}) => ({
+  ...record,
+  id: record.id,
+  name:
+    record.name ||
+    [record.first_name, record.last_name].filter(Boolean).join(' ').trim() ||
+    record.username ||
+    (typeof record.email === 'string' ? record.email.split('@')[0] : ''),
+  email: record.email || '',
+  role: record.role || 'employee',
+  department: record.department || 'General',
+  isApproved: record.isApproved ?? record.is_approved ?? false,
+  isRejected: record.isRejected ?? record.is_rejected ?? false,
+  isActive: record.isActive ?? record.is_active ?? false,
+  createdAt: record.createdAt ?? record.created_at ?? null,
+});
+
+const loadCreatedUsersLog = (storageKey) => {
+  const parseRows = (raw) => {
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  };
+
+  try {
+    const sessionRows = parseRows(sessionStorage.getItem(storageKey));
+    if (sessionRows.length > 0) return sessionRows;
+  } catch (error) {
+    console.error('Failed to read created users session log:', error);
+  }
+
+  try {
+    const localRows = parseRows(localStorage.getItem(storageKey));
+    if (localRows.length > 0) return localRows;
+  } catch (error) {
+    console.error('Failed to read created users local log:', error);
+  }
+
+  return [];
+};
+
+const persistCreatedUsersLog = (storageKey, rows) => {
+  const serialized = JSON.stringify((rows || []).slice(0, 20));
+  try {
+    sessionStorage.setItem(storageKey, serialized);
+  } catch (error) {
+    console.error('Failed to persist created users session log:', error);
+  }
+
+  try {
+    localStorage.setItem(storageKey, serialized);
+  } catch (error) {
+    console.error('Failed to persist created users local log:', error);
+  }
+};
+
 
 // ─── Icons (inline SVG, replacing @heroicons/react) ───────────────────────
 const I = {
@@ -476,6 +539,7 @@ const AdminDashboard = () => {
   const {
     user,
     getAllEmployees,
+    getAllAdmins,
     approveEmployee,
     deactivateEmployee,
     reactivateEmployee,
@@ -486,14 +550,17 @@ const AdminDashboard = () => {
   return null;
 }
   const { files, updateFileStatus, bulkUpdateFileStatus, fetchFiles } = useFiles();
-  const { tasks, addTask, updateTaskStatus, deleteTask } = useTasks();
+  const { tasks, taskRealtimeEventCount, fetchTasks, addTask, updateTaskStatus, deleteTask } = useTasks();
 
   /* ── State ── */
   const [fileList, setFileList] = useState(files || []);
   const [employees, setEmployees] = useState([]);
+  const [admins, setAdmins] = useState([]);
   const [adminError, setAdminError] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [taskEventBadge, setTaskEventBadge] = useState(0);
+  const [employeePendingBadge, setEmployeePendingBadge] = useState(0);
   const [viewMode, setViewMode] = useState('list'); // for future list/grid support
   const [toasts, setToasts] = useState([]);
   const [auditLog, setAuditLog] = useState([]);
@@ -525,7 +592,7 @@ const AdminDashboard = () => {
       id: entry.id,
       action: (entry.action || 'activity').replace(/_/g, ' '),
       detail: entry.description || entry.detail || '',
-      admin: entry.user_email || entry.admin || 'System',
+      admin: entry.user_name || entry.user_email || entry.admin || 'System',
       time: entry.created_at || entry.time || new Date().toISOString(),
     }));
 
@@ -579,6 +646,9 @@ const fetchDashboardStats = useCallback(async () => {
     priority: 'medium',
     adminFile: null,
   });
+  const lastHandledTaskRealtimeEventRef = useRef(0);
+  const previousPendingEmployeesRef = useRef(new Set());
+  const pendingEmployeeEventsInitializedRef = useRef(false);
 
   /* ── Modals ── */
   const [previewFile, setPreviewFile] = useState(null);
@@ -592,6 +662,7 @@ const fetchDashboardStats = useCallback(async () => {
   const [userFormSubmitting, setUserFormSubmitting] = useState(false);
   const [userFormError, setUserFormError] = useState('');
   const [createdUsersLog, setCreatedUsersLog] = useState([]); // session-local feed of users created from this tab
+  const createdUsersLogStorageKey = `${CREATED_USERS_LOG_KEY_PREFIX}:${String(user?.id || 'anon')}`;
 
   /* ── Live clock (drives the greeting; ticks once a minute so "Good
      morning" rolls over to "Good afternoon" without a page refresh) ── */
@@ -627,16 +698,42 @@ const fetchDashboardStats = useCallback(async () => {
     }
     try {
       const data = await getAllEmployees();
-      setEmployees(Array.isArray(data) ? data : []);
+      setEmployees(getCollectionRows(data).map(normalizePersonRecord));
     } catch (err) {
       console.error('Error fetching employees:', err);
       setEmployees([]);
     }
   }, [getAllEmployees]);
 
+  const refreshAdmins = useCallback(async () => {
+    if (!getAllAdmins) {
+      setAdmins([]);
+      return;
+    }
+    try {
+      const data = await getAllAdmins();
+      setAdmins(getCollectionRows(data).map(normalizePersonRecord));
+    } catch (err) {
+      console.error('Error fetching admins:', err);
+      setAdmins([]);
+    }
+  }, [getAllAdmins]);
+
   useEffect(() => {
     refreshEmployees();
   }, [refreshEmployees]);
+
+  useEffect(() => {
+    refreshAdmins();
+  }, [refreshAdmins]);
+
+  useEffect(() => {
+    setCreatedUsersLog(loadCreatedUsersLog(createdUsersLogStorageKey));
+  }, [createdUsersLogStorageKey]);
+
+  useEffect(() => {
+    persistCreatedUsersLog(createdUsersLogStorageKey, createdUsersLog);
+  }, [createdUsersLog, createdUsersLogStorageKey]);
 
   useEffect(() => {
   fetchActivityLogs();
@@ -646,15 +743,61 @@ useEffect(() => {
   fetchDashboardStats();
 }, [fetchDashboardStats]);
 
+  useEffect(() => {
+    const previousCount = lastHandledTaskRealtimeEventRef.current;
+    if (taskRealtimeEventCount <= previousCount) {
+      return;
+    }
 
-  const addToast = useCallback((message, type = 'info') => {
-    const id = Date.now();
-    setToasts((p) => [...p, { id, message, type }]);
-    setTimeout(
-      () => setToasts((p) => p.filter((t) => t.id !== id)),
-      4000,
+    const delta = taskRealtimeEventCount - previousCount;
+    if (activeTab !== 'tasks' && delta > 0) {
+      setTaskEventBadge((count) => count + delta);
+    }
+
+    lastHandledTaskRealtimeEventRef.current = taskRealtimeEventCount;
+  }, [taskRealtimeEventCount, activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'tasks' && taskEventBadge > 0) {
+      setTaskEventBadge(0);
+    }
+  }, [activeTab, taskEventBadge]);
+
+  useEffect(() => {
+    const pendingNow = new Set(
+      (employees || [])
+        .filter((e) => !(e.is_approved ?? e.isApproved) && !(e.is_rejected ?? e.isRejected))
+        .map((e) => String(e.id)),
     );
-  }, []);
+
+    if (!pendingEmployeeEventsInitializedRef.current) {
+      previousPendingEmployeesRef.current = pendingNow;
+      pendingEmployeeEventsInitializedRef.current = true;
+      return;
+    }
+
+    let newlyPending = 0;
+    pendingNow.forEach((id) => {
+      if (!previousPendingEmployeesRef.current.has(id)) {
+        newlyPending += 1;
+      }
+    });
+
+    if (activeTab !== 'employees' && newlyPending > 0) {
+      setEmployeePendingBadge((count) => count + newlyPending);
+    }
+
+    previousPendingEmployeesRef.current = pendingNow;
+  }, [employees, activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'employees' && empTab === 'pending' && employeePendingBadge > 0) {
+      setEmployeePendingBadge(0);
+    }
+  }, [activeTab, empTab, employeePendingBadge]);
+
+
+  const addToast = useCallback(() => {}, []);
 
   const removeToast = (id) =>
     setToasts((p) => p.filter((t) => t.id !== id));
@@ -667,7 +810,7 @@ useEffect(() => {
         action,
         detail,
         time: new Date().toISOString(),
-        admin: user?.name || 'Admin',
+        admin: user?.name || user?.username || user?.email || 'System',
       };
       setAuditLog((p) => [entry, ...p].slice(0, 100));
     },
@@ -922,6 +1065,15 @@ useEffect(() => {
     });
   };
 
+  const handleReloadTasks = useCallback(async () => {
+    const result = await fetchTasks?.();
+    if (result?.success) {
+      addToast('Tasks reloaded', 'info');
+      return;
+    }
+    addToast(result?.error || 'Failed to reload tasks', 'error');
+  }, [fetchTasks, addToast]);
+
   /* ── User Management ── */
   const handleUserFormChange = (e) => {
     setUserFormError('');
@@ -933,15 +1085,15 @@ useEffect(() => {
     setUserFormError('');
 
     if (!userForm.name.trim() || !userForm.email.trim() || !userForm.password.trim()) {
-      setUserFormError('Name, email and password are required.');
+      setUserFormError('Name, email and temporary password are required.');
       return;
     }
     if (userForm.password.length < 6) {
-      setUserFormError('Password must be at least 6 characters.');
+      setUserFormError('Temporary password must be at least 6 characters.');
       return;
     }
     if (!createUser) {
-      setUserFormError('User creation is not wired up yet — see createUser() in AuthContext.');
+      setUserFormError('User creation is not available right now. Please contact support.');
       return;
     }
 
@@ -956,20 +1108,45 @@ useEffect(() => {
     setUserFormSubmitting(false);
 
     if (!result?.success) {
-      setUserFormError(result?.error || 'Failed to create user.');
-      addToast(result?.error || 'Failed to create user', 'error');
+      const message = result?.error || 'Unable to create account. Please try again.';
+      setUserFormError(message);
+      addToast(message, 'error');
       return;
     }
 
     logAction(`${userForm.role === 'admin' ? 'Admin' : 'Employee'} Created`, userForm.email.trim());
     addToast(result.message || 'User created successfully', 'success');
-    setCreatedUsersLog((p) => [
-      { id: Date.now(), name: userForm.name.trim(), email: userForm.email.trim(), role: userForm.role, department: userForm.department.trim() || '—', time: new Date().toISOString() },
-      ...p,
-    ].slice(0, 20));
+
+    const created = normalizePersonRecord({
+      ...(result?.user || {}),
+      name: result?.user?.name || userForm.name.trim(),
+      email: result?.user?.email || userForm.email.trim(),
+      role: result?.user?.role || userForm.role,
+      department: result?.user?.department || userForm.department.trim() || (userForm.role === 'admin' ? 'Administration' : 'General'),
+    });
+
+    const createdEntry = {
+      id: created.id || `${created.email || 'created'}-${Date.now()}`,
+      name: created.name || userForm.name.trim(),
+      email: created.email || userForm.email.trim(),
+      role: created.role || userForm.role,
+      department: created.department || userForm.department.trim() || '—',
+      time: new Date().toISOString(),
+    };
+
+    setCreatedUsersLog((previous) => {
+      const deduped = previous.filter(
+        (item) =>
+          String(item.id) !== String(createdEntry.id) &&
+          String(item.email || '').toLowerCase() !== String(createdEntry.email || '').toLowerCase(),
+      );
+      return [createdEntry, ...deduped].slice(0, 20);
+    });
+
     setUserForm({ name: '', email: '', password: '', role: 'employee', department: '' });
     setUserFormOpen(false);
     await refreshEmployees();
+    await refreshAdmins();
   };
 
   /* ── Derived data ── */
@@ -1146,6 +1323,19 @@ useEffect(() => {
     };
   }, [employees, stats.pendingTasks, stats.doneTasks]);
 
+  const userManagementCounts = useMemo(() => {
+    const employeeRecords = employees.filter((e) => (e.role || 'employee') !== 'admin');
+    const awaitingApproval = employeeRecords.filter(
+      (e) => !(e.isApproved ?? e.is_approved) && !(e.isRejected ?? e.is_rejected),
+    ).length;
+
+    return {
+      admins: admins.length,
+      employees: employeeRecords.length,
+      awaitingApproval,
+    };
+  }, [admins, employees]);
+
   const needsAttention = useMemo(
     () =>
       fileList
@@ -1267,8 +1457,8 @@ useEffect(() => {
     { id: 'overview', label: 'Overview', icon: I.Chart },
     { id: 'pending', label: 'Needs Review', icon: I.Clock },
     { id: 'files', label: 'All Files', icon: I.Doc },
-    { id: 'tasks', label: 'Tasks', icon: I.CheckCircle},
-    { id: 'employees', label: 'Employees', icon: I.Users},
+    { id: 'tasks', label: 'Tasks', icon: I.CheckCircle, badge: taskEventBadge || null },
+    { id: 'employees', label: 'Employees', icon: I.Users, badge: employeePendingBadge || null },
     { id: 'users', label: 'User Management', icon: I.UserPlus },
     { id: 'audit', label: 'Audit Log', icon: I.ListBullet },
   ];
@@ -1730,14 +1920,23 @@ useEffect(() => {
                     <p style={{ fontSize: 11, color: T.txt2, margin: '2px 0 0' }}>Assign and track employee tasks</p>
                   </div>
                 </div>
-                <button onClick={() => setTaskFormOpen((p) => !p)} type="button" style={{
-                  display: 'flex', alignItems: 'center', gap: 7, borderRadius: 11, padding: '9px 16px', fontSize: 12, fontWeight: 700,
-                  border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                  background: taskFormOpen ? T.bg4 : T.accent, color: '#fff',
-                }}>
-                  {taskFormOpen ? <I.X /> : <I.PlusCircle />}
-                  {taskFormOpen ? 'Discard' : 'New Task'}
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <button onClick={handleReloadTasks} type="button" style={{
+                    display: 'flex', alignItems: 'center', gap: 6, borderRadius: 11, padding: '9px 13px', fontSize: 12, fontWeight: 700,
+                    border: `1px solid ${T.bdr1}`, cursor: 'pointer', fontFamily: 'inherit',
+                    background: T.bg3, color: T.txt1,
+                  }}>
+                    <I.Refresh /> Reload
+                  </button>
+                  <button onClick={() => setTaskFormOpen((p) => !p)} type="button" style={{
+                    display: 'flex', alignItems: 'center', gap: 7, borderRadius: 11, padding: '9px 16px', fontSize: 12, fontWeight: 700,
+                    border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    background: taskFormOpen ? T.bg4 : T.accent, color: '#fff',
+                  }}>
+                    {taskFormOpen ? <I.X /> : <I.PlusCircle />}
+                    {taskFormOpen ? 'Discard' : 'New Task'}
+                  </button>
+                </div>
               </div>
 
               {taskFormOpen && (
@@ -1863,20 +2062,9 @@ useEffect(() => {
                               <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusCfg.dot }} />
                               {statusCfg.label}
                             </span>
-                            <select value={t.status} onChange={async (e) => {
-                              const result = await updateTaskStatus(t.id, e.target.value);
-                              if (result?.success) {
-                                logAction('Task Status Changed', `${t.title} → ${e.target.value}`);
-                                addToast(`Task marked as ${e.target.value.replace('_', ' ')}`, 'success');
-                              } else {
-                                addToast(result?.error || 'Failed to update task status', 'error');
-                              }
-                            }}
-                              style={{ borderRadius: 9, border: `1px solid ${T.bdr1}`, background: T.bg2, padding: '5px 9px', fontSize: 11, color: T.txt1, outline: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-                              <option value="pending">Pending</option>
-                              <option value="in_progress">In progress</option>
-                              <option value="done">Done</option>
-                            </select>
+                            <span style={{ borderRadius: 9, border: `1px solid ${T.bdr1}`, background: T.bg2, padding: '5px 9px', fontSize: 10.5, color: T.txt2 }}>
+                              Status updated by employee
+                            </span>
                             <button onClick={() => handleDeleteTask(t.id)} style={{ borderRadius: 9, border: '1px solid rgba(255,95,126,0.2)', background: T.roseD, padding: 7, color: T.rose, cursor: 'pointer', display: 'flex' }}>
                               <I.Trash />
                             </button>
@@ -1902,9 +2090,9 @@ useEffect(() => {
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                   <div style={{ display: 'flex', gap: 4 }}>
                     {[
-                      { id: 'pending', label: 'Pending', count: null },
-                      { id: 'active', label: 'Active', count: null },
-                      { id: 'inactive', label: 'Deactivated', count: null },
+                      { id: 'pending', label: 'Pending', count: pendingEmployees.length },
+                      { id: 'active', label: 'Active', count: activeEmployees.length },
+                      { id: 'inactive', label: 'Deactivated', count: inactiveEmployees.length },
                     ].map((t) => (
                       <button key={t.id} onClick={() => setEmpTab(t.id)} type="button" style={{
                         display: 'flex', alignItems: 'center', gap: 7, borderRadius: 10, padding: '8px 15px', fontSize: 12, fontWeight: 700,
@@ -1964,7 +2152,6 @@ useEffect(() => {
                         </div>
                       </div>
                       <div style={{ display: 'flex', flexShrink: 0, alignItems: 'center', gap: 14 }}>
-                        <StatusPill mode={empTab === 'pending' ? 'pending' : empTab === 'active' ? 'active' : 'inactive'} />
                         {empTab === 'pending' && (
                           <EmployeeStatusToggle
                             mode="pending"
@@ -2090,9 +2277,13 @@ useEffect(() => {
                   </div>
 
                   {userFormError && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, borderRadius: 11, border: `1px solid ${T.bdr1}`, background: 'rgba(255,255,255,0.04)', padding: '10px 14px' }}>
-                      <I.ExclCircle style={{ color: T.txt1, flexShrink: 0 }} />
-                      <p style={{ fontSize: 12.5, color: T.txt1, margin: 0 }}>{userFormError}</p>
+                    <div style={{ borderRadius: 12, border: `1px solid rgba(255,95,126,0.32)`, background: 'linear-gradient(135deg, rgba(255,95,126,0.13), rgba(255,95,126,0.05))', padding: '11px 13px' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+                        <I.ExclCircle style={{ color: '#ffb8c6', flexShrink: 0, marginTop: 1 }} />
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ fontSize: 12.5, fontWeight: 700, color: '#ffd6de', margin: 0 }}>{userFormError}</p>
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -2123,7 +2314,7 @@ useEffect(() => {
                     <I.UserKey style={{ color: T.txt0 }} />
                   </div>
                   <div>
-                    <p style={{ fontSize: 18, fontWeight: 700, color: T.txt0, margin: 0 }}>{employees.filter((e) => e.role === 'admin').length || 1}</p>
+                    <p style={{ fontSize: 18, fontWeight: 700, color: T.txt0, margin: 0 }}>{userManagementCounts.admins}</p>
                     <p style={{ fontSize: 10.5, color: T.txt2, margin: 0 }}>Admins</p>
                   </div>
                 </div>
@@ -2134,7 +2325,7 @@ useEffect(() => {
                     <I.Briefcase style={{ color: T.txt0 }} />
                   </div>
                   <div>
-                    <p style={{ fontSize: 18, fontWeight: 700, color: T.txt0, margin: 0 }}>{employees.filter((e) => (e.role ?? 'employee') !== 'admin').length}</p>
+                    <p style={{ fontSize: 18, fontWeight: 700, color: T.txt0, margin: 0 }}>{userManagementCounts.employees}</p>
                     <p style={{ fontSize: 10.5, color: T.txt2, margin: 0 }}>Employees</p>
                   </div>
                 </div>
@@ -2145,7 +2336,7 @@ useEffect(() => {
                     <I.Clock style={{ color: T.txt0 }} />
                   </div>
                   <div>
-                    <p style={{ fontSize: 18, fontWeight: 700, color: T.txt0, margin: 0 }}>{employeeSummary.pendingApproval}</p>
+                    <p style={{ fontSize: 18, fontWeight: 700, color: T.txt0, margin: 0 }}>{userManagementCounts.awaitingApproval}</p>
                     <p style={{ fontSize: 10.5, color: T.txt2, margin: 0 }}>Awaiting approval</p>
                   </div>
                 </div>
@@ -2273,8 +2464,7 @@ useEffect(() => {
         onCancel={() => setConfirmDialog(null)}
       />
 
-      {/* ── TOASTS ── */}
-      <Toast toasts={toasts} removeToast={removeToast} />
+
     </div>
   );
 };

@@ -1,8 +1,13 @@
-import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { api } from '../api';
 import { useWebSocket } from '../hooks/useWebSocket';
 
 const TasksContext = createContext(null);
+const SILENT_SYNC_SECONDS = Number(import.meta.env.VITE_SILENT_SYNC_SECONDS ?? 12);
+const SILENT_SYNC_MS =
+  Number.isFinite(SILENT_SYNC_SECONDS) && SILENT_SYNC_SECONDS > 0
+    ? Math.max(5000, Math.floor(SILENT_SYNC_SECONDS * 1000))
+    : 0;
 
 const normalizeTask = (raw = {}) => ({
   ...raw,
@@ -24,9 +29,18 @@ const normalizeTask = (raw = {}) => ({
 export const TasksProvider = ({ children }) => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [taskRealtimeEventCount, setTaskRealtimeEventCount] = useState(0);
+  const syncInFlightRef = useRef(false);
 
-  const fetchTasks = useCallback(async () => {
-    setLoading(true);
+  const fetchTasks = useCallback(async ({ silent = false } = {}) => {
+    if (syncInFlightRef.current) {
+      return { success: true, skipped: true };
+    }
+
+    syncInFlightRef.current = true;
+    if (!silent) {
+      setLoading(true);
+    }
     try {
       const response = await api.get('/tasks/');
       const rows = Array.isArray(response.data)
@@ -40,12 +54,43 @@ export const TasksProvider = ({ children }) => {
       console.error('Failed to load tasks:', error);
       return { success: false, error: error?.response?.data?.detail || 'Failed to load tasks' };
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
+      syncInFlightRef.current = false;
     }
   }, []);
 
   useEffect(() => {
     fetchTasks();
+  }, [fetchTasks]);
+
+  useEffect(() => {
+    if (!SILENT_SYNC_MS) return undefined;
+
+    const shouldSync = () =>
+      document.visibilityState === 'visible' && navigator.onLine;
+
+    const runSync = () => {
+      if (!shouldSync()) return;
+      fetchTasks({ silent: true });
+    };
+
+    const id = window.setInterval(runSync, SILENT_SYNC_MS);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        runSync();
+      }
+    };
+
+    window.addEventListener('online', runSync);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener('online', runSync);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [fetchTasks]);
 
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
@@ -57,6 +102,7 @@ export const TasksProvider = ({ children }) => {
     (data) => {
       if (!data?.type) return;
       if (data.type === 'task_notification' || data.type === 'task_status_update') {
+        setTaskRealtimeEventCount((count) => count + 1);
         fetchTasks();
       }
     },
@@ -120,12 +166,13 @@ export const TasksProvider = ({ children }) => {
     () => ({
       tasks,
       loading,
+      taskRealtimeEventCount,
       fetchTasks,
       addTask,
       updateTaskStatus,
       deleteTask,
     }),
-    [tasks, loading, fetchTasks, addTask, updateTaskStatus, deleteTask],
+    [tasks, loading, taskRealtimeEventCount, fetchTasks, addTask, updateTaskStatus, deleteTask],
   );
 
   return <TasksContext.Provider value={value}>{children}</TasksContext.Provider>;

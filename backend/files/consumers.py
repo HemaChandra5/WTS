@@ -8,31 +8,30 @@ from files.models import File
 
 
 class FileConsumer(AsyncWebsocketConsumer):
-    GROUP_NAME = "files_group"
     ADMIN_GROUP = "files_admin"
 
     async def connect(self):
-        self.user_email = self.scope['user'].email if self.scope['user'].is_authenticated else None
-        self.user_slug = slugify(self.user_email) if self.user_email else 'anonymous'
-        self.user_group = f'files_{self.user_slug}'
+        if not self.scope['user'].is_authenticated:
+            await self.close()
+            return
 
-        await self.channel_layer.group_add(self.GROUP_NAME, self.channel_name)
+        self.user_email = self.scope['user'].email
+        self.user_slug = slugify(self.user_email)
+        self.user_group = f'files_{self.user_slug}'
+        self.is_admin = getattr(self.scope['user'], 'role', None) == 'admin'
+
         await self.channel_layer.group_add(self.user_group, self.channel_name)
 
-        if self.scope['user'].is_authenticated and getattr(self.scope['user'], 'role', None) == 'admin':
+        if self.is_admin:
             await self.channel_layer.group_add(self.ADMIN_GROUP, self.channel_name)
 
         await self.accept()
-        print(f"✅ Client connected to files WebSocket ({self.user_group})")
 
     async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(self.GROUP_NAME, self.channel_name)
         await self.channel_layer.group_discard(self.user_group, self.channel_name)
 
-        if self.scope['user'].is_authenticated and getattr(self.scope['user'], 'role', None) == 'admin':
+        if getattr(self, 'is_admin', False):
             await self.channel_layer.group_discard(self.ADMIN_GROUP, self.channel_name)
-
-        print(f"❌ Client disconnected from files WebSocket ({self.user_group})")
 
     async def receive(self, text_data=None, bytes_data=None):
         """
@@ -46,7 +45,7 @@ class FileConsumer(AsyncWebsocketConsumer):
             action = data.get("action")
 
             if action == "get_files":
-                files = await self.get_all_files()
+                files = await self.get_visible_files()
                 await self.send(
                     text_data=json.dumps(
                         {
@@ -58,14 +57,13 @@ class FileConsumer(AsyncWebsocketConsumer):
                 return
 
             if action == "file_uploaded":
-                # Optional: client-triggered broadcast (usually you broadcast from views.py)
-                await self.channel_layer.group_send(
-                    self.GROUP_NAME,
-                    {
-                        "type": "file_notification",  # calls self.file_notification
-                        "message": f"New file uploaded: {data.get('fileName')}",
-                        "file": data,
-                    },
+                await self.send(
+                    text_data=json.dumps(
+                        {
+                            "type": "error",
+                            "message": "Client-triggered file broadcast is not allowed.",
+                        }
+                    )
                 )
                 return
 
@@ -137,16 +135,15 @@ class FileConsumer(AsyncWebsocketConsumer):
     # DB helpers
     # ------------------------------------------------------------------
     @sync_to_async
-    def get_all_files(self):
+    def get_visible_files(self):
         """
         Returns files in the shape your frontend expects:
         id, originalName, size, status, userName, userEmail, createdAt, description
         """
-        qs = (
-            File.objects.select_related("user")
-            .all()
-            .order_by("-created_at")
-        )
+        qs = File.objects.select_related("user").order_by("-created_at")
+
+        if not self.is_admin:
+            qs = qs.filter(user=self.scope['user'])
 
         result = []
         for f in qs:

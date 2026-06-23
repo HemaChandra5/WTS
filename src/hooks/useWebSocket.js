@@ -24,8 +24,6 @@ export const useWebSocket = (
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
-      console.log('✅ WebSocket connected');
-
       // Only files socket needs initial data
       if (url.includes('/ws/files/')) {
         ws.send(
@@ -58,9 +56,7 @@ export const useWebSocket = (
     };
 
     ws.onclose = () => {
-      console.log(
-        '⚪ WebSocket disconnected'
-      );
+      // Socket closed; reconnection strategy (if needed) is handled by caller lifecycle.
     };
 
     return () => {

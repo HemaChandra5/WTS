@@ -62,9 +62,6 @@ class UserViewSet(viewsets.ModelViewSet):
     def register(self, request):
         admins = CustomUser.objects.filter(role='admin')
 
-        print("REGISTER REQUEST DATA:")
-        print(request.data)
-
         serializer = UserRegistrationSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -80,9 +77,6 @@ class UserViewSet(viewsets.ModelViewSet):
                         notification_type='approval',
                     )
 
-                print("USER CREATED SUCCESSFULLY")
-                print(user.email)
-
                 return Response(
                     {
                         'message': 'Registration successful',
@@ -92,16 +86,10 @@ class UserViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_201_CREATED,
                 )
             except Exception as e:
-                print("SAVE ERROR:")
-                print(str(e))
-
                 return Response(
                     {'error': str(e)},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
-
-        print("SERIALIZER ERRORS:")
-        print(serializer.errors)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -118,9 +106,10 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = UserLoginSerializer(data=request.data)
 
         if serializer.is_valid():
+            email = serializer.validated_data['email'].strip().lower()
             try:
                 user_obj = CustomUser.objects.get(
-                    email=serializer.validated_data['email']
+                    email__iexact=email
                 )
             except CustomUser.DoesNotExist:
                 return Response(
@@ -341,7 +330,7 @@ class AdminViewSet(viewsets.ModelViewSet):
         permission_classes=[IsAdminUser],
     )
     def create_user(self, request):
-        role = request.data.get('role', 'employee')
+        role = str(request.data.get('role', 'employee')).strip().lower()
 
         if role not in ['employee', 'admin']:
             return Response(
@@ -431,9 +420,10 @@ class AdminViewSet(viewsets.ModelViewSet):
         serializer = UserLoginSerializer(data=request.data)
 
         if serializer.is_valid():
+            email = serializer.validated_data['email'].strip().lower()
             try:
                 user_obj = CustomUser.objects.get(
-                    email=serializer.validated_data['email'],
+                    email__iexact=email,
                     role='admin',
                 )
             except CustomUser.DoesNotExist:

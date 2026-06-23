@@ -206,11 +206,10 @@ export const AuthProvider = ({ children }) => {
           user: adminUser,
         };
       }
- console.log("Employee Login Response:", employeeData);
-  console.log("Admin Login Response:", adminData);
       return {
         success: false,
         error:
+          adminData.message ||
           employeeData.message ||
           'Invalid credentials',
       };
@@ -379,6 +378,43 @@ export const AuthProvider = ({ children }) => {
       }
  
     }, []);
+
+  // ───────────────────────────────────────────
+  // GET ALL ADMINS
+  // ───────────────────────────────────────────
+
+  const getAllAdmins =
+    useCallback(async () => {
+
+      try {
+
+        const token =
+          localStorage.getItem('token');
+
+        const response = await fetch(
+          'http://127.0.0.1:8000/api/admin-auth/all_admins/',
+          {
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          return [];
+        }
+
+        return await response.json();
+
+      } catch (error) {
+
+        console.error(error);
+
+        return [];
+      }
+
+    }, []);
  
   // ───────────────────────────────────────────
   // GET PENDING EMPLOYEES
@@ -453,7 +489,12 @@ export const AuthProvider = ({ children }) => {
         const nameParts = name.trim().split(' ');
         const first_name = nameParts[0];
         const last_name = nameParts.slice(1).join(' ') || '';
-        const username = normalizedEmail.split('@')[0];
+        const usernameBase =
+          normalizedEmail
+            .split('@')[0]
+            .replace(/[^a-z0-9_]/gi, '')
+            .toLowerCase() || 'user';
+        const username = `${usernameBase}_${Date.now().toString(36).slice(-5)}`;
 
         const token = localStorage.getItem('token');
 
@@ -490,9 +531,20 @@ export const AuthProvider = ({ children }) => {
           };
         }
 
+        const emailExists = Array.isArray(data?.email)
+          ? data.email.some((msg) => String(msg).toLowerCase().includes('already exists'))
+          : false;
+
+        if (emailExists) {
+          return {
+            success: false,
+            error: 'Company email already exists. Please use a different email address.',
+          };
+        }
+
         return {
           success: false,
-          error: data.message || data.detail || JSON.stringify(data),
+          error: data?.message || data?.detail || 'Unable to create account. Please try again.',
         };
 
       } catch (error) {
@@ -671,6 +723,8 @@ export const AuthProvider = ({ children }) => {
       user?.role === 'admin',
  
     getAllEmployees,
+
+    getAllAdmins,
  
     getPendingEmployees,
 

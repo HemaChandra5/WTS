@@ -1,8 +1,13 @@
 // src/context/FilesContext.jsx
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../api';
 
 const FilesContext = createContext(null);
+const SILENT_SYNC_SECONDS = Number(import.meta.env.VITE_SILENT_SYNC_SECONDS ?? 12);
+const SILENT_SYNC_MS =
+  Number.isFinite(SILENT_SYNC_SECONDS) && SILENT_SYNC_SECONDS > 0
+    ? Math.max(5000, Math.floor(SILENT_SYNC_SECONDS * 1000))
+    : 0;
 
 const normalizeFile = (raw = {}) => {
   const user = raw.user || {};
@@ -27,8 +32,13 @@ const normalizeFile = (raw = {}) => {
 
 export const FilesProvider = ({ children }) => {
   const [files, setFiles] = useState([]);
+  const syncInFlightRef = useRef(false);
 
-  const fetchFiles = async () => {
+  const fetchFiles = useCallback(async () => {
+    if (syncInFlightRef.current) {
+      return;
+    }
+    syncInFlightRef.current = true;
     try {
       const response = await api.get('/files/');
       const rows = Array.isArray(response.data)
@@ -41,12 +51,42 @@ export const FilesProvider = ({ children }) => {
     } catch (error) {
       console.error('Failed to load files:', error);
       console.error('Response:', error.response?.data);
+    } finally {
+      syncInFlightRef.current = false;
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchFiles();
-  }, []);
+  }, [fetchFiles]);
+
+  useEffect(() => {
+    if (!SILENT_SYNC_MS) return undefined;
+
+    const shouldSync = () =>
+      document.visibilityState === 'visible' && navigator.onLine;
+
+    const runSync = () => {
+      if (!shouldSync()) return;
+      fetchFiles();
+    };
+
+    const id = window.setInterval(runSync, SILENT_SYNC_MS);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        runSync();
+      }
+    };
+
+    window.addEventListener('online', runSync);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener('online', runSync);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [fetchFiles]);
 
   const addFile = ({ userId, userName, userEmail, file, description }) => {
     const url = URL.createObjectURL(file);

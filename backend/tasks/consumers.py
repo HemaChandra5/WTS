@@ -29,7 +29,6 @@ class TaskConsumer(AsyncWebsocketConsumer):
             )
 
         await self.accept()
-        print(f"✅ User {self.user_email} connected to {self.room_group_name}")
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
@@ -42,8 +41,6 @@ class TaskConsumer(AsyncWebsocketConsumer):
                 'tasks_admin',
                 self.channel_name
             )
-
-        print(f"❌ User {self.user_email} disconnected")
 
     async def receive(self, text_data):
         try:
