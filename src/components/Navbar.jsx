@@ -4,33 +4,33 @@ import { useAuth } from '../context/AuthContext';
 
 import companyLogo from '../assets/logo.png';
 
+// Admin palette — matches the updated dark/light SaaS dashboard styling.
 const D = {
-  glass: 'rgba(20,20,22,0.62)',
-  border: 'rgba(255,255,255,0.09)',
-  text: '#f5f6fa',
-  textMuted: '#9aa1b8',
-  textDim: '#5c6178',
-  accent: '#5b8def',
-  accentSoft: 'rgba(91,141,239,0.14)',
-  danger: '#f0708a',
-  dangerSoft: 'rgba(240,112,138,0.12)',
-  panel: '#121216',
-  panelEdge: 'rgba(255,255,255,0.11)',
+  glass: '#FFFFFF',
+  border: 'rgba(15,23,42,0.08)',
+  text: '#0F1729',
+  textMuted: '#5B6478',
+  textDim: '#94A0B8',
+  accent: '#4F46E5',
+  accentSoft: 'rgba(79,70,229,0.10)',
+  danger: '#F43F5E',
+  dangerSoft: 'rgba(244,63,94,0.10)',
+  panel: '#FFFFFF',
+  panelEdge: 'rgba(15,23,42,0.10)',
 };
 
 const L = {
-  bg: '#fffdf9',
-  glass: 'rgba(255,253,249,0.78)',
-  border: 'rgba(212,175,122,0.25)',
-  text: '#1c1917',
-  textMuted: '#78716c',
-  textDim: '#a8a29e',
-  accent: '#a8761e',
-  accentSoft: 'rgba(168,118,30,0.10)',
-  danger: '#e11d48',
-  dangerSoft: '#fff1f2',
-  panel: '#fffefb',
-  panelEdge: 'rgba(212,175,122,0.22)',
+  glass: '#FFFFFF',
+  border: 'rgba(15,23,42,0.08)',
+  text: '#0F1729',
+  textMuted: '#5B6478',
+  textDim: '#94A0B8',
+  accent: '#4F46E5',
+  accentSoft: 'rgba(79,70,229,0.10)',
+  danger: '#F43F5E',
+  dangerSoft: 'rgba(244,63,94,0.10)',
+  panel: '#FFFFFF',
+  panelEdge: 'rgba(15,23,42,0.10)',
 };
 
 
@@ -67,9 +67,9 @@ const Navbar = () => {
         isolation: 'isolate',
         borderBottom: `1px solid ${t.border}`,
         background: t.glass,
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        boxShadow: isAdmin ? 'none' : '0 1px 2px rgba(120,98,53,0.04), 0 8px 24px rgba(120,98,53,0.06)',
+        backdropFilter: 'blur(20px) saturate(160%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+        boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 8px 24px rgba(15,23,42,0.05)',
       }}
     >
       <div
@@ -79,24 +79,22 @@ const Navbar = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: isAdmin ? '14px 32px' : '0 36px',
-          height: isAdmin ? 'auto' : 72,
+          padding: '14px 32px',
+          height: 76,
         }}
       >
         <Link
           to={isAdmin ? '/admin' : '/employee'}
           style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', flexShrink: 0 }}
         >
-          <img src={companyLogo} alt="ssKatt logo" style={{ height: isAdmin ? 52 : 44, width: isAdmin ? 52 : 44, objectFit: 'contain' }} />
+          <img src={companyLogo} alt="ssKatt logo" style={{ height: 52, width: 52, objectFit: 'contain' }} />
           <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
             <span
               style={{
-                fontSize: isAdmin ? '1.75rem' : '1.5rem',
-                fontWeight: isAdmin ? 700 : 800,
+                fontSize: '1.75rem',
+                fontWeight: 700,
                 letterSpacing: '-0.02em',
-                background: isAdmin
-                  ? 'linear-gradient(90deg,#5b8def,#67d6ff)'
-                  : 'linear-gradient(90deg,#a8761e,#c9a25e)',
+                background: 'linear-gradient(90deg,#3454D1,#6D4FE0)',
                 WebkitBackgroundClip: 'text',
                 backgroundClip: 'text',
                 color: 'transparent',
@@ -118,7 +116,7 @@ const Navbar = () => {
           <div className="navbar-user-info" style={{ textAlign: 'right' }}>
             <div
               style={{
-                maxWidth: isAdmin ? 240 : 220,
+                maxWidth: 240,
                 overflow: 'hidden',
                 whiteSpace: 'nowrap',
                 textOverflow: 'ellipsis',
@@ -150,8 +148,8 @@ const Navbar = () => {
             onMouseLeave={() => setLogoutHov(false)}
             style={{
               display: 'inline-flex',
-              height: isAdmin ? 38 : 40,
-              width: isAdmin ? 38 : 40,
+              height: 40,
+              width: 40,
               alignItems: 'center',
               justifyContent: 'center',
               borderRadius: 12,

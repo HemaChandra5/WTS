@@ -5,40 +5,53 @@ import {
   EyeIcon,
   ArrowDownTrayIcon,
   CheckCircleIcon,
+  PhotoIcon,
 } from '@heroicons/react/24/outline';
 import StatusBadge from './StatusBadge';
 import { api } from '../api';
 
-/* ─── Obsidian-Slate dark tokens (admin) ────────────────────────────── */
+/* ─── Executive Light tokens (admin) — identical to AdminDashboard.jsx ──── */
 const D = {
-  bdr0: 'rgba(255,255,255,0.05)',
-  bdr1: 'rgba(255,255,255,0.09)',
-  bdr2: 'rgba(255,255,255,0.15)',
-  txt0: '#f5f6fa',
-  txt1: '#9aa1b8',
-  txt2: '#5c6178',
-  rowHov: 'rgba(255,255,255,0.025)',
-  headBg: 'rgba(255,255,255,0.02)',
-  chipBg: 'rgba(255,255,255,0.04)',
-  chipBdr: 'rgba(255,255,255,0.08)',
-  emptyBg: 'rgba(255,255,255,0.03)',
-  emptyBdr: 'rgba(255,255,255,0.10)',
+  bg1: '#FFFFFF',
+  bdr0: 'rgba(15,23,42,0.06)',
+  bdr1: 'rgba(15,23,42,0.10)',
+  bdr2: 'rgba(15,23,42,0.16)',
+  txt0: '#0F1729',
+  txt1: '#5B6478',
+  txt2: '#94A0B8',
+  rowHov: 'rgba(15,23,42,0.025)',
+  headBg: 'rgba(15,23,42,0.03)',
+  chipBg: 'rgba(15,23,42,0.04)',
+  chipBdr: 'rgba(15,23,42,0.09)',
+  emptyBg: 'rgba(15,23,42,0.025)',
+  emptyBdr: 'rgba(15,23,42,0.14)',
+  accent: '#3454D1', accentL: 'rgba(52,84,209,0.10)', accentB: 'rgba(52,84,209,0.26)',
+  emerald: '#0E9F6E', emeraldD: 'rgba(14,159,110,0.10)', emeraldB: 'rgba(14,159,110,0.26)',
+  amber: '#B7791F', amberD: 'rgba(183,121,31,0.10)', amberB: 'rgba(183,121,31,0.26)',
+  violet: '#6D4FE0', violetD: 'rgba(109,79,224,0.10)', violetB: 'rgba(109,79,224,0.26)',
+  rose: '#C23552', roseD: 'rgba(194,53,82,0.08)', roseB: 'rgba(194,53,82,0.26)',
 };
 
-/* ─── Ivory/gold light tokens (employee) ────────────────────────────── */
+/* ─── Light SaaS tokens (employee) — identical to EmployeeDashboard.jsx ── */
 const L = {
-  bdr0: 'rgba(212,175,122,0.10)',
-  bdr1: 'rgba(212,175,122,0.18)',
-  bdr2: 'rgba(212,175,122,0.30)',
-  txt0: '#1c1917',
-  txt1: '#78716c',
-  txt2: '#a8a29e',
-  rowHov: 'rgba(212,175,122,0.05)',
-  headBg: 'rgba(212,175,122,0.05)',
-  chipBg: 'rgba(212,175,122,0.07)',
-  chipBdr: 'rgba(212,175,122,0.14)',
-  emptyBg: 'rgba(212,175,122,0.05)',
-  emptyBdr: 'rgba(212,175,122,0.22)',
+  bg1: '#FFFFFF',
+  bdr0: 'rgba(15,23,42,0.06)',
+  bdr1: 'rgba(15,23,42,0.10)',
+  bdr2: 'rgba(15,23,42,0.16)',
+  txt0: '#0F172A',
+  txt1: '#475569',
+  txt2: '#64748B',
+  rowHov: 'rgba(15,23,42,0.03)',
+  headBg: 'rgba(15,23,42,0.045)',
+  chipBg: 'rgba(15,23,42,0.05)',
+  chipBdr: 'rgba(15,23,42,0.10)',
+  emptyBg: 'rgba(15,23,42,0.03)',
+  emptyBdr: 'rgba(15,23,42,0.16)',
+  accent: '#4F46E5', accentL: 'rgba(79,70,229,0.12)', accentB: 'rgba(79,70,229,0.28)',
+  emerald: '#10B981', emeraldD: 'rgba(16,185,129,0.12)', emeraldB: 'rgba(16,185,129,0.28)',
+  amber: '#F59E0B', amberD: 'rgba(245,158,11,0.14)', amberB: 'rgba(245,158,11,0.30)',
+  violet: '#8B5CF6', violetD: 'rgba(139,92,246,0.14)', violetB: 'rgba(139,92,246,0.30)',
+  rose: '#F43F5E', roseD: 'rgba(244,63,94,0.12)', roseB: 'rgba(244,63,94,0.28)',
 };
 
 const getFriendlyFileType = (mimeType = '', fileName = '') => {
@@ -55,19 +68,26 @@ const getFriendlyFileType = (mimeType = '', fileName = '') => {
   return 'Generic File';
 };
 
-/* File-type accent colors stay constant across themes — they're identity
-   slightly per theme for contrast. */
-const FILE_TYPE_STYLES = (dark) => ({
-  pdf:   { bg: dark ? 'rgba(240,112,138,0.12)' : 'rgba(239,68,68,0.10)',  border: dark ? 'rgba(240,112,138,0.25)' : 'rgba(239,68,68,0.20)',  color: dark ? '#f0708a' : '#dc2626', label: 'PDF' },
-  word:  { bg: dark ? 'rgba(91,141,239,0.14)'  : 'rgba(59,130,246,0.10)', border: dark ? 'rgba(91,141,239,0.28)'  : 'rgba(59,130,246,0.20)', color: dark ? '#5b8def' : '#2563eb', label: 'DOC' },
-  sheet: { bg: dark ? 'rgba(52,211,153,0.14)'  : 'rgba(16,185,129,0.10)', border: dark ? 'rgba(52,211,153,0.28)'  : 'rgba(16,185,129,0.20)', color: dark ? '#34d399' : '#059669', label: 'XLS' },
-  ppt:   { bg: dark ? 'rgba(240,177,77,0.14)'  : 'rgba(249,115,22,0.10)', border: dark ? 'rgba(240,177,77,0.28)'  : 'rgba(249,115,22,0.20)', color: dark ? '#f0b14d' : '#ea580c', label: 'PPT' },
-  image: { bg: dark ? 'rgba(167,139,250,0.14)' : 'rgba(139,92,246,0.10)', border: dark ? 'rgba(167,139,250,0.28)' : 'rgba(139,92,246,0.20)', color: dark ? '#a78bfa' : '#7c3aed', label: 'IMG' },
-  other: { bg: dark ? 'rgba(91,141,239,0.10)'  : 'rgba(99,102,241,0.10)', border: dark ? 'rgba(91,141,239,0.20)'  : 'rgba(99,102,241,0.18)', color: dark ? '#9aa1b8' : '#4f46e5', label: 'FILE' },
+const formatBytes = (bytes) => {
+  if (!bytes) return '—';
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  let i = 0, v = bytes;
+  while (v >= 1024 && i < sizes.length - 1) { v /= 1024; i++; }
+  return `${v.toFixed(1)} ${sizes[i]}`;
+};
+
+/* File-type accent colors — same hue family across both themes, tuned per theme for contrast */
+const FILE_TYPE_STYLES = (T) => ({
+  pdf:   { bg: T.roseD,   border: T.roseB,   color: T.rose,   label: 'PDF' },
+  word:  { bg: T.accentL, border: T.accentB, color: T.accent, label: 'DOC' },
+  sheet: { bg: T.emeraldD, border: T.emeraldB, color: T.emerald, label: 'XLS' },
+  ppt:   { bg: T.amberD,  border: T.amberB,  color: T.amber,  label: 'PPT' },
+  image: { bg: T.violetD, border: T.violetB, color: T.violet, label: 'IMG' },
+  other: { bg: T.chipBg,  border: T.chipBdr, color: T.txt1,   label: 'FILE' },
 });
 
-const getFileTypeStyle = (mimeType = '', fileName = '', dark = false) => {
-  const styles = FILE_TYPE_STYLES(dark);
+const getFileTypeStyle = (mimeType = '', fileName = '', T) => {
+  const styles = FILE_TYPE_STYLES(T);
   const type = mimeType.toLowerCase();
   const name = fileName.toLowerCase();
   if (type.includes('pdf') || name.endsWith('.pdf')) return styles.pdf;
@@ -78,61 +98,52 @@ const getFileTypeStyle = (mimeType = '', fileName = '', dark = false) => {
   return styles.other;
 };
 
-const FileIcon = ({ mimeType = '', fileName = '', dark }) => {
+const FileIcon = ({ mimeType = '', fileName = '', T, size = 40 }) => {
   const type = mimeType.toLowerCase();
-  const s = getFileTypeStyle(mimeType, fileName, dark);
+  const s = getFileTypeStyle(mimeType, fileName, T);
 
   if (type.includes('image')) {
     return (
-      <div style={{ width: 40, height: 40, borderRadius: 10, background: s.bg, border: `1px solid ${s.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <svg width="20" height="20" fill="none" stroke={s.color} strokeWidth="1.5" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
+      <div style={{ width: size, height: size, borderRadius: 10, background: s.bg, border: `1px solid ${s.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <PhotoIcon style={{ width: size * 0.5, height: size * 0.5, color: s.color }} />
       </div>
     );
   }
 
   return (
-    <div style={{ width: 40, height: 40, borderRadius: 10, background: s.bg, border: `1px solid ${s.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-      <span style={{ fontSize: 9, fontWeight: 800, color: s.color, letterSpacing: '0.04em', fontFamily: 'inherit' }}>{s.label}</span>
+    <div style={{ width: size, height: size, borderRadius: 10, background: s.bg, border: `1px solid ${s.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <span style={{ fontSize: size * 0.225, fontWeight: 800, color: s.color, letterSpacing: '0.04em', fontFamily: 'inherit' }}>{s.label}</span>
     </div>
   );
 };
 
-const ActionBtn = ({ onClick, title, children, accent, dark }) => {
+const ActionBtn = ({ onClick, title, children, accent, T }) => {
   const [hov, setHov] = React.useState(false);
 
-  const ACCENT_DARK = {
-    blue:    { bg: 'rgba(91,141,239,0.14)',  border: 'rgba(91,141,239,0.32)',  color: '#5b8def' },
-    green:   { bg: 'rgba(52,211,153,0.14)',  border: 'rgba(52,211,153,0.32)',  color: '#34d399' },
-    amber:   { bg: 'rgba(240,177,77,0.14)',  border: 'rgba(240,177,77,0.32)',  color: '#f0b14d' },
-    indigo:  { bg: 'rgba(167,139,250,0.16)', border: 'rgba(167,139,250,0.36)', color: '#a78bfa' },
-    default: { bg: 'rgba(255,255,255,0.06)', border: 'rgba(255,255,255,0.14)', color: '#9aa1b8' },
+  const ACCENTS = {
+    blue:    { bg: T.accentL, border: T.accentB, color: T.accent },
+    green:   { bg: T.emeraldD, border: T.emeraldB, color: T.emerald },
+    amber:   { bg: T.amberD,  border: T.amberB,  color: T.amber },
+    indigo:  { bg: T.violetD, border: T.violetB, color: T.violet },
+    default: { bg: T.chipBg,  border: T.chipBdr, color: T.txt1 },
   };
-  const ACCENT_LIGHT = {
-    blue:    { bg: 'rgba(59,130,246,0.10)',  border: 'rgba(59,130,246,0.30)',  color: '#2563eb' },
-    green:   { bg: 'rgba(16,185,129,0.10)',  border: 'rgba(16,185,129,0.30)',  color: '#059669' },
-    amber:   { bg: 'rgba(245,158,11,0.10)',  border: 'rgba(245,158,11,0.30)',  color: '#b45309' },
-    indigo:  { bg: 'rgba(168,118,30,0.12)',  border: 'rgba(168,118,30,0.34)',  color: '#a8761e' },
-    default: { bg: 'rgba(212,175,122,0.06)', border: 'rgba(212,175,122,0.14)', color: '#78716c' },
-  };
-  const palette = dark ? ACCENT_DARK : ACCENT_LIGHT;
-  const a = palette[accent] || palette.default;
+  const a = ACCENTS[accent] || ACCENTS.default;
 
   return (
     <button
       onClick={onClick}
       title={title}
+      type="button"
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
         width: 32, height: 32, borderRadius: 9,
-        border: `1px solid ${hov ? a.border : (dark ? 'rgba(255,255,255,0.07)' : 'rgba(99,102,241,0.12)')}`,
-        background: hov ? a.bg : (dark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.80)'),
-        color: hov ? a.color : (dark ? '#5c6178' : '#64748b'),
+        border: `1px solid ${hov ? a.border : T.bdr1}`,
+        background: hov ? a.bg : T.bg1,
+        color: hov ? a.color : T.txt1,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', transition: 'all 0.15s',
-        boxShadow: hov ? `0 2px 8px ${a.bg}` : (dark ? 'none' : '0 1px 3px rgba(15,23,42,0.04)'),
+        boxShadow: hov ? `0 2px 8px ${a.bg}` : '0 1px 2px rgba(15,23,42,0.04)',
       }}
     >
       {children}
@@ -140,9 +151,47 @@ const ActionBtn = ({ onClick, title, children, accent, dark }) => {
   );
 };
 
-const FileList = ({ files = [], isAdmin = false, onPreview, onStatusChange, onReview, onDownload }) => {
-  const dark = isAdmin;
-  const T = dark ? D : L;
+const Checkbox = ({ checked, onChange, T }) => (
+  <input
+    type="checkbox"
+    checked={checked}
+    onChange={onChange}
+    onClick={(e) => e.stopPropagation()}
+    style={{ width: 15, height: 15, cursor: 'pointer', accentColor: T.accent }}
+  />
+);
+
+const Avatar = ({ name = 'U', T, isAdmin }) => {
+  const initials = name.slice(0, 2).toUpperCase();
+  const gradsAdmin = ['linear-gradient(135deg,#3454D1,#6D4FE0)', 'linear-gradient(135deg,#0E84A5,#3454D1)', 'linear-gradient(135deg,#0E9F6E,#0E84A5)', 'linear-gradient(135deg,#B7791F,#C23552)'];
+  const gradsEmployee = ['linear-gradient(135deg,#4F46E5,#8B5CF6)', 'linear-gradient(135deg,#14B8A6,#4F46E5)', 'linear-gradient(135deg,#10B981,#14B8A6)', 'linear-gradient(135deg,#F59E0B,#F43F5E)'];
+  const grad = (isAdmin ? gradsAdmin : gradsEmployee)[name.charCodeAt(0) % 4 || 0];
+  return (
+    <div style={{
+      width: 34, height: 34, borderRadius: 10,
+      background: grad,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: 11, fontWeight: 800, color: '#fff', flexShrink: 0,
+      boxShadow: `0 2px 8px ${T.accentL}`,
+    }}>
+      {initials}
+    </div>
+  );
+};
+
+const FileList = ({
+  files = [],
+  isAdmin = false,
+  viewMode = 'list',
+  onPreview,
+  onStatusChange,
+  onReview,
+  onDownload,
+  selectedFiles,
+  onSelectFile,
+}) => {
+  const T = isAdmin ? D : L;
+  const selectable = isAdmin && typeof onSelectFile === 'function';
 
   const getFileUrl = (file) => file?.url || file?.downloadUrl || null;
 
@@ -221,8 +270,92 @@ const FileList = ({ files = [], isAdmin = false, onPreview, onStatusChange, onRe
     );
   }
 
-  const TH = ({ children }) => (
-    <th style={{ padding: '12px 16px', textAlign: 'left', whiteSpace: 'nowrap' }}>
+  const allSelected = selectable && files.length > 0 && files.every((f) => selectedFiles?.has(f.id));
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      files.forEach((f) => { if (selectedFiles?.has(f.id)) onSelectFile(f.id); });
+    } else {
+      files.forEach((f) => { if (!selectedFiles?.has(f.id)) onSelectFile(f.id); });
+    }
+  };
+
+  const ActionsRow = ({ file }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <ActionBtn onClick={() => onPreview?.(file)} title="Preview file" accent="blue" T={T}>
+        <EyeIcon style={{ width: 15, height: 15 }} />
+      </ActionBtn>
+      <ActionBtn onClick={() => handleDownload(file)} title="Download file" accent="amber" T={T}>
+        <ArrowDownTrayIcon style={{ width: 15, height: 15 }} />
+      </ActionBtn>
+      {isAdmin && file.status !== 'approved' && (
+        <ActionBtn onClick={() => onReview?.(file)} title="Review file" accent="indigo" T={T}>
+          <CheckCircleIcon style={{ width: 15, height: 15 }} />
+        </ActionBtn>
+      )}
+    </div>
+  );
+
+  /* ── Grid view (cards) ── */
+  if (viewMode === 'grid') {
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14, padding: 20 }}>
+        {files.map((file) => {
+          const checked = !!selectedFiles?.has(file.id);
+          return (
+            <div
+              key={file.id}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.bdr2; e.currentTarget.style.boxShadow = '0 6px 18px rgba(15,23,42,0.08)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.bdr1; e.currentTarget.style.boxShadow = 'none'; }}
+              style={{
+                borderRadius: 14, border: `1px solid ${T.bdr1}`, background: T.bg1,
+                padding: 16, display: 'flex', flexDirection: 'column', gap: 10,
+                transition: 'all 0.15s',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                  <FileIcon mimeType={file.mimeType} fileName={file.originalName} T={T} />
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ fontSize: 12.5, fontWeight: 700, color: T.txt0, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>
+                      {file.originalName || 'Unnamed'}
+                    </p>
+                    <p style={{ fontSize: 10.5, color: T.txt2, margin: '1px 0 0' }}>
+                      {getFriendlyFileType(file.mimeType, file.originalName)}
+                    </p>
+                  </div>
+                </div>
+                {selectable && <Checkbox checked={checked} onChange={() => onSelectFile(file.id)} T={T} />}
+              </div>
+
+              {file.description && (
+                <p style={{ fontSize: 11.5, color: T.txt1, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {file.description}
+                </p>
+              )}
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: T.txt1, background: T.chipBg, border: `1px solid ${T.chipBdr}`, borderRadius: 6, padding: '2px 8px' }}>
+                  {formatBytes(file.size)}
+                </span>
+                {isAdmin && <StatusBadge status={file.status} size="sm" dark={isAdmin} />}
+              </div>
+
+              <div style={{ borderTop: `1px solid ${T.bdr0}`, paddingTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 10.5, color: T.txt2 }}>
+                  {file.createdAt ? new Date(file.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                </span>
+                <ActionsRow file={file} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  /* ── List view (table) ── */
+  const TH = ({ children, width }) => (
+    <th style={{ padding: '12px 16px', textAlign: 'left', whiteSpace: 'nowrap', width }}>
       <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: T.txt2 }}>
         {children}
       </span>
@@ -234,6 +367,11 @@ const FileList = ({ files = [], isAdmin = false, onPreview, onStatusChange, onRe
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ borderBottom: `1px solid ${T.bdr1}`, background: T.headBg }}>
+            {selectable && (
+              <th style={{ padding: '12px 16px 12px 20px', width: 36 }}>
+                <Checkbox checked={allSelected} onChange={toggleSelectAll} T={T} />
+              </th>
+            )}
             <TH>User</TH>
             <TH>File</TH>
             <TH>Description</TH>
@@ -252,19 +390,7 @@ const FileList = ({ files = [], isAdmin = false, onPreview, onStatusChange, onRe
             const fileTime = file.createdAt
               ? new Date(file.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
               : '—';
-            const fileSize = file.size
-              ? (() => {
-                  const sizes = ['B', 'KB', 'MB', 'GB'];
-                  let si = 0, sv = file.size;
-                  while (sv >= 1024 && si < sizes.length - 1) { sv /= 1024; si++; }
-                  return `${sv.toFixed(1)} ${sizes[si]}`;
-                })()
-              : '—';
-
-            const initials = (file.userName || 'U').slice(0, 2).toUpperCase();
-            const avatarColorsDark  = ['linear-gradient(135deg,#5b8def,#a78bfa)', 'linear-gradient(135deg,#34d399,#5b8def)', 'linear-gradient(135deg,#34d399,#059669)', 'linear-gradient(135deg,#f0b14d,#f0708a)'];
-            const avatarColorsLight = ['linear-gradient(135deg,#6366f1,#8b5cf6)', 'linear-gradient(135deg,#06b6d4,#3b82f6)', 'linear-gradient(135deg,#10b981,#059669)', 'linear-gradient(135deg,#f59e0b,#ef4444)'];
-            const avatarGrad = (dark ? avatarColorsDark : avatarColorsLight)[initials.charCodeAt(0) % 4];
+            const checked = !!selectedFiles?.has(file.id);
 
             return (
               <tr
@@ -272,22 +398,21 @@ const FileList = ({ files = [], isAdmin = false, onPreview, onStatusChange, onRe
                 style={{
                   borderBottom: idx < files.length - 1 ? `1px solid ${T.bdr0}` : 'none',
                   transition: 'background 0.15s',
+                  background: checked ? T.accentL : 'transparent',
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = T.rowHov}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                onMouseEnter={(e) => { if (!checked) e.currentTarget.style.background = T.rowHov; }}
+                onMouseLeave={(e) => { if (!checked) e.currentTarget.style.background = 'transparent'; }}
               >
+                {selectable && (
+                  <td style={{ padding: '14px 16px 14px 20px' }}>
+                    <Checkbox checked={checked} onChange={() => onSelectFile(file.id)} T={T} />
+                  </td>
+                )}
+
                 {/* User */}
                 <td style={{ padding: '14px 16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{
-                      width: 34, height: 34, borderRadius: 10,
-                      background: avatarGrad,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 11, fontWeight: 800, color: '#fff', flexShrink: 0,
-                      boxShadow: dark ? '0 2px 8px rgba(0,0,0,0.35)' : '0 2px 8px rgba(99,102,241,0.22)',
-                    }}>
-                      {initials}
-                    </div>
+                    <Avatar name={file.userName || 'Unknown'} T={T} isAdmin={isAdmin} />
                     <div style={{ minWidth: 0 }}>
                       <p style={{ fontSize: 12, fontWeight: 700, color: T.txt0, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>
                         {file.userName || 'Unknown'}
@@ -302,7 +427,7 @@ const FileList = ({ files = [], isAdmin = false, onPreview, onStatusChange, onRe
                 {/* File */}
                 <td style={{ padding: '14px 16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <FileIcon mimeType={file.mimeType} fileName={file.originalName} dark={dark} />
+                    <FileIcon mimeType={file.mimeType} fileName={file.originalName} T={T} />
                     <div style={{ minWidth: 0 }}>
                       <p style={{ fontSize: 12, fontWeight: 700, color: T.txt0, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>
                         {file.originalName || 'Unnamed'}
@@ -337,36 +462,19 @@ const FileList = ({ files = [], isAdmin = false, onPreview, onStatusChange, onRe
                     fontSize: 11, fontWeight: 700, color: T.txt1,
                     background: T.chipBg, border: `1px solid ${T.chipBdr}`,
                     borderRadius: 6, padding: '2px 8px',
-                  }}>{fileSize}</span>
+                  }}>{formatBytes(file.size)}</span>
                 </td>
 
                 {/* Status (Admin) */}
                 {isAdmin && (
                   <td style={{ padding: '14px 16px' }}>
-                    <StatusBadge status={file.status} dark={dark} />
+                    <StatusBadge status={file.status} dark={isAdmin} />
                   </td>
                 )}
 
                 {/* Actions */}
                 <td style={{ padding: '14px 16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <ActionBtn onClick={() => onPreview?.(file)} title="Preview file" accent="blue" dark={dark}>
-                      <EyeIcon style={{ width: 15, height: 15 }} />
-                    </ActionBtn>
-                    <ActionBtn
-                      onClick={() => handleDownload(file)}
-                      title="Download file"
-                      accent="amber"
-                      dark={dark}
-                    >
-                      <ArrowDownTrayIcon style={{ width: 15, height: 15 }} />
-                    </ActionBtn>
-                    {isAdmin && file.status !== 'approved' && (
-                      <ActionBtn onClick={() => onReview?.(file)} title="Review file" accent="indigo" dark={dark}>
-                        <CheckCircleIcon style={{ width: 15, height: 15 }} />
-                      </ActionBtn>
-                    )}
-                  </div>
+                  <ActionsRow file={file} />
                 </td>
               </tr>
             );

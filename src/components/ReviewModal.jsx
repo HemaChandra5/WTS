@@ -12,24 +12,24 @@ import {
 } from '@heroicons/react/24/outline';
 import StatusBadge from './StatusBadge';
 
-/* ─── Obsidian-Slate dark tokens ─────────────────────────────────────── */
+/* ─── Executive Light tokens (admin) — identical to AdminDashboard.jsx ──── */
 const T = {
-  glass:    'rgba(20,20,22,0.55)',
-  surface:  '#161618',
-  surface2: '#1c1c1f',
-  bdr0:     'rgba(255,255,255,0.05)',
-  bdr1:     'rgba(255,255,255,0.09)',
-  bdr2:     'rgba(255,255,255,0.15)',
-  txt0:     '#f5f6fa',
-  txt1:     '#9aa1b8',
-  txt2:     '#5c6178',
-  accent:   '#5b8def',
-  accentL:  'rgba(91,141,239,0.14)',
-  emerald:  '#34d399',
-  emeraldL: 'rgba(52,211,153,0.12)',
-  rose:     '#f0708a',
-  roseL:    'rgba(240,112,138,0.12)',
+  surface: '#FFFFFF',
+  surface2: 'rgba(15,23,42,0.03)',
+  bdr0: 'rgba(15,23,42,0.06)',
+  bdr1: 'rgba(15,23,42,0.10)',
+  bdr2: 'rgba(15,23,42,0.16)',
+  txt0: '#0F1729',
+  txt1: '#5B6478',
+  txt2: '#94A0B8',
+  accent: '#3454D1',
+  accentL: 'rgba(52,84,209,0.10)',
+  accentB: 'rgba(52,84,209,0.22)',
+  emerald: '#0E9F6E', emeraldD: 'rgba(14,159,110,0.10)', emeraldB: 'rgba(14,159,110,0.26)',
+  rose: '#C23552', roseD: 'rgba(194,53,82,0.08)', roseB: 'rgba(194,53,82,0.26)',
 };
+
+const FONT = '"SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
 
 const formatBytes = (bytes) => {
   if (!bytes && bytes !== 0) return '0 B';
@@ -69,13 +69,8 @@ const ReviewModal = ({ file, open, onClose, onUpdateStatus }) => {
     onClose();
   };
 
-  const uploadedAt = file.createdAt
-    ? new Date(file.createdAt).toLocaleString()
-    : '—';
-
-  const reviewedAt = file.reviewedAt
-    ? new Date(file.reviewedAt).toLocaleString()
-    : null;
+  const uploadedAt = file.createdAt ? new Date(file.createdAt).toLocaleString() : '—';
+  const reviewedAt = file.reviewedAt ? new Date(file.reviewedAt).toLocaleString() : null;
 
   const InfoRow = ({ icon: Icon, children, span2 }) => (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7, gridColumn: span2 ? 'span 2' : undefined }}>
@@ -85,18 +80,18 @@ const ReviewModal = ({ file, open, onClose, onUpdateStatus }) => {
   );
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, fontFamily: FONT }}>
       {/* Backdrop */}
       <div
         onClick={onClose}
-        style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
+        style={{ position: 'absolute', inset: 0, background: 'rgba(15,23,42,0.50)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
       />
 
       {/* Modal */}
       <div style={{
         position: 'relative', zIndex: 1, width: '100%', maxWidth: 480,
         borderRadius: 22, background: T.surface, border: `1px solid ${T.bdr1}`,
-        boxShadow: '0 30px 80px rgba(0,0,0,0.65)', overflow: 'hidden',
+        boxShadow: '0 30px 80px rgba(15,23,42,0.30)', overflow: 'hidden',
       }}>
         {/* Header */}
         <div style={{
@@ -106,7 +101,7 @@ const ReviewModal = ({ file, open, onClose, onUpdateStatus }) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{
               width: 36, height: 36, borderRadius: 11, background: T.accentL,
-              border: `1px solid rgba(91,141,239,0.25)`,
+              border: `1px solid ${T.accentB}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
               <DocumentTextIcon style={{ width: 18, height: 18, color: T.accent }} />
@@ -123,7 +118,7 @@ const ReviewModal = ({ file, open, onClose, onUpdateStatus }) => {
             style={{
               display: 'flex', height: 30, width: 30, alignItems: 'center', justifyContent: 'center',
               borderRadius: '50%', border: 'none', cursor: 'pointer', transition: 'background 0.15s',
-              background: closeHov ? 'rgba(255,255,255,0.08)' : 'transparent',
+              background: closeHov ? 'rgba(15,23,42,0.07)' : 'transparent',
             }}
           >
             <XMarkIcon style={{ width: 15, height: 15, color: T.txt1 }} />
@@ -134,7 +129,7 @@ const ReviewModal = ({ file, open, onClose, onUpdateStatus }) => {
         <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 18 }}>
           {/* File info card */}
           <div style={{
-            borderRadius: 16, border: `1px solid ${T.bdr0}`, background: 'rgba(255,255,255,0.025)',
+            borderRadius: 16, border: `1px solid ${T.bdr0}`, background: T.surface2,
             padding: 14, display: 'flex', flexDirection: 'column', gap: 11,
           }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
@@ -164,7 +159,7 @@ const ReviewModal = ({ file, open, onClose, onUpdateStatus }) => {
           <div>
             <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: T.txt2, marginBottom: 7 }}>
               Admin note{' '}
-              <span style={{ fontWeight: 500, textTransform: 'none', color: T.txt2, opacity: 0.7 }}>(visible to employee)</span>
+              <span style={{ fontWeight: 500, textTransform: 'none', color: T.txt2, opacity: 0.8 }}>(visible to employee)</span>
             </label>
             <textarea
               value={adminNote}
@@ -175,22 +170,22 @@ const ReviewModal = ({ file, open, onClose, onUpdateStatus }) => {
               onBlur={() => setNoteFocus(false)}
               style={{
                 width: '100%', borderRadius: 12, resize: 'none', outline: 'none', boxSizing: 'border-box',
-                border: `1px solid ${noteFocus ? 'rgba(91,141,239,0.45)' : T.bdr1}`,
-                background: 'rgba(255,255,255,0.03)',
+                border: `1px solid ${noteFocus ? T.accentB : T.bdr1}`,
+                background: noteFocus ? '#FFFFFF' : T.surface2,
                 padding: '10px 13px', fontSize: 13, color: T.txt0,
                 fontFamily: 'inherit', transition: 'border-color 0.15s, box-shadow 0.15s',
-                boxShadow: noteFocus ? '0 0 0 3px rgba(91,141,239,0.14)' : 'none',
+                boxShadow: noteFocus ? `0 0 0 3px ${T.accentL}` : 'none',
               }}
             />
-            <style>{`textarea::placeholder { color: ${T.txt2}; opacity: 0.8; }`}</style>
+            <style>{`textarea::placeholder { color: ${T.txt2}; opacity: 0.9; }`}</style>
           </div>
 
           {/* Confirm hint */}
           {confirming && (
             <div style={{
-              borderRadius: 12, padding: '10px 14px', fontSize: 12, fontWeight: 500,
-              border: `1px solid ${confirming === 'approved' ? 'rgba(52,211,153,0.30)' : 'rgba(240,112,138,0.30)'}`,
-              background: confirming === 'approved' ? T.emeraldL : T.roseL,
+              borderRadius: 12, padding: '10px 14px', fontSize: 12, fontWeight: 600,
+              border: `1px solid ${confirming === 'approved' ? T.emeraldB : T.roseB}`,
+              background: confirming === 'approved' ? T.emeraldD : T.roseD,
               color: confirming === 'approved' ? T.emerald : T.rose,
             }}>
               Click <strong>{confirming === 'approved' ? 'Approve' : 'Reject'}</strong> again to confirm this action.
@@ -212,12 +207,12 @@ const ReviewModal = ({ file, open, onClose, onUpdateStatus }) => {
             style={{
               display: 'flex', alignItems: 'center', gap: 6, borderRadius: 11,
               padding: '8px 14px', fontSize: 12, fontWeight: 700,
-              border: '1px solid rgba(91,141,239,0.30)',
-              background: file.status === 'reviewing' ? 'rgba(91,141,239,0.05)' : (reviewingHov ? 'rgba(91,141,239,0.20)' : T.accentL),
+              border: `1px solid ${T.accentB}`,
+              background: file.status === 'reviewing' ? 'rgba(52,84,209,0.04)' : (reviewingHov ? 'rgba(52,84,209,0.16)' : T.accentL),
               color: T.accent,
               cursor: file.status === 'reviewing' ? 'not-allowed' : 'pointer',
-              opacity: file.status === 'reviewing' ? 0.4 : 1,
-              transition: 'all 0.15s',
+              opacity: file.status === 'reviewing' ? 0.45 : 1,
+              transition: 'all 0.15s', fontFamily: 'inherit',
             }}
           >
             <EyeIcon style={{ width: 13, height: 13 }} />
@@ -231,12 +226,12 @@ const ReviewModal = ({ file, open, onClose, onUpdateStatus }) => {
               style={{
                 display: 'flex', alignItems: 'center', gap: 6, borderRadius: 11,
                 padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                transition: 'all 0.15s',
-                border: confirming === 'rejected' ? 'none' : '1px solid rgba(240,112,138,0.30)',
-                background: confirming === 'rejected' ? T.rose : T.roseL,
-                color: confirming === 'rejected' ? '#1a1a1c' : T.rose,
+                transition: 'all 0.15s', fontFamily: 'inherit',
+                border: confirming === 'rejected' ? 'none' : `1px solid ${T.roseB}`,
+                background: confirming === 'rejected' ? T.rose : T.roseD,
+                color: confirming === 'rejected' ? '#fff' : T.rose,
                 transform: confirming === 'rejected' ? 'scale(1.04)' : 'scale(1)',
-                boxShadow: confirming === 'rejected' ? '0 4px 14px rgba(240,112,138,0.30)' : 'none',
+                boxShadow: confirming === 'rejected' ? '0 4px 14px rgba(194,53,82,0.30)' : 'none',
               }}
             >
               <XCircleIcon style={{ width: 13, height: 13 }} />
@@ -249,12 +244,12 @@ const ReviewModal = ({ file, open, onClose, onUpdateStatus }) => {
               style={{
                 display: 'flex', alignItems: 'center', gap: 6, borderRadius: 11,
                 padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                transition: 'all 0.15s',
-                border: confirming === 'approved' ? 'none' : '1px solid rgba(52,211,153,0.30)',
-                background: confirming === 'approved' ? T.emerald : T.emeraldL,
-                color: confirming === 'approved' ? '#0a1410' : T.emerald,
+                transition: 'all 0.15s', fontFamily: 'inherit',
+                border: confirming === 'approved' ? 'none' : `1px solid ${T.emeraldB}`,
+                background: confirming === 'approved' ? T.emerald : T.emeraldD,
+                color: confirming === 'approved' ? '#fff' : T.emerald,
                 transform: confirming === 'approved' ? 'scale(1.04)' : 'scale(1)',
-                boxShadow: confirming === 'approved' ? '0 4px 14px rgba(52,211,153,0.30)' : 'none',
+                boxShadow: confirming === 'approved' ? '0 4px 14px rgba(14,159,110,0.30)' : 'none',
               }}
             >
               <CheckCircleIcon style={{ width: 13, height: 13 }} />

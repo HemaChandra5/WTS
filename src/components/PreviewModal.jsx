@@ -6,25 +6,30 @@ import {
   ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
 
-/* ─── Ivory/gold employee tokens ────────────────────────────────────── */
-const L = {
-  border:   'rgba(212,175,122,0.20)',
-  txt0:     '#1c1917',
-  txt1:     '#78716c',
-  txt2:     '#a8a29e',
-  accent:   '#a8761e',
-  accentL:  'rgba(168,118,30,0.08)',
-  surface:  '#fffefb',
-  surface2: 'rgba(212,175,122,0.05)',
-  codeBg:   '#211d18',
+/* ─── Executive Light tokens (admin) — identical to AdminDashboard.jsx ──── */
+const D = {
+  txt0: '#0F1729', txt1: '#5B6478', txt2: '#94A0B8',
+  accent: '#3454D1', accentL: 'rgba(52,84,209,0.10)', accentB: 'rgba(52,84,209,0.22)',
+  border: 'rgba(15,23,42,0.10)',
+  surface: '#FFFFFF', surface2: 'rgba(15,23,42,0.03)',
 };
 
-const PreviewModal = ({ file, open, onClose }) => {
+/* ─── Light SaaS tokens (employee) — identical to EmployeeDashboard.jsx ── */
+const L = {
+  txt0: '#0F172A', txt1: '#475569', txt2: '#64748B',
+  accent: '#4F46E5', accentL: 'rgba(79,70,229,0.12)', accentB: 'rgba(79,70,229,0.26)',
+  border: 'rgba(15,23,42,0.10)',
+  surface: '#FFFFFF', surface2: 'rgba(15,23,42,0.03)',
+};
+
+const FONT = '"SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+
+const PreviewModal = ({ file, open, onClose, isAdmin = false }) => {
+  const T = isAdmin ? D : L;
   const [loading, setLoading] = useState(true);
   const [previewError, setPreviewError] = useState(false);
   const [content, setContent] = useState('');
   const [closeHov, setCloseHov] = useState(false);
-  const [dlHov, setDlHov] = useState(false);
   const [dlFooterHov, setDlFooterHov] = useState(false);
 
   useEffect(() => {
@@ -44,7 +49,7 @@ const PreviewModal = ({ file, open, onClose }) => {
     setContent('');
 
     try {
-      const { mimeType, originalName, file: fileObj, url } = file;
+      const { mimeType, originalName, file: fileObj } = file;
       const type = mimeType?.toLowerCase() || '';
       const name = originalName?.toLowerCase() || '';
 
@@ -117,18 +122,19 @@ const PreviewModal = ({ file, open, onClose }) => {
   const EmptyState = ({ title, message, onDownload }) => (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      background: L.surface, borderRadius: 16, padding: 36, textAlign: 'center',
-      border: `2px dashed ${L.border}`,
+      background: T.surface, borderRadius: 16, padding: 36, textAlign: 'center',
+      border: `2px dashed ${T.border}`,
     }}>
-      <DocumentTextIcon style={{ width: 46, height: 46, color: '#cbb789', marginBottom: 16 }} />
-      <p style={{ fontSize: 15, fontWeight: 700, color: L.txt0, margin: '0 0 8px' }}>{title}</p>
-      <p style={{ fontSize: 13, color: L.txt1, margin: '0 0 22px', maxWidth: 360 }}>{message}</p>
+      <DocumentTextIcon style={{ width: 46, height: 46, color: T.accentB, marginBottom: 16 }} />
+      <p style={{ fontSize: 15, fontWeight: 700, color: T.txt0, margin: '0 0 8px' }}>{title}</p>
+      <p style={{ fontSize: 13, color: T.txt1, margin: '0 0 22px', maxWidth: 360 }}>{message}</p>
       <button
         onClick={onDownload}
         style={{
           display: 'flex', alignItems: 'center', gap: 8, borderRadius: 10,
-          background: L.accent, padding: '9px 18px', fontSize: 13, fontWeight: 700,
+          background: T.accent, padding: '9px 18px', fontSize: 13, fontWeight: 700,
           color: '#fff', border: 'none', cursor: 'pointer', transition: 'background 0.15s',
+          fontFamily: 'inherit',
         }}
       >
         <ArrowDownTrayIcon style={{ width: 15, height: 15 }} />
@@ -138,37 +144,38 @@ const PreviewModal = ({ file, open, onClose }) => {
   );
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, fontFamily: FONT }}>
       {/* Backdrop */}
       <div
         onClick={onClose}
-        style={{ position: 'absolute', inset: 0, background: 'rgba(40,32,18,0.45)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
+        style={{ position: 'absolute', inset: 0, background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
       />
 
       {/* Modal */}
       <div style={{
         position: 'relative', zIndex: 1, width: '100%', maxWidth: 920, maxHeight: '90vh',
-        display: 'flex', flexDirection: 'column', borderRadius: 20, background: L.surface,
-        boxShadow: '0 30px 80px rgba(120,98,53,0.30)', overflow: 'hidden',
+        display: 'flex', flexDirection: 'column', borderRadius: 20, background: T.surface,
+        boxShadow: '0 30px 80px rgba(15,23,42,0.30)', overflow: 'hidden',
+        border: `1px solid ${T.border}`,
       }}>
         {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          borderBottom: `1px solid ${L.border}`, background: L.surface, padding: '16px 24px',
+          borderBottom: `1px solid ${T.border}`, background: T.surface, padding: '16px 24px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
             <div style={{
-              width: 40, height: 40, borderRadius: 11, background: L.accentL,
-              border: `1px solid ${L.border}`,
+              width: 40, height: 40, borderRadius: 11, background: T.accentL,
+              border: `1px solid ${T.accentB}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
-              <DocumentTextIcon style={{ width: 19, height: 19, color: L.accent }} />
+              <DocumentTextIcon style={{ width: 19, height: 19, color: T.accent }} />
             </div>
             <div style={{ minWidth: 0 }}>
-              <h2 style={{ fontSize: 14, fontWeight: 700, color: L.txt0, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: T.txt0, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {file.originalName}
               </h2>
-              <p style={{ fontSize: 12, color: L.txt2, margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <p style={{ fontSize: 12, color: T.txt2, margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {file.description || 'No description'}
               </p>
             </div>
@@ -180,8 +187,8 @@ const PreviewModal = ({ file, open, onClose }) => {
             style={{
               display: 'flex', height: 34, width: 34, alignItems: 'center', justifyContent: 'center',
               borderRadius: 10, border: 'none', cursor: 'pointer', flexShrink: 0, transition: 'background 0.15s',
-              background: closeHov ? 'rgba(212,175,122,0.14)' : 'transparent',
-              color: closeHov ? L.txt0 : L.txt1,
+              background: closeHov ? 'rgba(15,23,42,0.06)' : 'transparent',
+              color: closeHov ? T.txt0 : T.txt1,
             }}
           >
             <XMarkIcon style={{ width: 17, height: 17 }} />
@@ -189,17 +196,17 @@ const PreviewModal = ({ file, open, onClose }) => {
         </div>
 
         {/* Body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 24, background: L.surface2 }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 24, background: T.surface2 }}>
           {loading && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 0' }}>
               <div style={{ textAlign: 'center' }}>
                 <div style={{
                   margin: '0 auto', width: 40, height: 40, borderRadius: '50%',
-                  border: `4px solid ${L.border}`, borderTopColor: L.accent,
-                  animation: 'sskatt-spin-pm 0.8s linear infinite',
+                  border: `4px solid ${T.border}`, borderTopColor: T.accent,
+                  animation: 'wts-spin-pm 0.8s linear infinite',
                 }} />
-                <style>{`@keyframes sskatt-spin-pm { to { transform: rotate(360deg); } }`}</style>
-                <p style={{ marginTop: 12, fontSize: 13, fontWeight: 600, color: L.txt1 }}>Loading preview...</p>
+                <style>{`@keyframes wts-spin-pm { to { transform: rotate(360deg); } }`}</style>
+                <p style={{ marginTop: 12, fontSize: 13, fontWeight: 600, color: T.txt1 }}>Loading preview...</p>
               </div>
             </div>
           )}
@@ -208,7 +215,7 @@ const PreviewModal = ({ file, open, onClose }) => {
             <>
               {/* Image Preview */}
               {isImage && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: L.surface, borderRadius: 16, padding: 16, border: `1px solid ${L.border}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.surface, borderRadius: 16, padding: 16, border: `1px solid ${T.border}` }}>
                   <img
                     src={resolvedUrl}
                     alt={file.originalName}
@@ -220,7 +227,7 @@ const PreviewModal = ({ file, open, onClose }) => {
 
               {/* PDF Preview */}
               {isPdf && (
-                <div style={{ width: '100%', height: 700, borderRadius: 16, overflow: 'hidden', background: L.surface, border: `1px solid ${L.border}` }}>
+                <div style={{ width: '100%', height: 700, borderRadius: 16, overflow: 'hidden', background: T.surface, border: `1px solid ${T.border}` }}>
                   <iframe
                     src={resolvedUrl}
                     style={{ width: '100%', height: '100%', border: 0 }}
@@ -233,9 +240,9 @@ const PreviewModal = ({ file, open, onClose }) => {
               {/* Text Preview */}
               {isText && content && (
                 <div style={{
-                  background: L.codeBg, color: '#e8e1d4', padding: 18, borderRadius: 16,
+                  background: '#11151F', color: '#E2E8F0', padding: 18, borderRadius: 16,
                   fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 12,
-                  overflow: 'auto', maxHeight: 600, border: '1px solid rgba(212,175,122,0.18)',
+                  overflow: 'auto', maxHeight: 600, border: '1px solid rgba(15,23,42,0.10)',
                 }}>
                   <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0 }}>
                     {content}
@@ -266,9 +273,9 @@ const PreviewModal = ({ file, open, onClose }) => {
         {/* Footer */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          borderTop: `1px solid ${L.border}`, background: L.surface, padding: '14px 24px',
+          borderTop: `1px solid ${T.border}`, background: T.surface, padding: '14px 24px',
         }}>
-          <p style={{ fontSize: 12, color: L.txt2, margin: 0 }}>
+          <p style={{ fontSize: 12, color: T.txt2, margin: 0 }}>
             {file.size
               ? (() => {
                   const sizes = ['B', 'KB', 'MB', 'GB'];
@@ -291,9 +298,9 @@ const PreviewModal = ({ file, open, onClose }) => {
             onMouseLeave={() => setDlFooterHov(false)}
             style={{
               display: 'flex', alignItems: 'center', gap: 8, borderRadius: 10,
-              border: `1px solid ${L.border}`, background: dlFooterHov ? L.accentL : L.surface,
-              padding: '8px 16px', fontSize: 13, fontWeight: 700, color: L.txt1,
-              cursor: 'pointer', transition: 'all 0.15s',
+              border: `1px solid ${T.border}`, background: dlFooterHov ? T.accentL : T.surface,
+              padding: '8px 16px', fontSize: 13, fontWeight: 700, color: T.txt1,
+              cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'inherit',
             }}
           >
             <ArrowDownTrayIcon style={{ width: 15, height: 15 }} />

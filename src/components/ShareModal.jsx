@@ -3,16 +3,21 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { XMarkIcon, LinkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { useFiles } from '../context/FilesContext';
 
-/* ─── Ivory/gold employee tokens ────────────────────────────────────── */
-const L = {
-  border:   'rgba(212,175,122,0.20)',
-  txt0:     '#1c1917',
-  txt1:     '#78716c',
-  txt2:     '#a8a29e',
-  accent:   '#a8761e',
-  accentL:  'rgba(168,118,30,0.07)',
-  surface:  '#fffefb',
+/* ─── Light SaaS tokens (employee) — identical to EmployeeDashboard.jsx ── */
+const T = {
+  surface: '#FFFFFF',
+  bdr0: 'rgba(15,23,42,0.06)',
+  bdr1: 'rgba(15,23,42,0.10)',
+  txt0: '#0F172A',
+  txt1: '#475569',
+  txt2: '#64748B',
+  accent: '#4F46E5',
+  accentL: 'rgba(79,70,229,0.10)',
+  emerald: '#10B981',
+  rose: '#F43F5E',
 };
+
+const FONT = '"SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
 
 const ShareModal = ({ file, open, onClose, onShared }) => {
   const { fetchShareTargets, shareFileWithUsers } = useFiles();
@@ -115,53 +120,63 @@ const ShareModal = ({ file, open, onClose, onShared }) => {
     <div style={{
       position: 'fixed', inset: 0, zIndex: 200,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'rgba(40,32,18,0.45)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+      background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+      fontFamily: FONT,
     }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: '90vw', maxWidth: 420, borderRadius: 18, background: L.surface,
-          padding: 22, boxShadow: '0 30px 80px rgba(120,98,53,0.30)',
-          border: `1px solid ${L.border}`,
+          width: '90vw', maxWidth: 420, borderRadius: 18, background: T.surface,
+          padding: 22, boxShadow: '0 30px 80px rgba(15,23,42,0.30)',
+          border: `1px solid ${T.bdr1}`,
         }}
       >
         <div style={{ marginBottom: 14, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-          <div>
-            <h2 style={{ fontSize: 14, fontWeight: 700, color: L.txt0, margin: 0 }}>
-              Share this document
-            </h2>
-            <p style={{ marginTop: 5, fontSize: 11.5, color: L.txt2, lineHeight: 1.5 }}>
-              Share this file securely with specific users. Access is enforced by backend permissions.
-            </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: 10, background: T.accentL,
+              border: '1px solid rgba(79,70,229,0.22)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <LinkIcon style={{ width: 16, height: 16, color: T.accent }} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: T.txt0, margin: 0 }}>
+                Share this document
+              </h2>
+              <p style={{ marginTop: 3, fontSize: 11.5, color: T.txt2, lineHeight: 1.5 }}>
+                Share securely with specific users. Access is enforced by backend permissions.
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
             onMouseEnter={() => setCloseHov(true)}
             onMouseLeave={() => setCloseHov(false)}
             style={{
-              borderRadius: '50%', border: `1px solid ${L.border}`, padding: 7,
-              color: L.txt1, cursor: 'pointer', flexShrink: 0, transition: 'background 0.15s',
-              background: closeHov ? 'rgba(212,175,122,0.12)' : 'transparent',
+              borderRadius: '50%', border: 'none', padding: 7,
+              color: T.txt1, cursor: 'pointer', flexShrink: 0, transition: 'background 0.15s',
+              background: closeHov ? 'rgba(15,23,42,0.07)' : 'transparent',
             }}
           >
             <XMarkIcon style={{ width: 15, height: 15 }} />
           </button>
         </div>
 
-        <div style={{ borderRadius: 14, background: 'rgba(212,175,122,0.06)', border: `1px solid ${L.border}`, padding: 13 }}>
+        <div style={{ borderRadius: 14, background: 'rgba(15,23,42,0.03)', border: `1px solid ${T.bdr0}`, padding: 13 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <LinkIcon style={{ width: 15, height: 15, color: L.accent, flexShrink: 0 }} />
-            <span style={{ fontWeight: 700, color: L.txt0, fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <LinkIcon style={{ width: 15, height: 15, color: T.accent, flexShrink: 0 }} />
+            <span style={{ fontWeight: 700, color: T.txt0, fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {file.originalName}
             </span>
           </div>
-          <p style={{ marginTop: 5, fontSize: 11.5, color: L.txt2 }}>
+          <p style={{ marginTop: 5, fontSize: 11.5, color: T.txt2 }}>
             {file.description || 'No description provided.'}
           </p>
         </div>
 
         <div style={{ marginTop: 14 }}>
-          <label style={{ marginBottom: 6, display: 'block', fontSize: 11.5, fontWeight: 700, color: L.txt1 }}>
+          <label style={{ marginBottom: 6, display: 'block', fontSize: 11.5, fontWeight: 700, color: T.txt1 }}>
             Shareable link
           </label>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -170,17 +185,18 @@ const ShareModal = ({ file, open, onClose, onShared }) => {
               readOnly
               value={shareUrl}
               style={{
-                flex: 1, borderRadius: 999, border: `1px solid ${L.border}`,
-                padding: '7px 13px', fontSize: 11.5, color: L.txt1,
-                background: 'rgba(212,175,122,0.04)', outline: 'none', fontFamily: 'inherit',
+                flex: 1, borderRadius: 999, border: `1px solid ${T.bdr1}`,
+                padding: '7px 13px', fontSize: 11.5, color: T.txt1,
+                background: 'rgba(15,23,42,0.02)', outline: 'none', fontFamily: 'inherit',
               }}
             />
             <button
               onClick={copyLink}
               style={{
-                borderRadius: 999, background: copied ? '#059669' : L.accent,
+                borderRadius: 999, background: copied ? T.emerald : T.accent,
                 padding: '7px 16px', fontSize: 11.5, fontWeight: 700, color: '#fff',
                 border: 'none', cursor: 'pointer', transition: 'background 0.15s', whiteSpace: 'nowrap',
+                fontFamily: 'inherit',
               }}
             >
               {copied ? 'Copied' : 'Copy'}
@@ -189,12 +205,12 @@ const ShareModal = ({ file, open, onClose, onShared }) => {
         </div>
 
         <div style={{ marginTop: 14 }}>
-          <label style={{ marginBottom: 6, display: 'block', fontSize: 11.5, fontWeight: 700, color: L.txt1 }}>
+          <label style={{ marginBottom: 6, display: 'block', fontSize: 11.5, fontWeight: 700, color: T.txt1 }}>
             Share with users
           </label>
 
           <div style={{ position: 'relative', marginBottom: 8 }}>
-            <MagnifyingGlassIcon style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: L.txt2 }} />
+            <MagnifyingGlassIcon style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: T.txt2 }} />
             <input
               type="text"
               value={query}
@@ -203,10 +219,10 @@ const ShareModal = ({ file, open, onClose, onShared }) => {
               style={{
                 width: '100%',
                 borderRadius: 10,
-                border: `1px solid ${L.border}`,
+                border: `1px solid ${T.bdr1}`,
                 padding: '8px 10px 8px 32px',
                 fontSize: 12,
-                color: L.txt0,
+                color: T.txt0,
                 background: '#fff',
                 outline: 'none',
                 fontFamily: 'inherit',
@@ -214,28 +230,28 @@ const ShareModal = ({ file, open, onClose, onShared }) => {
             />
           </div>
 
-          <div style={{ maxHeight: 180, overflowY: 'auto', border: `1px solid ${L.border}`, borderRadius: 10, background: '#fff' }}>
+          <div style={{ maxHeight: 180, overflowY: 'auto', border: `1px solid ${T.bdr1}`, borderRadius: 10, background: '#fff' }}>
             {loadingTargets && (
-              <div style={{ padding: 10, fontSize: 12, color: L.txt2 }}>Loading users...</div>
+              <div style={{ padding: 10, fontSize: 12, color: T.txt2 }}>Loading users...</div>
             )}
 
             {!loadingTargets && filteredTargets.length === 0 && (
-              <div style={{ padding: 10, fontSize: 12, color: L.txt2 }}>No users found.</div>
+              <div style={{ padding: 10, fontSize: 12, color: T.txt2 }}>No users found.</div>
             )}
 
             {!loadingTargets && filteredTargets.map((user) => {
               const checked = selectedIds.includes(String(user.id));
               return (
-                <label key={user.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px', borderBottom: `1px solid ${L.border}`, cursor: 'pointer' }}>
+                <label key={user.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px', borderBottom: `1px solid ${T.bdr0}`, cursor: 'pointer' }}>
                   <input
                     type="checkbox"
                     checked={checked}
                     onChange={() => toggleUserSelection(user.id)}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', accentColor: T.accent }}
                   />
                   <div style={{ minWidth: 0 }}>
-                    <p style={{ margin: 0, fontSize: 12.5, fontWeight: 700, color: L.txt0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name || user.email}</p>
-                    <p style={{ margin: '1px 0 0', fontSize: 11.5, color: L.txt2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email} · {(user.role || 'user').toUpperCase()}</p>
+                    <p style={{ margin: 0, fontSize: 12.5, fontWeight: 700, color: T.txt0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name || user.email}</p>
+                    <p style={{ margin: '1px 0 0', fontSize: 11.5, color: T.txt2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email} · {(user.role || 'user').toUpperCase()}</p>
                   </div>
                 </label>
               );
@@ -244,13 +260,13 @@ const ShareModal = ({ file, open, onClose, onShared }) => {
         </div>
 
         {error && (
-          <p style={{ marginTop: 10, fontSize: 12, color: '#b42318', fontWeight: 600 }}>
+          <p style={{ marginTop: 10, fontSize: 12, color: T.rose, fontWeight: 600 }}>
             {error}
           </p>
         )}
 
         {successMessage && (
-          <p style={{ marginTop: 10, fontSize: 12, color: '#166534', fontWeight: 600 }}>
+          <p style={{ marginTop: 10, fontSize: 12, color: T.emerald, fontWeight: 600 }}>
             {successMessage}
           </p>
         )}
@@ -259,7 +275,7 @@ const ShareModal = ({ file, open, onClose, onShared }) => {
           <button
             type="button"
             onClick={onClose}
-            style={{ borderRadius: 10, border: `1px solid ${L.border}`, background: '#fff', padding: '8px 14px', fontSize: 12, fontWeight: 700, color: L.txt1, cursor: 'pointer' }}
+            style={{ borderRadius: 10, border: `1px solid ${T.bdr1}`, background: '#fff', padding: '8px 14px', fontSize: 12, fontWeight: 700, color: T.txt1, cursor: 'pointer', fontFamily: 'inherit' }}
           >
             Cancel
           </button>
@@ -267,7 +283,7 @@ const ShareModal = ({ file, open, onClose, onShared }) => {
             type="button"
             disabled={sharing || !selectedIds.length}
             onClick={handleShare}
-            style={{ borderRadius: 10, border: 'none', background: sharing || !selectedIds.length ? '#c4b08a' : L.accent, padding: '8px 14px', fontSize: 12, fontWeight: 700, color: '#fff', cursor: sharing || !selectedIds.length ? 'not-allowed' : 'pointer' }}
+            style={{ borderRadius: 10, border: 'none', background: sharing || !selectedIds.length ? 'rgba(79,70,229,0.35)' : T.accent, padding: '8px 14px', fontSize: 12, fontWeight: 700, color: '#fff', cursor: sharing || !selectedIds.length ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
           >
             {sharing ? 'Sharing...' : `Share (${selectedIds.length})`}
           </button>

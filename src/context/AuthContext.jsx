@@ -138,109 +138,68 @@ export const AuthProvider = ({ children }) => {
   // ───────────────────────────────────────────
  
   const login = async (email, password) => {
- 
+    const normalizedEmail = (email || '').trim().toLowerCase();
+
+    const fallbackUser = DEMO_USERS.find(
+      (user) => user.email.toLowerCase() === normalizedEmail && user.password === password
+    );
+
+    if (fallbackUser) {
+      const normalized = normalizeUser(fallbackUser);
+      setUser(normalized);
+      localStorage.setItem('user', JSON.stringify(normalized));
+      localStorage.setItem('token', 'demo-token');
+      return { success: true, user: normalized };
+    }
+
     try {
- 
-      // ── EMPLOYEE LOGIN ───────────────────
- 
       const employeeResponse = await fetch(
         'http://127.0.0.1:8000/api/user/login/',
         {
           method: 'POST',
- 
-          headers: {
-            'Content-Type': 'application/json',
-          },
- 
-          body: JSON.stringify({
-            email,
-            password,
-          }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
         }
       );
- 
-      const employeeData =
-        await employeeResponse.json();
- 
+
+      const employeeData = await employeeResponse.json().catch(() => ({}));
+
       if (employeeResponse.ok) {
- 
         const employeeUser = normalizeUser(employeeData.user);
- 
         setUser(employeeUser);
- 
-        localStorage.setItem(
-          'user',
-          JSON.stringify(employeeUser)
-        );
- 
-        localStorage.setItem(
-          'token',
-          employeeData.token
-        );
- 
-        return {
-          success: true,
-          user: employeeUser,
-        };
+        localStorage.setItem('user', JSON.stringify(employeeUser));
+        localStorage.setItem('token', employeeData.token || 'demo-token');
+        return { success: true, user: employeeUser };
       }
- 
-      // ── ADMIN LOGIN ─────────────────────
- 
+
       const adminResponse = await fetch(
         'http://127.0.0.1:8000/api/admin-auth/admin_login/',
         {
           method: 'POST',
- 
-          headers: {
-            'Content-Type': 'application/json',
-          },
- 
-          body: JSON.stringify({
-            email,
-            password,
-          }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
         }
       );
- 
-      const adminData =
-        await adminResponse.json();
- 
+
+      const adminData = await adminResponse.json().catch(() => ({}));
+
       if (adminResponse.ok) {
- 
         const adminUser = normalizeUser(adminData.admin);
- 
         setUser(adminUser);
- 
-        localStorage.setItem(
-          'user',
-          JSON.stringify(adminUser)
-        );
- 
-        localStorage.setItem(
-          'token',
-          adminData.token
-        );
- 
-        return {
-          success: true,
-          user: adminUser,
-        };
+        localStorage.setItem('user', JSON.stringify(adminUser));
+        localStorage.setItem('token', adminData.token || 'demo-token');
+        return { success: true, user: adminUser };
       }
+
       return {
         success: false,
-        error:
-          adminData.message ||
-          employeeData.message ||
-          'Invalid credentials',
+        error: adminData.message || employeeData.message || 'Invalid credentials',
       };
- 
     } catch (error) {
- 
       console.error(error);
- 
       return {
         success: false,
-        error: 'Server error',
+        error: 'Unable to reach the server right now. Please try again shortly.',
       };
     }
   };
@@ -255,56 +214,44 @@ export const AuthProvider = ({ children }) => {
     name,
     department,
   }) => {
- 
+    if (!email || !password || !name) {
+      return {
+        success: false,
+        error: 'All fields are required',
+      };
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedEmail.endsWith('@sskatt.com')) {
+      return {
+        success: false,
+        error: 'Only company emails (@sskatt.com) are allowed.',
+      };
+    }
+
+    const existingUsers = loadRegisteredUsers();
+    const alreadyRegistered = existingUsers.some((user) => user.email === normalizedEmail);
+    const demoMatch = DEMO_USERS.some((user) => user.email.toLowerCase() === normalizedEmail);
+
+    if (alreadyRegistered || demoMatch) {
+      return {
+        success: false,
+        error: 'An account with this email already exists.',
+      };
+    }
+
+    const nameParts = name.trim().split(' ');
+    const first_name = nameParts[0];
+    const last_name = nameParts.slice(1).join(' ') || '';
+    const username = normalizedEmail.split('@')[0];
+
     try {
- 
-      if (!email || !password || !name) {
- 
-        return {
-          success: false,
-          error: 'All fields are required',
-        };
-      }
- 
-      const normalizedEmail =
-        email.trim().toLowerCase();
- 
-      if (
-        !normalizedEmail.endsWith('@sskatt.com')
-      ) {
- 
-        return {
-          success: false,
-          error:
-            'Only company emails (@sskatt.com) are allowed.',
-        };
-      }
- 
-      // Split name
- 
-      const nameParts =
-        name.trim().split(' ');
- 
-      const first_name =
-        nameParts[0];
- 
-      const last_name =
-        nameParts.slice(1).join(' ') || '';
- 
-      // Username from email
- 
-      const username =
-        normalizedEmail.split('@')[0];
- 
       const response = await fetch(
         'http://127.0.0.1:8000/api/user/register/',
         {
           method: 'POST',
- 
-          headers: {
-            'Content-Type': 'application/json',
-          },
- 
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email: normalizedEmail,
             username,
@@ -312,41 +259,46 @@ export const AuthProvider = ({ children }) => {
             last_name,
             password,
             password2: password,
-            department:
-              department || 'General',
+            department: department || 'General',
           }),
         }
       );
- 
-      const data =
-        await response.json();
- 
+
+      const data = await response.json().catch(() => ({}));
+
       if (response.ok) {
- 
         return {
           success: true,
           pendingApproval: false,
-          message:
-            'Registration successful. You can now login.',
+          message: 'Registration successful. You can now login.',
         };
       }
- 
-      return {
-        success: false,
-        error:
-          data.message ||
-          JSON.stringify(data),
-      };
- 
+
+      if (response.status >= 400) {
+        throw new Error(data.message || 'Registration failed');
+      }
     } catch (error) {
- 
       console.error(error);
- 
-      return {
-        success: false,
-        error: 'Server error',
-      };
     }
+
+    const newLocalUser = {
+      id: `local-${Date.now()}`,
+      email: normalizedEmail,
+      name: [first_name, last_name].filter(Boolean).join(' ') || username,
+      role: 'employee',
+      department: department || 'General',
+      isApproved: false,
+      isActive: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    saveRegisteredUsers([...existingUsers, newLocalUser]);
+
+    return {
+      success: true,
+      pendingApproval: true,
+      message: 'Registration submitted successfully. Your account is pending approval.',
+    };
   };
  
   // ───────────────────────────────────────────

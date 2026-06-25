@@ -2,25 +2,27 @@
 import React, { useState, useRef } from 'react';
 import { ArrowUpTrayIcon, DocumentTextIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
-/* ─── Employee luxury-white tokens ──────────────────────────────────── */
-const L = {
-  bg:       '#ffffff',
-  surface:  '#f8fafc',
-  border:   'rgba(15,23,42,0.08)',
-  borderActive: 'rgba(79,70,229,0.40)',
-  txt0:     '#0f172a',
-  txt1:     '#475569',
-  txt2:     '#94a3b8',
-  accent:   '#4f46e5',
-  accentL:  'rgba(79,70,229,0.07)',
-  accentL2: 'rgba(79,70,229,0.12)',
-  emerald:  '#059669',
-  emeraldL: 'rgba(5,150,105,0.07)',
-  rose:     '#dc2626',
-  roseL:    'rgba(220,38,38,0.06)',
+/* ─── Light SaaS tokens (employee) — identical to EmployeeDashboard.jsx ── */
+const T = {
+  bg1: '#FFFFFF',
+  bg2: 'rgba(15,23,42,0.03)',
+  bg3: 'rgba(15,23,42,0.06)',
+  glassBorder: 'rgba(15,23,42,0.10)',
+  bdr1: 'rgba(15,23,42,0.10)',
+  txt0: '#0F172A',
+  txt1: '#475569',
+  txt2: '#64748B',
+  accent: '#4F46E5',
+  accentB: '#4338CA',
+  accentL: 'rgba(79,70,229,0.12)',
+  accentG: 'rgba(79,70,229,0.08)',
+  emerald: '#10B981',
+  emeraldD: 'rgba(16,185,129,0.12)',
+  rose: '#F43F5E',
+  roseD: 'rgba(244,63,94,0.12)',
 };
 
-const FONT = "'Inter', 'DM Sans', system-ui, sans-serif";
+const FONT = '"SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
 
 const FileUpload = ({ onUpload }) => {
   const [file, setFile] = useState(null);
@@ -30,6 +32,7 @@ const FileUpload = ({ onUpload }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [noteFocus, setNoteFocus] = useState(false);
   const [removeHov, setRemoveHov] = useState(false);
+  const [submitHov, setSubmitHov] = useState(false);
   const inputRef = useRef(null);
 
   const handleFileChange = (e) => {
@@ -93,28 +96,28 @@ const FileUpload = ({ onUpload }) => {
 
   return (
     <section style={{
-      borderRadius: 16,
-      background: L.bg,
-      border: `1px solid ${L.border}`,
-      boxShadow: '0 1px 3px rgba(15,23,42,0.06), 0 4px 16px rgba(15,23,42,0.04)',
-      padding: '28px 28px',
+      borderRadius: 18,
+      background: T.bg1,
+      border: `1px solid ${T.glassBorder}`,
+      boxShadow: '0 1px 3px rgba(15,23,42,0.05), 0 4px 16px rgba(15,23,42,0.04)',
+      padding: '28px',
       fontFamily: FONT,
     }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
         <div style={{
-          width: 38, height: 38, borderRadius: 10,
-          background: L.accentL2,
-          border: `1px solid rgba(79,70,229,0.18)`,
+          width: 38, height: 38, borderRadius: 11,
+          background: T.accentL,
+          border: '1px solid rgba(79,70,229,0.20)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <ArrowUpTrayIcon style={{ width: 18, height: 18, color: L.accent }} />
+          <ArrowUpTrayIcon style={{ width: 18, height: 18, color: T.accent }} />
         </div>
         <div>
-          <h2 style={{ fontSize: 15, fontWeight: 700, color: L.txt0, margin: 0, letterSpacing: '-0.02em' }}>
+          <h2 style={{ fontSize: 15, fontWeight: 700, color: T.txt0, margin: 0, letterSpacing: '-0.02em' }}>
             Upload a file
           </h2>
-          <p style={{ fontSize: 12, color: L.txt2, margin: '2px 0 0' }}>
+          <p style={{ fontSize: 12, color: T.txt2, margin: '2px 0 0' }}>
             Drag &amp; drop or click to browse
           </p>
         </div>
@@ -129,35 +132,31 @@ const FileUpload = ({ onUpload }) => {
           onClick={() => inputRef.current?.click()}
           style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            gap: 12, borderRadius: 12, padding: '40px 24px', textAlign: 'center', cursor: 'pointer',
+            gap: 12, borderRadius: 14, padding: '40px 24px', textAlign: 'center', cursor: 'pointer',
             transition: 'all 0.18s',
             border: isDragging
-              ? `2px solid ${L.accent}`
+              ? `2px solid ${T.accent}`
               : file
-              ? `2px solid rgba(5,150,105,0.35)`
-              : `2px dashed ${L.border}`,
-            background: isDragging
-              ? L.accentL
-              : file
-              ? L.emeraldL
-              : L.surface,
+              ? '2px solid rgba(16,185,129,0.38)'
+              : `2px dashed ${T.bdr1}`,
+            background: isDragging ? T.accentG : file ? T.emeraldD : T.bg2,
           }}
         >
           {file ? (
             <>
               <div style={{
                 width: 48, height: 48, borderRadius: 12,
-                background: L.emeraldL,
-                border: `1px solid rgba(5,150,105,0.22)`,
+                background: T.emeraldD,
+                border: '1px solid rgba(16,185,129,0.26)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <DocumentTextIcon style={{ width: 22, height: 22, color: L.emerald }} />
+                <DocumentTextIcon style={{ width: 22, height: 22, color: T.emerald }} />
               </div>
               <div>
-                <p style={{ fontSize: 13.5, fontWeight: 600, color: L.txt0, margin: '0 0 3px', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
+                <p style={{ fontSize: 13.5, fontWeight: 600, color: T.txt0, margin: '0 0 3px', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
                   {file.name}
                 </p>
-                <p style={{ fontSize: 12, color: L.emerald, fontWeight: 500, margin: 0 }}>
+                <p style={{ fontSize: 12, color: T.emerald, fontWeight: 600, margin: 0 }}>
                   {formatSize(file.size)} · Ready to upload
                 </p>
               </div>
@@ -168,10 +167,10 @@ const FileUpload = ({ onUpload }) => {
                 onMouseLeave={() => setRemoveHov(false)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 5,
-                  background: removeHov ? 'rgba(220,38,38,0.10)' : L.roseL,
-                  border: `1px solid rgba(220,38,38,0.18)`,
+                  background: removeHov ? 'rgba(244,63,94,0.16)' : T.roseD,
+                  border: '1px solid rgba(244,63,94,0.24)',
                   borderRadius: 7, padding: '4px 10px', cursor: 'pointer', transition: 'background 0.14s',
-                  fontSize: 12, fontWeight: 600, color: L.rose, fontFamily: FONT,
+                  fontSize: 12, fontWeight: 600, color: T.rose, fontFamily: 'inherit',
                 }}
               >
                 <XMarkIcon style={{ width: 12, height: 12 }} />
@@ -182,24 +181,24 @@ const FileUpload = ({ onUpload }) => {
             <>
               <div style={{
                 width: 48, height: 48, borderRadius: 12,
-                background: isDragging ? L.accentL2 : L.accentL,
-                border: `1px solid ${isDragging ? 'rgba(79,70,229,0.28)' : 'rgba(79,70,229,0.14)'}`,
+                background: isDragging ? T.accentL : T.accentG,
+                border: `1px solid ${isDragging ? 'rgba(79,70,229,0.30)' : 'rgba(79,70,229,0.16)'}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'all 0.18s',
               }}>
-                <ArrowUpTrayIcon style={{ width: 22, height: 22, color: isDragging ? L.accent : '#818cf8' }} />
+                <ArrowUpTrayIcon style={{ width: 22, height: 22, color: isDragging ? T.accent : '#8B86E8' }} />
               </div>
               <div>
-                <p style={{ fontSize: 13.5, fontWeight: 600, color: L.txt1, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
+                <p style={{ fontSize: 13.5, fontWeight: 600, color: T.txt1, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
                   {isDragging ? 'Drop your file here' : 'Drag & drop files here'}
                 </p>
-                <p style={{ fontSize: 12, color: L.txt2, margin: 0 }}>or click to browse from your device</p>
+                <p style={{ fontSize: 12, color: T.txt2, margin: 0 }}>or click to browse from your device</p>
               </div>
               <span style={{
-                fontSize: 10.5, fontWeight: 600, color: L.txt2,
-                background: '#f1f5f9',
-                border: `1px solid ${L.border}`,
-                borderRadius: 5, padding: '3px 9px', letterSpacing: '0.05em', textTransform: 'uppercase',
+                fontSize: 10.5, fontWeight: 700, color: T.txt2,
+                background: T.bg3,
+                border: `1px solid ${T.bdr1}`,
+                borderRadius: 6, padding: '3px 9px', letterSpacing: '0.05em', textTransform: 'uppercase',
               }}>
                 All file types accepted
               </span>
@@ -210,8 +209,8 @@ const FileUpload = ({ onUpload }) => {
 
         {/* Notes */}
         <div>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: L.txt1, marginBottom: 7, letterSpacing: '-0.01em' }}>
-            Notes <span style={{ color: L.txt2, fontWeight: 400 }}>(optional)</span>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T.txt1, marginBottom: 7, letterSpacing: '-0.01em' }}>
+            Notes <span style={{ color: T.txt2, fontWeight: 400 }}>(optional)</span>
           </label>
           <textarea
             value={description}
@@ -222,12 +221,12 @@ const FileUpload = ({ onUpload }) => {
             onBlur={() => setNoteFocus(false)}
             style={{
               width: '100%', borderRadius: 10,
-              border: `1px solid ${noteFocus ? L.accent : L.border}`,
-              background: noteFocus ? '#ffffff' : L.surface,
-              padding: '10px 13px', fontSize: 13, color: L.txt0,
+              border: `1px solid ${noteFocus ? T.accent : T.bdr1}`,
+              background: noteFocus ? '#ffffff' : T.bg2,
+              padding: '10px 13px', fontSize: 13, color: T.txt0,
               resize: 'none', outline: 'none', transition: 'all 0.15s',
-              fontFamily: FONT, boxSizing: 'border-box',
-              boxShadow: noteFocus ? `0 0 0 3px rgba(79,70,229,0.10)` : 'none',
+              fontFamily: 'inherit', boxSizing: 'border-box',
+              boxShadow: noteFocus ? `0 0 0 3px ${T.accentG}` : 'none',
             }}
           />
         </div>
@@ -236,33 +235,37 @@ const FileUpload = ({ onUpload }) => {
         {error && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8,
-            borderRadius: 8, padding: '9px 12px',
-            background: L.roseL, border: `1px solid rgba(220,38,38,0.16)`,
+            borderRadius: 9, padding: '9px 12px',
+            background: T.roseD, border: '1px solid rgba(244,63,94,0.22)',
           }}>
-            <span style={{ width: 5, height: 5, borderRadius: '50%', background: L.rose, flexShrink: 0 }} />
-            <p style={{ fontSize: 12.5, color: L.rose, margin: 0, fontWeight: 500 }}>{error}</p>
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: T.rose, flexShrink: 0 }} />
+            <p style={{ fontSize: 12.5, color: T.rose, margin: 0, fontWeight: 500 }}>{error}</p>
           </div>
         )}
 
         {/* Footer */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <p style={{ fontSize: 12, color: L.txt2, margin: 0, lineHeight: 1.5 }}>
+          <p style={{ fontSize: 12, color: T.txt2, margin: 0, lineHeight: 1.5 }}>
             You can share your work later from the list using the "Share" action.
           </p>
           <button
             type="submit"
             disabled={uploading}
+            onMouseEnter={() => setSubmitHov(true)}
+            onMouseLeave={() => setSubmitHov(false)}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 7,
-              borderRadius: 9, padding: '10px 20px',
+              borderRadius: 10, padding: '10px 20px',
               background: uploading
-                ? 'rgba(79,70,229,0.40)'
-                : '#4f46e5',
+                ? 'rgba(79,70,229,0.45)'
+                : submitHov
+                ? T.accentB
+                : T.accent,
               border: 'none', cursor: uploading ? 'not-allowed' : 'pointer',
-              fontSize: 13, fontWeight: 600, color: '#fff',
-              boxShadow: uploading ? 'none' : '0 1px 3px rgba(79,70,229,0.30), 0 4px 14px rgba(79,70,229,0.20)',
+              fontSize: 13, fontWeight: 700, color: '#fff',
+              boxShadow: uploading ? 'none' : '0 4px 14px rgba(79,70,229,0.30)',
               transition: 'all 0.18s', whiteSpace: 'nowrap', letterSpacing: '-0.01em',
-              fontFamily: FONT,
+              fontFamily: 'inherit',
             }}
           >
             {uploading ? (
@@ -286,7 +289,7 @@ const FileUpload = ({ onUpload }) => {
 const SpinnerIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ animation: 'fuSpin 0.75s linear infinite' }}>
     <style>{`@keyframes fuSpin { to { transform: rotate(360deg); } }`}</style>
-    <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.25)" strokeWidth="2.5" />
+    <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.30)" strokeWidth="2.5" />
     <path d="M12 3a9 9 0 019 9" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" />
   </svg>
 );

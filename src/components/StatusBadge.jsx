@@ -7,89 +7,68 @@ import {
   EyeIcon,
 } from '@heroicons/react/24/outline';
 
-/* ─── Dark tokens (Obsidian-Slate / admin) ──────────────────────────── */
-const DARK_CONFIG = {
-  pending: {
-    label: 'Pending Review',
-    icon: ClockIcon,
-    bg: 'rgba(240,177,77,0.12)',
-    border: 'rgba(240,177,77,0.30)',
-    color: '#f0b14d',
-    dot: '#f0b14d',
-  },
-  reviewing: {
-    label: 'Under Review',
-    icon: EyeIcon,
-    bg: 'rgba(91,141,239,0.12)',
-    border: 'rgba(91,141,239,0.30)',
-    color: '#5b8def',
-    dot: '#5b8def',
-  },
-  approved: {
-    label: 'Approved',
-    icon: CheckCircleIcon,
-    bg: 'rgba(52,211,153,0.12)',
-    border: 'rgba(52,211,153,0.30)',
-    color: '#34d399',
-    dot: '#34d399',
-  },
-  rejected: {
-    label: 'Rejected',
-    icon: XCircleIcon,
-    bg: 'rgba(240,112,138,0.12)',
-    border: 'rgba(240,112,138,0.30)',
-    color: '#f0708a',
-    dot: '#f0708a',
-  },
+/* ─── Executive Light tokens (admin) — identical palette to AdminDashboard ── */
+const D = {
+  accent: '#3454D1',
+  txt1: '#5B6478',
+  emerald: '#0E9F6E', emeraldD: 'rgba(14,159,110,0.10)', emeraldB: 'rgba(14,159,110,0.22)',
+  amber: '#B7791F', amberD: 'rgba(183,121,31,0.10)', amberB: 'rgba(183,121,31,0.22)',
+  rose: '#C23552', roseD: 'rgba(194,53,82,0.08)', roseB: 'rgba(194,53,82,0.20)',
+  accentL: 'rgba(52,84,209,0.10)', accentB: 'rgba(52,84,209,0.22)',
 };
 
-/* ─── Light tokens (ivory / employee) ───────────────────────────────── */
-const LIGHT_CONFIG = {
+/* ─── Light SaaS tokens (employee) — identical palette to EmployeeDashboard ── */
+const L = {
+  accent: '#4F46E5',
+  txt1: '#475569',
+  emerald: '#10B981', emeraldD: 'rgba(16,185,129,0.12)', emeraldB: 'rgba(16,185,129,0.26)',
+  amber: '#F59E0B', amberD: 'rgba(245,158,11,0.14)', amberB: 'rgba(245,158,11,0.28)',
+  rose: '#F43F5E', roseD: 'rgba(244,63,94,0.12)', roseB: 'rgba(244,63,94,0.26)',
+  accentL: 'rgba(79,70,229,0.12)', accentB: 'rgba(79,70,229,0.26)',
+};
+
+const buildConfig = (T) => ({
   pending: {
     label: 'Pending Review',
     icon: ClockIcon,
-    bg: 'rgba(245,158,11,0.10)',
-    border: 'rgba(245,158,11,0.28)',
-    color: '#b45309',
-    dot: '#f59e0b',
+    bg: T.amberD,
+    border: T.amberB,
+    color: T.amber,
   },
   reviewing: {
     label: 'Under Review',
     icon: EyeIcon,
-    bg: 'rgba(168,118,30,0.10)',
-    border: 'rgba(168,118,30,0.28)',
-    color: '#a8761e',
-    dot: '#c9a25e',
+    bg: T.accentL,
+    border: T.accentB,
+    color: T.accent,
   },
   approved: {
     label: 'Approved',
     icon: CheckCircleIcon,
-    bg: 'rgba(16,185,129,0.10)',
-    border: 'rgba(16,185,129,0.28)',
-    color: '#065f46',
-    dot: '#10b981',
+    bg: T.emeraldD,
+    border: T.emeraldB,
+    color: T.emerald,
   },
   rejected: {
     label: 'Rejected',
     icon: XCircleIcon,
-    bg: 'rgba(225,29,72,0.08)',
-    border: 'rgba(225,29,72,0.22)',
-    color: '#be123c',
-    dot: '#e11d48',
+    bg: T.roseD,
+    border: T.roseB,
+    color: T.rose,
   },
-};
+});
 
 /**
- * StatusBadge — shared status pill.
+ * StatusBadge — shared status pill, styled to match the Executive Light
+ * (admin) and SaaS Light (employee) design system used across the app.
  * @param {string} status - pending | reviewing | approved | rejected
  * @param {'sm'|'md'} size
- * @param {boolean} dark - true renders the Obsidian-Slate (admin) palette, false renders the ivory (employee) palette
+ * @param {boolean} dark - true renders the Executive Light (admin) palette, false renders the SaaS Light (employee) palette
  */
 const StatusBadge = ({ status, size = 'md', dark = false }) => {
-  const palette = dark ? DARK_CONFIG : LIGHT_CONFIG;
-  const cfg = palette[status] || palette.pending;
+  const T = dark ? D : L;
+  const cfg = buildConfig(T)[status] || buildConfig(T).pending;
   const Icon = cfg.icon;
-
   const isSm = size === 'sm';
 
   return (
@@ -99,13 +78,14 @@ const StatusBadge = ({ status, size = 'md', dark = false }) => {
         alignItems: 'center',
         gap: isSm ? 4 : 6,
         borderRadius: 999,
-        padding: isSm ? '2px 8px' : '4px 11px',
-        fontSize: isSm ? 10 : 12,
+        padding: isSm ? '2px 9px' : '4px 12px',
+        fontSize: isSm ? 10 : 11.5,
         fontWeight: 700,
         background: cfg.bg,
         border: `1px solid ${cfg.border}`,
         color: cfg.color,
         whiteSpace: 'nowrap',
+        letterSpacing: '0.01em',
         fontFamily: 'inherit',
       }}
     >

@@ -12,37 +12,37 @@ import ReviewModal from '../components/ReviewModal';
 import StatusBadge from '../components/StatusBadge';
 import { isSameDay, isWithinDays } from '../utils/dateUtils';
 
+// ─── Design tokens — premium admin palette ───────────────────────────
 const T = {
-  bg0: '#000000',
-  bg1: '#000000',
-  bg2: 'rgba(255,255,255,0.035)',
-  bg3: 'rgba(255,255,255,0.055)',
-  bg4: 'rgba(255,255,255,0.085)',
-  glass: 'rgba(20,20,22,0.55)',
-  glassBorder: 'rgba(255,255,255,0.09)',
-  bdr0: 'rgba(255,255,255,0.05)',
-  bdr1: 'rgba(255,255,255,0.09)',
-  bdr2: 'rgba(255,255,255,0.15)',
-  accent: '#5b8def',
-  accentB: '#4877dd',
-  accentL: 'rgba(91,141,239,0.14)',
-  accentG: 'rgba(91,141,239,0.07)',
-  txt0: '#f5f6fa',
-  txt1: '#9aa1b8',
-  txt2: '#5c6178',
-  emerald: '#34d399',
-  emeraldD: 'rgba(52,211,153,0.10)',
-  amber: '#f0b14d',
-  amberD: 'rgba(240,177,77,0.10)',
-  rose: '#f0708a',
-  roseD: 'rgba(240,112,138,0.10)',
-  violet: '#a78bfa',
-  violetD: 'rgba(167,139,250,0.10)',
-  cyan: '#22d3ee',
-  cyanD: 'rgba(34,211,238,0.10)',
- 
-  neutral: '#c4c9da',
-  neutralDim: '#5c6178',
+  bg0: '#071120',
+  bg1: '#0F172A',
+  bg2: 'rgba(255,255,255,0.03)',
+  bg3: 'rgba(255,255,255,0.06)',
+  bg4: 'rgba(255,255,255,0.09)',
+  glass: 'rgba(15,23,42,0.78)',
+  glassBorder: 'rgba(129,140,248,0.18)',
+  bdr0: 'rgba(255,255,255,0.08)',
+  bdr1: 'rgba(255,255,255,0.12)',
+  bdr2: 'rgba(255,255,255,0.18)',
+  accent: '#5B7CFF',
+  accentB: '#3948CF',
+  accentL: 'rgba(91,124,255,0.16)',
+  accentG: 'rgba(91,124,255,0.10)',
+  txt0: '#F8FAFC',
+  txt1: '#CBD5E1',
+  txt2: '#94A3B8',
+  emerald: '#10B981',
+  emeraldD: 'rgba(16,185,129,0.16)',
+  amber: '#F59E0B',
+  amberD: 'rgba(245,158,11,0.16)',
+  rose: '#F43F5E',
+  roseD: 'rgba(244,63,94,0.16)',
+  violet: '#8B5CF6',
+  violetD: 'rgba(139,92,246,0.16)',
+  cyan: '#22D3EE',
+  cyanD: 'rgba(34,211,238,0.16)',
+  neutral: '#94A3B8',
+  neutralDim: '#64748B',
 };
 
 /* ─── Constants ──────────────────────────────────────────────────────── */
@@ -246,13 +246,13 @@ const Toast = ({ toasts, removeToast }) => (
   <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none' }}>
     {toasts.map((t) => {
       const colors = {
-        success: { bg: '#0d2e22', border: 'rgba(16,232,160,0.3)', text: '#bdf5dd', icon: T.emerald },
-        error: { bg: '#341019', border: 'rgba(255,95,126,0.3)', text: '#ffd2dc', icon: T.rose },
+        success: { bg: '#ECFDF5', border: 'rgba(16,232,160,0.3)', text: '#0A6B49', icon: T.emerald },
+        error: { bg: '#FEF2F2', border: 'rgba(255,95,126,0.3)', text: '#9F1D39', icon: T.rose },
         info: { bg: T.bg3, border: T.bdr2, text: T.txt0, icon: T.accent },
       };
       const c = colors[t.type] || colors.info;
       return (
-        <div key={t.id} style={{ pointerEvents: 'all', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px', borderRadius: 16, background: c.bg, border: `1px solid ${c.border}`, boxShadow: '0 8px 40px rgba(0,0,0,0.5)', animation: 'slideUp 0.28s cubic-bezier(.16,1,.3,1)', minWidth: 220, maxWidth: 340, fontSize: 13.5, fontWeight: 500, color: c.text }}>
+        <div key={t.id} style={{ pointerEvents: 'all', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px', borderRadius: 16, background: c.bg, border: `1px solid ${c.border}`, boxShadow: '0 8px 30px rgba(15,23,42,0.16)', animation: 'slideUp 0.28s cubic-bezier(.16,1,.3,1)', minWidth: 220, maxWidth: 340, fontSize: 13.5, fontWeight: 500, color: c.text }}>
           {t.type === 'success' && <I.CheckCircle style={{ color: c.icon, flexShrink: 0 }} />}
           {t.type === 'error' && <I.XCircle style={{ color: c.icon, flexShrink: 0 }} />}
           {t.type === 'info' && <I.Info style={{ color: c.icon, flexShrink: 0 }} />}
@@ -270,12 +270,12 @@ const Toast = ({ toasts, removeToast }) => (
 // soft color wash + a saturated icon chip, so cards read as "premium dark
 // glass" rather than flat color tiles or pure poster-gradients.
 const STAT_TINTS = {
-  indigo: { wash: 'rgba(91,141,239,0.16)', edge: 'rgba(91,141,239,0.30)', icon: '#7aa2f5' },
-  amber: { wash: 'rgba(240,177,77,0.16)', edge: 'rgba(240,177,77,0.30)', icon: '#f0b14d' },
-  emerald: { wash: 'rgba(52,211,153,0.16)', edge: 'rgba(52,211,153,0.30)', icon: '#34d399' },
-  violet: { wash: 'rgba(167,139,250,0.16)', edge: 'rgba(167,139,250,0.30)', icon: '#a78bfa' },
-  rose: { wash: 'rgba(240,112,138,0.16)', edge: 'rgba(240,112,138,0.30)', icon: '#f0708a' },
-  sky: { wash: 'rgba(34,211,238,0.16)', edge: 'rgba(34,211,238,0.30)', icon: '#22d3ee' },
+  indigo: { wash: 'rgba(52,84,209,0.10)', edge: 'rgba(52,84,209,0.22)', icon: T.accent },
+  amber: { wash: 'rgba(183,121,31,0.10)', edge: 'rgba(183,121,31,0.22)', icon: T.amber },
+  emerald: { wash: 'rgba(14,159,110,0.10)', edge: 'rgba(14,159,110,0.22)', icon: T.emerald },
+  violet: { wash: 'rgba(109,79,224,0.10)', edge: 'rgba(109,79,224,0.22)', icon: T.violet },
+  rose: { wash: 'rgba(194,53,82,0.10)', edge: 'rgba(194,53,82,0.22)', icon: T.rose },
+  sky: { wash: 'rgba(14,132,165,0.10)', edge: 'rgba(14,132,165,0.22)', icon: T.cyan },
 };
 const StatCard = ({ icon: Icon, label, value, sub, trend, color, onClick }) => {
   const [hov, setHov] = useState(false);
@@ -288,23 +288,23 @@ const StatCard = ({ icon: Icon, label, value, sub, trend, color, onClick }) => {
       onMouseLeave={() => setHov(false)}
       style={{
         position: 'relative', overflow: 'hidden', borderRadius: 18, padding: '18px 20px',
-        background: `linear-gradient(160deg, ${tint.wash}, rgba(255,255,255,0.025))`,
+        background: `linear-gradient(160deg, ${tint.wash}, ${T.bg1})`,
         backdropFilter: 'blur(18px) saturate(160%)', WebkitBackdropFilter: 'blur(18px) saturate(160%)',
-        border: `1px solid ${hov ? tint.edge : 'rgba(255,255,255,0.08)'}`, cursor: 'pointer',
+        border: `1px solid ${hov ? tint.edge : 'rgba(15,23,42,0.08)'}`, cursor: 'pointer',
         textAlign: 'left', width: '100%', transition: 'transform 0.18s, border-color 0.18s, box-shadow 0.18s',
         transform: hov ? 'translateY(-2px)' : 'none',
-        boxShadow: hov ? `0 16px 40px rgba(0,0,0,0.5), 0 0 0 1px ${tint.edge}` : '0 4px 20px rgba(0,0,0,0.35)',
+        boxShadow: hov ? `0 16px 32px rgba(15,23,42,0.12), 0 0 0 1px ${tint.edge}` : '0 2px 10px rgba(15,23,42,0.06)',
         fontFamily: 'inherit',
       }}
     >
       <div style={{ position: 'absolute', top: -40, right: -40, width: 120, height: 120, borderRadius: '50%', background: tint.wash, filter: 'blur(20px)', pointerEvents: 'none' }} />
       <div style={{ position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
-          <div style={{ borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: `1px solid ${tint.edge}`, padding: 9, display: 'flex' }}>
+          <div style={{ borderRadius: 12, background: 'rgba(15,23,42,0.06)', border: `1px solid ${tint.edge}`, padding: 9, display: 'flex' }}>
             <Icon style={{ color: tint.icon }} />
           </div>
           {trend !== undefined && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 3, borderRadius: 999, padding: '2px 7px', fontSize: 10, fontWeight: 700, background: 'rgba(255,255,255,0.06)', color: T.txt1, border: `1px solid ${T.bdr1}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 3, borderRadius: 999, padding: '2px 7px', fontSize: 10, fontWeight: 700, background: 'rgba(15,23,42,0.06)', color: T.txt1, border: `1px solid ${T.bdr1}` }}>
               {trend >= 0 ? <I.ArrowUp /> : <I.ArrowDown />}
               {Math.abs(trend)}%
             </div>
@@ -365,8 +365,8 @@ const EmployeeStatusToggle = ({ mode, busy, onActivate, onDeactivate }) => {
         title={isOn ? cfg.onLabel : cfg.offLabel}
         style={{
           position: 'relative', width: 44, height: 25, borderRadius: 999, flexShrink: 0,
-          border: `1px solid ${T.bdr2}`,
-          background: isOn ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.05)',
+          border: `1px solid ${isOn ? 'transparent' : T.bdr2}`,
+          background: isOn ? T.emerald : T.bg4,
           cursor: busy ? 'not-allowed' : 'pointer', padding: 0,
           transition: 'background 0.2s, border-color 0.2s',
         }}
@@ -374,7 +374,7 @@ const EmployeeStatusToggle = ({ mode, busy, onActivate, onDeactivate }) => {
         <span
           style={{
             position: 'absolute', top: 2, left: isOn ? 21 : 2, width: 19, height: 19, borderRadius: '50%',
-            background: isOn ? T.txt0 : T.txt2, boxShadow: '0 2px 6px rgba(0,0,0,0.45)',
+            background: '#fff', boxShadow: '0 1px 3px rgba(15,23,42,0.35)',
             transition: 'left 0.22s cubic-bezier(.4,0,.2,1), background 0.2s',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
@@ -383,7 +383,7 @@ const EmployeeStatusToggle = ({ mode, busy, onActivate, onDeactivate }) => {
             <span
               style={{
                 width: 9, height: 9, borderRadius: '50%',
-                border: '2px solid rgba(0,0,0,0.25)', borderTopColor: 'rgba(0,0,0,0.65)',
+                border: `2px solid ${T.bdr2}`, borderTopColor: T.txt1,
                 animation: 'spin 0.6s linear infinite',
               }}
             />
@@ -413,7 +413,7 @@ const StatusPill = ({ mode }) => {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 999, padding: '3px 10px 3px 8px',
-      fontSize: 10.5, fontWeight: 600, color: T.txt1, background: 'rgba(255,255,255,0.04)', border: `1px solid ${T.bdr1}`,
+      fontSize: 10.5, fontWeight: 600, color: T.txt1, background: 'rgba(15,23,42,0.04)', border: `1px solid ${T.bdr1}`,
     }}>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: dotOn ? T.txt0 : T.txt2 }} />
       {copy}
@@ -425,7 +425,7 @@ const Pagination = ({ current, total, onChange }) => {
   if (total <= 1) return null;
   const btnBase = {
     display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 10,
-    border: `1px solid ${T.bdr1}`, background: 'rgba(255,255,255,0.03)', color: T.txt1, cursor: 'pointer',
+    border: `1px solid ${T.bdr1}`, background: 'rgba(15,23,42,0.03)', color: T.txt1, cursor: 'pointer',
     fontFamily: 'inherit', fontSize: 12, transition: 'background 0.15s, border-color 0.15s',
   };
   const isFirst = current === 1;
@@ -440,8 +440,8 @@ const Pagination = ({ current, total, onChange }) => {
           <button
             onClick={() => onChange(current - 1)}
             style={btnBase}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.borderColor = T.bdr2; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = T.bdr1; }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(15,23,42,0.07)'; e.currentTarget.style.borderColor = T.bdr2; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(15,23,42,0.03)'; e.currentTarget.style.borderColor = T.bdr1; }}
             aria-label="Previous page"
           >
             <I.ChevLeft />
@@ -451,8 +451,8 @@ const Pagination = ({ current, total, onChange }) => {
           <button
             onClick={() => onChange(current + 1)}
             style={btnBase}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.borderColor = T.bdr2; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = T.bdr1; }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(15,23,42,0.07)'; e.currentTarget.style.borderColor = T.bdr2; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(15,23,42,0.03)'; e.currentTarget.style.borderColor = T.bdr1; }}
             aria-label="Next page"
           >
             <I.ChevRight />
@@ -482,7 +482,7 @@ const ConfirmDialog = ({ open, title, message, onConfirm, onCancel, danger }) =>
   if (!open) return null;
   return (
     <div onClick={e => e.target === e.currentTarget && onCancel()} style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', padding: 16 }}>
-      <div style={{ width: '100%', maxWidth: 380, borderRadius: 18, background: '#0a0a0c', border: `1px solid ${T.bdr2}`, boxShadow: '0 32px 80px rgba(0,0,0,0.7)', padding: 24 }}>
+      <div style={{ width: '100%', maxWidth: 380, borderRadius: 18, background: '#FFFFFF', border: `1px solid ${T.bdr2}`, boxShadow: '0 24px 60px rgba(15,23,42,0.22)', padding: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 48, height: 48, borderRadius: '50%', marginBottom: 16, background: danger ? T.roseD : T.accentL }}>
           {danger ? <I.XCircle style={{ width: 22, height: 22, color: T.rose }} /> : <I.Info style={{ width: 22, height: 22, color: T.accent }} />}
         </div>
@@ -1498,18 +1498,15 @@ useEffect(() => {
   return (
     <div style={{
       minHeight: '100vh', position: 'relative',
-      background: '#000000',
+      background: T.bg0,
       color: T.txt0, fontFamily: '"SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
     }}>
-      {/* Ambient backdrop: drifting blurred color blobs behind the black
-          canvas — the layer the glass cards' backdrop-filter actually
-          blurs against. A flat radial-gradient glow alone (the previous
-          version) doesn't move and barely registers through blur; these
-          give the glass panels real depth and a living, premium feel. */}
+      {/* Ambient backdrop: a single, quiet wash anchored to the top of the
+          canvas — luxury-white surfaces read as premium through restraint,
+          not motion, so this replaces the old drifting glow blobs with one
+          static, barely-there tint. */}
       <div aria-hidden="true" style={{ position: 'fixed', inset: 0, overflow: 'hidden', zIndex: 0, pointerEvents: 'none' }}>
-        <div className="admin-blob admin-blob-a" />
-        <div className="admin-blob admin-blob-b" />
-        <div className="admin-blob admin-blob-c" />
+        <div style={{ position: 'absolute', top: -260, left: '50%', transform: 'translateX(-50%)', width: 1100, height: 480, borderRadius: '50%', filter: 'blur(90px)', background: 'radial-gradient(circle, rgba(52,84,209,0.06), rgba(52,84,209,0) 70%)' }} />
       </div>
 
       <style>{`
@@ -1519,30 +1516,51 @@ useEffect(() => {
         *{box-sizing:border-box}
         ::-webkit-scrollbar{width:4px;height:4px}
         ::-webkit-scrollbar-track{background:transparent}
-        ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px}
+        ::-webkit-scrollbar-thumb{background:rgba(15,23,42,0.14);border-radius:4px}
         ::placeholder{color:${T.txt2}}
-        .admin-blob { position: absolute; border-radius: 50%; filter: blur(90px); will-change: transform; }
-        .admin-blob-a { width: 620px; height: 620px; top: -200px; left: -140px; background: radial-gradient(circle, rgba(91,141,239,0.22), rgba(91,141,239,0) 70%); animation: adrift1 30s ease-in-out infinite; }
-        .admin-blob-b { width: 560px; height: 560px; top: 8%; right: -180px; background: radial-gradient(circle, rgba(167,139,250,0.16), rgba(167,139,250,0) 70%); animation: adrift2 36s ease-in-out infinite; }
-        .admin-blob-c { width: 480px; height: 480px; bottom: -160px; left: 28%; background: radial-gradient(circle, rgba(34,211,238,0.10), rgba(34,211,238,0) 70%); animation: adrift3 34s ease-in-out infinite; }
-        @keyframes adrift1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(50px,30px) scale(1.06); } }
-        @keyframes adrift2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-40px,40px) scale(0.95); } }
-        @keyframes adrift3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(30px,-30px) scale(1.04); } }
-        @media (prefers-reduced-motion: reduce) { .admin-blob { animation: none !important; } }
+        @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
       `}</style>
 
       <main style={{ position: 'relative', zIndex: 1, maxWidth: 1400, margin: '0 auto', padding: '24px 28px 48px', display: 'flex', flexDirection: 'column', gap: 24 }}>
-        {/* ── Header ── */}
-        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'flex-start', justifyContent: 'space-between' }}>
-            <div style={{ maxWidth: 520 }}>
-              <h1 style={{ fontSize: 26, fontWeight: 600, color: T.txt0, letterSpacing: '-0.02em', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+        {/* ── Executive workspace header ── */}
+        <div style={{
+          position: 'relative', display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'center', justifyContent: 'space-between',
+          borderRadius: 18, border: `1px solid ${T.glassBorder}`, background: T.bg1, padding: '20px 26px',
+          boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 8px 24px rgba(15,23,42,0.05)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0 }}>
+            <div style={{
+              display: 'flex', flexShrink: 0, alignItems: 'center', justifyContent: 'center', width: 46, height: 46, borderRadius: 13,
+              background: `linear-gradient(160deg, ${T.accent}, ${T.accentB})`, color: '#fff', fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em',
+              boxShadow: '0 6px 16px rgba(52,84,209,0.28)',
+            }}>
+              {(firstName(user?.name) || 'A').slice(0, 1).toUpperCase()}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <h1 style={{ fontSize: 21, fontWeight: 650, color: T.txt0, letterSpacing: '-0.02em', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                 {greeting}, {firstName(user?.name) || 'there'}
-                <span style={{ fontSize: 22 }} aria-hidden="true">{greetingEmoji}</span>
+                <span style={{ fontSize: 18 }} aria-hidden="true">{greetingEmoji}</span>
               </h1>
-              <p style={{ fontSize: 13.5, color: T.txt1, lineHeight: 1.5, margin: '6px 0 0' }}>
-                {todayLabel} · here's what's happening across your workspace.
+              <p style={{ fontSize: 12.5, color: T.txt1, lineHeight: 1.5, margin: '4px 0 0' }}>
+                {user?.organization || 'Control Center'} · here's what's happening across your workspace.
               </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 7, borderRadius: 999, border: `1px solid ${T.bdr1}`, background: T.bg3,
+              padding: '7px 13px', fontSize: 11.5, fontWeight: 600, color: T.txt1,
+            }}>
+              <I.Calendar style={{ color: T.txt2 }} />
+              {todayLabel}
+            </div>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 7, borderRadius: 999, border: `1px solid rgba(14,159,110,0.22)`, background: T.emeraldD,
+              padding: '7px 13px', fontSize: 11.5, fontWeight: 700, color: T.emerald,
+            }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: T.emerald, boxShadow: `0 0 0 3px ${T.emeraldD}` }} />
+              Workspace healthy
             </div>
           </div>
         </div>
@@ -1557,23 +1575,26 @@ useEffect(() => {
           <StatCard icon={I.Download} label="Storage" value={formatBytes(stats.totalSize)} sub="total uploaded" color="rose" onClick={() => setActiveTab('files')} />
         </div>
 
-        {/* ── TABS ── */}
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+        {/* ── NAVIGATION ── */}
+        <div style={{
+          display: 'flex', gap: 4, overflowX: 'auto', padding: 5, borderRadius: 14,
+          border: `1px solid ${T.glassBorder}`, background: T.bg1, boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
+        }}>
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
             return (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)} type="button" style={{
-                display: 'flex', flexShrink: 0, alignItems: 'center', gap: 8, borderRadius: 11, padding: '9px 16px',
-                fontSize: 13, fontWeight: active ? 600 : 500, transition: 'all 0.15s', whiteSpace: 'nowrap',
-                border: `1px solid ${active ? T.bdr2 : 'transparent'}`, cursor: 'pointer', fontFamily: 'inherit',
-                background: active ? T.bg3 : 'transparent', color: active ? T.txt0 : T.txt2,
-                boxShadow: active ? '0 2px 10px rgba(0,0,0,0.3)' : 'none',
+                display: 'flex', flexShrink: 0, alignItems: 'center', gap: 8, borderRadius: 10, padding: '9px 16px',
+                fontSize: 13, fontWeight: active ? 650 : 500, transition: 'all 0.15s', whiteSpace: 'nowrap',
+                border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                background: active ? T.accent : 'transparent', color: active ? '#fff' : T.txt1,
+                boxShadow: active ? '0 4px 12px rgba(52,84,209,0.28)' : 'none',
               }}>
-                <Icon style={{ color: active ? T.txt0 : T.txt2 }} />
+                <Icon style={{ color: active ? '#fff' : T.txt2 }} />
                 {tab.label}
                 {tab.badge > 0 && (
-                  <span style={{ borderRadius: 999, padding: '1px 7px', fontSize: 10, fontWeight: 700, color: active ? '#000' : T.txt0, background: active ? T.txt0 : 'rgba(255,255,255,0.12)' }}>{tab.badge}</span>
+                  <span style={{ borderRadius: 999, padding: '1px 7px', fontSize: 10, fontWeight: 700, color: active ? T.accent : '#fff', background: active ? '#fff' : T.rose }}>{tab.badge}</span>
                 )}
               </button>
             );
@@ -1592,7 +1613,7 @@ useEffect(() => {
                   <p style={{ fontSize: 13.5, fontWeight: 600, color: T.txt0, margin: 0 }}>Upload Trend</p>
                   <p style={{ fontSize: 11, color: T.txt2, margin: '2px 0 0' }}>Last 7 days</p>
                 </div>
-                <I.Chart style={{ color: '#7aa8ff' }} />
+                <I.Chart style={{ color: T.accent }} />
               </div>
               <MiniBarChart data={weeklyTrend} color={T.accent} />
               <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between' }}>
@@ -1630,7 +1651,7 @@ useEffect(() => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 {[
                   { label: 'Review pending', icon: I.Clock, onClick: () => setActiveTab('pending'), color: T.amber, bg: T.amberD, border: 'rgba(245,166,35,0.2)' },
-                  { label: 'New task', icon: I.PlusCircle, onClick: () => { setActiveTab('tasks'); setTaskFormOpen(true); }, color: '#7aa8ff', bg: T.accentL, border: 'rgba(59,124,255,0.2)' },
+                  { label: 'New task', icon: I.PlusCircle, onClick: () => { setActiveTab('tasks'); setTaskFormOpen(true); }, color: T.accent, bg: T.accentL, border: 'rgba(59,124,255,0.2)' },
                   { label: 'All files', icon: I.Doc, onClick: () => setActiveTab('files'), color: T.txt1, bg: T.bg3, border: T.bdr1 },
                   { label: 'Approve staff', icon: I.Users, onClick: () => { setActiveTab('employees'); setEmpTab('pending'); }, color: T.emerald, bg: T.emeraldD, border: 'rgba(16,232,160,0.2)' },
                 ].map((a) => {
@@ -1655,7 +1676,7 @@ useEffect(() => {
             <Card style={{ gridColumn: 'span 2' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <p style={{ fontSize: 13.5, fontWeight: 600, color: T.txt0, margin: 0 }}>Recent Uploads</p>
-                <button onClick={() => setActiveTab('files')} style={{ fontSize: 11, color: '#7aa8ff', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit' }}>View all</button>
+                <button onClick={() => setActiveTab('files')} style={{ fontSize: 11, color: T.accent, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit' }}>View all</button>
               </div>
               {recentFiles.length === 0 ? (
 <div
@@ -1699,7 +1720,7 @@ useEffect(() => {
                       <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 12, border: `1px solid ${T.bdr0}`, padding: '10px 12px', transition: 'background 0.12s' }}
                       onMouseEnter={e => e.currentTarget.style.background = T.bg3} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                       <div style={{ display: 'flex', height: 32, width: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 9, background: T.accentL, flexShrink: 0 }}>
-                        <I.Doc style={{ color: '#7aa8ff' }} />
+                        <I.Doc style={{ color: T.accent }} />
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <p style={{ fontSize: 12.5, fontWeight: 600, color: T.txt0, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.originalName}</p>
@@ -1754,7 +1775,7 @@ useEffect(() => {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 {selectedFiles.size > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 11, border: `1px solid ${T.bdr2}`, background: T.accentG, padding: '7px 12px' }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: '#7aa8ff' }}>{selectedFiles.size} selected</span>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: T.accent }}>{selectedFiles.size} selected</span>
                     <button onClick={() => handleBulkAction('approved')} style={{ fontSize: 10.5, fontWeight: 700, color: T.emerald, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Approve all</button>
                     <button onClick={() => handleBulkAction('rejected')} style={{ fontSize: 10.5, fontWeight: 700, color: T.rose, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Reject all</button>
                     <button onClick={() => setSelectedFiles(new Set())} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.txt2, display: 'flex' }}><I.X /></button>
@@ -1821,7 +1842,7 @@ useEffect(() => {
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ display: 'flex', height: 34, width: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 11, background: T.accentL }}>
-                      <I.Adjustments style={{ color: '#7aa8ff' }} />
+                      <I.Adjustments style={{ color: T.accent }} />
                     </div>
                     <div>
                       <p style={{ fontSize: 13.5, fontWeight: 600, color: T.txt0, margin: 0 }}>Filter & Sort</p>
@@ -1874,14 +1895,14 @@ useEffect(() => {
                 {/* Bulk actions */}
                 {selectedFiles.size > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, borderRadius: 12, border: `1px solid ${T.bdr2}`, background: T.accentG, padding: '10px 16px' }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#7aa8ff' }}>{selectedFiles.size} selected</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: T.accent }}>{selectedFiles.size} selected</span>
                     <button onClick={() => handleBulkAction('approved')} style={{ borderRadius: 8, background: T.emerald, padding: '5px 12px', fontSize: 11, fontWeight: 700, color: '#04261a', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Approve</button>
                     <button onClick={() => handleBulkAction('rejected')} style={{ borderRadius: 8, background: T.rose, padding: '5px 12px', fontSize: 11, fontWeight: 700, color: '#330014', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Reject</button>
                     <button onClick={() => handleBulkAction('reviewing')} style={{ borderRadius: 8, background: T.accent, padding: '5px 12px', fontSize: 11, fontWeight: 700, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Mark reviewing</button>
                     <button onClick={handleBulkDelete} style={{ display: 'flex', alignItems: 'center', gap: 5, borderRadius: 8, border: '1px solid rgba(255,95,126,0.25)', background: 'transparent', padding: '5px 12px', fontSize: 11, fontWeight: 700, color: T.rose, cursor: 'pointer', fontFamily: 'inherit' }}>
                       <I.Trash /> Delete
                     </button>
-                    <button onClick={() => setSelectedFiles(new Set())} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#7aa8ff', display: 'flex' }}>
+                    <button onClick={() => setSelectedFiles(new Set())} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: T.accent, display: 'flex' }}>
                       <I.X style={{ width: 16, height: 16 }} />
                     </button>
                   </div>
@@ -1913,7 +1934,7 @@ useEffect(() => {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${T.bdr1}`, padding: '16px 24px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ display: 'flex', height: 34, width: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 11, background: T.accentL }}>
-                    <I.PlusCircle style={{ color: '#7aa8ff' }} />
+                    <I.PlusCircle style={{ color: T.accent }} />
                   </div>
                   <div>
                     <h2 style={{ fontSize: 14, fontWeight: 600, color: T.txt0, margin: 0 }}>Task Manager</h2>
@@ -2048,9 +2069,9 @@ useEffect(() => {
                             </div>
                             {t.adminFile && (
                               <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
-                                <I.Doc style={{ width: 12, height: 12, color: '#7aa8ff' }} />
+                                <I.Doc style={{ width: 12, height: 12, color: T.accent }} />
                                 <a href={typeof t.adminFile === 'string' ? t.adminFile : URL.createObjectURL(t.adminFile)} target="_blank" rel="noopener noreferrer"
-                                  style={{ fontSize: 10.5, fontWeight: 600, color: '#7aa8ff', textDecoration: 'none' }}>View attachment</a>
+                                  style={{ fontSize: 10.5, fontWeight: 600, color: T.accent, textDecoration: 'none' }}>View attachment</a>
                               </div>
                             )}
                           </div>
@@ -2100,7 +2121,7 @@ useEffect(() => {
                         background: empTab === t.id ? T.bg4 : 'transparent', color: empTab === t.id ? T.txt0 : T.txt1,
                       }}>
                         {t.label}
-                        {t.count > 0 && <span style={{ borderRadius: 999, padding: '1px 6px', fontSize: 9.5, fontWeight: 700, color: empTab === t.id ? '#000' : T.txt0, background: empTab === t.id ? T.txt0 : 'rgba(255,255,255,0.12)' }}>{t.count}</span>}
+                        {t.count > 0 && <span style={{ borderRadius: 999, padding: '1px 6px', fontSize: 9.5, fontWeight: 700, color: empTab === t.id ? '#fff' : T.txt1, background: empTab === t.id ? T.accent : T.bg4 }}>{t.count}</span>}
                       </button>
                     ))}
                   </div>
@@ -2116,7 +2137,7 @@ useEffect(() => {
             {adminError && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 14, border: '1px solid rgba(255,95,126,0.25)', background: T.roseD, padding: '14px 18px' }}>
                 <I.ExclCircle style={{ color: T.rose, flexShrink: 0 }} />
-                <p style={{ fontSize: 13, color: '#ffb8c6', margin: 0, flex: 1 }}>{adminError}</p>
+                <p style={{ fontSize: 13, color: T.rose, margin: 0, flex: 1 }}>{adminError}</p>
                 <button onClick={() => setAdminError('')} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}>
                   <I.X style={{ color: T.rose }} />
                 </button>
@@ -2134,10 +2155,10 @@ useEffect(() => {
                 <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                   {filteredEmployees.map((emp, i) => (
                     <li key={emp.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 24px', borderTop: i > 0 ? `1px solid ${T.bdr0}` : 'none', transition: 'background 0.12s' }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.025)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(15,23,42,0.025)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                       <div style={{
                         display: 'flex', height: 38, width: 38, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontSize: 13.5, fontWeight: 700,
-                        background: 'rgba(255,255,255,0.07)', border: `1px solid ${T.bdr1}`, color: T.txt0,
+                        background: 'rgba(15,23,42,0.07)', border: `1px solid ${T.bdr1}`, color: T.txt0,
                       }}>
                         {(emp.name || emp.username || '?').toUpperCase().slice(0, 1)}
                       </div>
@@ -2194,7 +2215,7 @@ useEffect(() => {
             <div style={{ borderRadius: 18, border: `1px solid ${T.glassBorder}`, background: T.glass, backdropFilter: 'blur(22px) saturate(160%)', WebkitBackdropFilter: 'blur(22px) saturate(160%)', overflow: 'hidden' }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '18px 24px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ display: 'flex', height: 38, width: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: `1px solid ${T.bdr1}` }}>
+                  <div style={{ display: 'flex', height: 38, width: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: 'rgba(15,23,42,0.06)', border: `1px solid ${T.bdr1}` }}>
                     <I.UserPlus style={{ color: T.txt0 }} />
                   </div>
                   <div>
@@ -2208,7 +2229,8 @@ useEffect(() => {
                   style={{
                     display: 'flex', alignItems: 'center', gap: 7, borderRadius: 11, padding: '10px 18px', fontSize: 12.5, fontWeight: 700,
                     border: `1px solid ${userFormOpen ? T.bdr2 : 'transparent'}`, cursor: 'pointer', fontFamily: 'inherit',
-                    background: userFormOpen ? 'rgba(255,255,255,0.08)' : T.txt0, color: userFormOpen ? T.txt0 : '#000',
+                    background: userFormOpen ? T.bg3 : T.accent, color: userFormOpen ? T.txt0 : '#fff',
+                    boxShadow: userFormOpen ? 'none' : '0 4px 12px rgba(52,84,209,0.28)',
                   }}
                 >
                   {userFormOpen ? <I.X /> : <I.UserPlus />}
@@ -2217,11 +2239,11 @@ useEffect(() => {
               </div>
 
               {userFormOpen && (
-                <form onSubmit={handleCreateUser} style={{ borderTop: `1px solid ${T.bdr1}`, background: 'rgba(255,255,255,0.02)', padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <form onSubmit={handleCreateUser} style={{ borderTop: `1px solid ${T.bdr1}`, background: 'rgba(15,23,42,0.02)', padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {/* Role selector — segmented, no color: weight + fill communicate the active choice */}
                   <div>
                     <label style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: T.txt2, display: 'block', marginBottom: 8 }}>Account Type</label>
-                    <div style={{ display: 'inline-flex', borderRadius: 11, border: `1px solid ${T.bdr1}`, background: 'rgba(255,255,255,0.03)', padding: 3, gap: 2 }}>
+                    <div style={{ display: 'inline-flex', borderRadius: 11, border: `1px solid ${T.bdr1}`, background: 'rgba(15,23,42,0.03)', padding: 3, gap: 2 }}>
                       {[
                         { id: 'employee', label: 'Employee', icon: I.Briefcase },
                         { id: 'admin', label: 'Admin', icon: I.UserKey },
@@ -2236,7 +2258,8 @@ useEffect(() => {
                             style={{
                               display: 'flex', alignItems: 'center', gap: 7, borderRadius: 9, padding: '8px 18px', fontSize: 12.5, fontWeight: 700,
                               border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                              background: activeRole ? T.txt0 : 'transparent', color: activeRole ? '#000' : T.txt1,
+                              background: activeRole ? T.bg1 : 'transparent', color: activeRole ? T.accent : T.txt1,
+                              boxShadow: activeRole ? '0 1px 3px rgba(15,23,42,0.12)' : 'none',
                               transition: 'all 0.15s',
                             }}
                           >
@@ -2251,14 +2274,14 @@ useEffect(() => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <label style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: T.txt2 }}>Full Name <span style={{ color: T.txt0 }}>*</span></label>
                       <input type="text" name="name" value={userForm.name} onChange={handleUserFormChange} placeholder="e.g. Priya Sharma" required
-                        style={{ borderRadius: 11, border: `1px solid ${T.bdr1}`, background: 'rgba(255,255,255,0.04)', padding: '11px 14px', fontSize: 13, color: T.txt0, outline: 'none', fontFamily: 'inherit' }} />
+                        style={{ borderRadius: 11, border: `1px solid ${T.bdr1}`, background: 'rgba(15,23,42,0.04)', padding: '11px 14px', fontSize: 13, color: T.txt0, outline: 'none', fontFamily: 'inherit' }} />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <label style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: T.txt2 }}>Company Email <span style={{ color: T.txt0 }}>*</span></label>
                       <div style={{ position: 'relative' }}>
                         <I.Mail style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: T.txt2, pointerEvents: 'none' }} />
                         <input type="email" name="email" value={userForm.email} onChange={handleUserFormChange} placeholder="name@sskatt.com" required
-                          style={{ width: '100%', borderRadius: 11, border: `1px solid ${T.bdr1}`, background: 'rgba(255,255,255,0.04)', padding: '11px 14px 11px 36px', fontSize: 13, color: T.txt0, outline: 'none', fontFamily: 'inherit' }} />
+                          style={{ width: '100%', borderRadius: 11, border: `1px solid ${T.bdr1}`, background: 'rgba(15,23,42,0.04)', padding: '11px 14px 11px 36px', fontSize: 13, color: T.txt0, outline: 'none', fontFamily: 'inherit' }} />
                       </div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -2266,22 +2289,22 @@ useEffect(() => {
                       <div style={{ position: 'relative' }}>
                         <I.Lock style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: T.txt2, pointerEvents: 'none' }} />
                         <input type="password" name="password" value={userForm.password} onChange={handleUserFormChange} placeholder="Min. 6 characters" required minLength={6}
-                          style={{ width: '100%', borderRadius: 11, border: `1px solid ${T.bdr1}`, background: 'rgba(255,255,255,0.04)', padding: '11px 14px 11px 36px', fontSize: 13, color: T.txt0, outline: 'none', fontFamily: 'inherit' }} />
+                          style={{ width: '100%', borderRadius: 11, border: `1px solid ${T.bdr1}`, background: 'rgba(15,23,42,0.04)', padding: '11px 14px 11px 36px', fontSize: 13, color: T.txt0, outline: 'none', fontFamily: 'inherit' }} />
                       </div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <label style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: T.txt2 }}>Department / Title</label>
                       <input type="text" name="department" value={userForm.department} onChange={handleUserFormChange} placeholder={userForm.role === 'admin' ? 'Administration' : 'e.g. Engineering'}
-                        style={{ borderRadius: 11, border: `1px solid ${T.bdr1}`, background: 'rgba(255,255,255,0.04)', padding: '11px 14px', fontSize: 13, color: T.txt0, outline: 'none', fontFamily: 'inherit' }} />
+                        style={{ borderRadius: 11, border: `1px solid ${T.bdr1}`, background: 'rgba(15,23,42,0.04)', padding: '11px 14px', fontSize: 13, color: T.txt0, outline: 'none', fontFamily: 'inherit' }} />
                     </div>
                   </div>
 
                   {userFormError && (
                     <div style={{ borderRadius: 12, border: `1px solid rgba(255,95,126,0.32)`, background: 'linear-gradient(135deg, rgba(255,95,126,0.13), rgba(255,95,126,0.05))', padding: '11px 13px' }}>
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-                        <I.ExclCircle style={{ color: '#ffb8c6', flexShrink: 0, marginTop: 1 }} />
+                        <I.ExclCircle style={{ color: T.rose, flexShrink: 0, marginTop: 1 }} />
                         <div style={{ minWidth: 0 }}>
-                          <p style={{ fontSize: 12.5, fontWeight: 700, color: '#ffd6de', margin: 0 }}>{userFormError}</p>
+                          <p style={{ fontSize: 12.5, fontWeight: 700, color: '#9F1D39', margin: 0 }}>{userFormError}</p>
                         </div>
                       </div>
                     </div>
@@ -2293,11 +2316,12 @@ useEffect(() => {
                       Account is created already approved and active — share the password with them securely.
                     </p>
                     <button type="submit" disabled={userFormSubmitting} style={{
-                      display: 'flex', alignItems: 'center', gap: 8, borderRadius: 11, background: T.txt0, padding: '11px 26px', fontSize: 12.5, fontWeight: 700,
-                      color: '#000', border: 'none', cursor: userFormSubmitting ? 'default' : 'pointer', opacity: userFormSubmitting ? 0.6 : 1, fontFamily: 'inherit',
+                      display: 'flex', alignItems: 'center', gap: 8, borderRadius: 11, background: T.accent, padding: '11px 26px', fontSize: 12.5, fontWeight: 700,
+                      color: '#fff', border: 'none', cursor: userFormSubmitting ? 'default' : 'pointer', opacity: userFormSubmitting ? 0.6 : 1, fontFamily: 'inherit',
+                      boxShadow: '0 4px 12px rgba(52,84,209,0.28)',
                     }}>
                       {userFormSubmitting ? (
-                        <span style={{ width: 13, height: 13, borderRadius: '50%', border: '2px solid rgba(0,0,0,0.25)', borderTopColor: '#000', animation: 'spin 0.6s linear infinite', display: 'inline-block' }} />
+                        <span style={{ width: 13, height: 13, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', animation: 'spin 0.6s linear infinite', display: 'inline-block' }} />
                       ) : <I.Check />}
                       {userFormSubmitting ? 'Creating…' : `Create ${userForm.role === 'admin' ? 'Admin' : 'Employee'}`}
                     </button>
@@ -2310,7 +2334,7 @@ useEffect(() => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12 }}>
               <Card>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ display: 'flex', height: 34, width: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: `1px solid ${T.bdr1}` }}>
+                  <div style={{ display: 'flex', height: 34, width: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 10, background: 'rgba(15,23,42,0.06)', border: `1px solid ${T.bdr1}` }}>
                     <I.UserKey style={{ color: T.txt0 }} />
                   </div>
                   <div>
@@ -2321,7 +2345,7 @@ useEffect(() => {
               </Card>
               <Card>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ display: 'flex', height: 34, width: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: `1px solid ${T.bdr1}` }}>
+                  <div style={{ display: 'flex', height: 34, width: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 10, background: 'rgba(15,23,42,0.06)', border: `1px solid ${T.bdr1}` }}>
                     <I.Briefcase style={{ color: T.txt0 }} />
                   </div>
                   <div>
@@ -2332,7 +2356,7 @@ useEffect(() => {
               </Card>
               <Card>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ display: 'flex', height: 34, width: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: `1px solid ${T.bdr1}` }}>
+                  <div style={{ display: 'flex', height: 34, width: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 10, background: 'rgba(15,23,42,0.06)', border: `1px solid ${T.bdr1}` }}>
                     <I.Clock style={{ color: T.txt0 }} />
                   </div>
                   <div>
@@ -2359,13 +2383,13 @@ useEffect(() => {
                 <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                   {createdUsersLog.map((u, i) => (
                     <li key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 24px', borderTop: i > 0 ? `1px solid ${T.bdr0}` : 'none' }}>
-                      <div style={{ display: 'flex', height: 36, width: 36, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontSize: 13, fontWeight: 700, background: 'rgba(255,255,255,0.07)', border: `1px solid ${T.bdr1}`, color: T.txt0 }}>
+                      <div style={{ display: 'flex', height: 36, width: 36, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontSize: 13, fontWeight: 700, background: 'rgba(15,23,42,0.07)', border: `1px solid ${T.bdr1}`, color: T.txt0 }}>
                         {u.name.slice(0, 1).toUpperCase()}
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                           <p style={{ fontSize: 13, fontWeight: 700, color: T.txt0, margin: 0 }}>{u.name}</p>
-                          <span style={{ borderRadius: 999, background: 'rgba(255,255,255,0.08)', padding: '1px 9px', fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: T.txt1 }}>{u.role}</span>
+                          <span style={{ borderRadius: 999, background: 'rgba(15,23,42,0.08)', padding: '1px 9px', fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: T.txt1 }}>{u.role}</span>
                           <span style={{ borderRadius: 999, background: T.bg4, padding: '1px 9px', fontSize: 10, fontWeight: 600, color: T.txt1 }}>{u.department}</span>
                         </div>
                         <p style={{ fontSize: 11.5, color: T.txt2, margin: '2px 0 0' }}>{u.email}</p>
@@ -2418,7 +2442,7 @@ useEffect(() => {
                   <ul style={{ display: 'flex', flexDirection: 'column', gap: 4, listStyle: 'none', margin: 0, padding: '0 0 0 40px' }}>
                     {auditLog.map((entry) => (
                       <li key={entry.id} style={{ position: 'relative' }}>
-                        <div style={{ position: 'absolute', left: -26, top: 8, display: 'flex', height: 16, width: 16, alignItems: 'center', justifyContent: 'center', borderRadius: '50%', border: `2px solid ${T.bg2}`, background: T.accent, boxShadow: '0 0 0 1px rgba(0,0,0,0.2)' }} />
+                        <div style={{ position: 'absolute', left: -26, top: 8, display: 'flex', height: 16, width: 16, alignItems: 'center', justifyContent: 'center', borderRadius: '50%', border: `2px solid ${T.bg2}`, background: T.accent, boxShadow: '0 0 0 1px rgba(15,23,42,0.10)' }} />
                         <div style={{ borderRadius: 12, border: `1px solid ${T.bdr0}`, background: T.bg3, padding: '12px 16px', transition: 'background 0.12s' }}>
                           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
                             <div>
@@ -2426,7 +2450,7 @@ useEffect(() => {
                               <p style={{ fontSize: 11, color: T.txt2, margin: '3px 0 0' }}>{entry.detail}</p>
                             </div>
                             <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                              <p style={{ fontSize: 10.5, fontWeight: 700, color: '#7aa8ff', margin: 0 }}>{entry.admin}</p>
+                              <p style={{ fontSize: 10.5, fontWeight: 700, color: T.accent, margin: 0 }}>{entry.admin}</p>
                               <p style={{ fontSize: 10, color: T.txt2, margin: '2px 0 0' }}>{timeAgo(entry.time)}</p>
                             </div>
                           </div>

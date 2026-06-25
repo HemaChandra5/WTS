@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import companyLogo from '../assets/logo.png';
 import { useAuth } from '../context/AuthContext';
 
@@ -300,6 +300,7 @@ const SuccessScreen = ({ formData }) => (
 
 export default function Signup() {
   const { signup } = useAuth();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -313,6 +314,17 @@ export default function Signup() {
   const [error,             setError]        = useState('');
   const [loading,           setLoading]      = useState(false);
   const [submitted,         setSubmitted]    = useState(false);
+  const [countdown,         setCountdown]    = useState(5);
+
+  useEffect(() => {
+    if (!submitted) return;
+
+    const timer = setTimeout(() => {
+      navigate('/login', { replace: true });
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [submitted, navigate]);
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -365,7 +377,7 @@ export default function Signup() {
     }
   };
 
-  if (submitted) return <SuccessScreen formData={formData} />;
+ 
 
   const passwordsMatch =
     formData.password && formData.confirmPassword && formData.password === formData.confirmPassword;
@@ -651,7 +663,21 @@ export default function Signup() {
             {/* Card */}
             <div className="sp-card">
               <form onSubmit={handleSubmit} noValidate className="space-y-4">
-
+                {submitted && (
+                  <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+                    <div className="flex items-start gap-3">
+                      <CheckCircleIcon className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-green-800">
+                          Registration submitted successfully
+                        </p>
+                        <p className="mt-1 text-sm text-green-700">
+                          Your account is pending administrator approval. You can sign in after your account has been approved.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {/* Error */}
                 {error && (
                   <div className="flex items-start gap-3 bg-[#fdf4ff] border border-[#e9d5ff] rounded-xl px-4 py-3">
@@ -660,14 +686,19 @@ export default function Signup() {
                   </div>
                 )}
 
-                {/* Full name */}
+                {/* Full Name */}
                 <Field label="Full Name" required>
                   <div className="relative">
-                    <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c4b5fd] pointer-events-none" />
+                    <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c4b5fd]" />
                     <input
-                      name="name" type="text" value={formData.name} onChange={handleChange}
-                      placeholder="Your full name" autoComplete="name" required
-                      className={inputBase} style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                      name="name"
+                      type="text"
+                      value={formData.name}
+                      onChange={handleChange}
+                      placeholder="Your full name"
+                      className={inputBase}
+                      required
+                      disabled={loading || submitted}
                       {...inputHandlers}
                     />
                   </div>
@@ -676,11 +707,16 @@ export default function Signup() {
                 {/* Email */}
                 <Field label="Email Address" required>
                   <div className="relative">
-                    <MailIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c4b5fd] pointer-events-none" />
+                    <MailIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c4b5fd]" />
                     <input
-                      name="email" type="email" value={formData.email} onChange={handleChange}
-                      placeholder="yourname@sskatt.com" autoComplete="email" required
-                      className={inputBase} style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="yourname@sskatt.com"
+                      className={inputBase}
+                      required
+                      disabled={loading || submitted}
                       {...inputHandlers}
                     />
                   </div>
@@ -689,93 +725,116 @@ export default function Signup() {
                 {/* Department */}
                 <Field label="Department">
                   <div className="relative">
-                    <BuildingIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c4b5fd] pointer-events-none z-10" />
+                    <BuildingIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c4b5fd]" />
                     <select
-                      name="department" value={formData.department} onChange={handleChange}
-                      className={`${inputBase} appearance-none pr-10 cursor-pointer`}
-                      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                      name="department"
+                      value={formData.department}
+                      onChange={handleChange}
+                      className={`${inputBase} appearance-none pr-10`}
+                      disabled={loading || submitted}
                       {...inputHandlers}
                     >
                       <option value="">Select department (optional)</option>
-                      {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+                      {DEPARTMENTS.map((d) => (
+                        <option key={d}>{d}</option>
+                      ))}
                     </select>
-                    <ChevronDownIcon className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c4b5fd] pointer-events-none" />
+
+                    <ChevronDownIcon className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c4b5fd]" />
                   </div>
                 </Field>
 
-                {/* Password row */}
+                {/* Password */}
                 <div className="grid grid-cols-2 gap-3">
+
                   <Field label="Password" required>
+
                     <div className="relative">
-                      <LockIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c4b5fd] pointer-events-none" />
+
+                      <LockIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c4b5fd]" />
+
                       <input
-                        name="password" type={showPassword ? 'text' : 'password'}
-                        value={formData.password} onChange={handleChange}
-                        placeholder="Min 6 chars" autoComplete="new-password" required
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        value={formData.password}
+                        onChange={handleChange}
                         className={`${inputBase} pr-10`}
-                        style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                        required
+                        disabled={loading || submitted}
                         {...inputHandlers}
                       />
-                      <button type="button" onClick={() => setShowPassword((v) => !v)}
-                        aria-label="Toggle password"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#c4b5fd] hover:text-[#8b5cf6] transition-colors">
-                        {showPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2"
+                      >
+                        {showPassword ? (
+                          <EyeOffIcon className="w-4 h-4" />
+                        ) : (
+                          <EyeIcon className="w-4 h-4" />
+                        )}
                       </button>
+
                     </div>
+
                   </Field>
 
                   <Field label="Confirm" required>
+
                     <div className="relative">
-                      <LockIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c4b5fd] pointer-events-none" />
+
+                      <LockIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c4b5fd]" />
+
                       <input
-                        name="confirmPassword" type={showConfirm ? 'text' : 'password'}
-                        value={formData.confirmPassword} onChange={handleChange}
-                        placeholder="Re-enter" autoComplete="new-password" required
+                        name="confirmPassword"
+                        type={showConfirm ? "text" : "password"}
+                        value={formData.confirmPassword}
+                        onChange={handleChange}
                         className={`${inputBase} pr-10`}
-                        style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                        required
+                        disabled={loading || submitted}
                         {...inputHandlers}
                       />
-                      <button type="button" onClick={() => setShowConfirm((v) => !v)}
-                        aria-label="Toggle confirm password"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#c4b5fd] hover:text-[#8b5cf6] transition-colors">
-                        {showConfirm ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirm(!showConfirm)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2"
+                      >
+                        {showConfirm ? (
+                          <EyeOffIcon className="w-4 h-4" />
+                        ) : (
+                          <EyeIcon className="w-4 h-4" />
+                        )}
                       </button>
+
                     </div>
+
                   </Field>
+
                 </div>
 
-                {/* Password match indicator */}
                 {passwordsMatch && (
                   <div className="flex items-center gap-2 bg-[#faf8ff] border border-[#ede9fe] rounded-xl px-3 py-2">
-                    <CheckCircleIcon className="w-4 h-4 text-[#8b5cf6] flex-shrink-0" />
-                    <span className="text-[12px] font-semibold text-[#6d28d9]">Passwords match</span>
+                    <CheckCircleIcon className="w-4 h-4 text-[#8b5cf6]" />
+                    <span className="text-[12px] font-semibold text-[#6d28d9]">
+                      Passwords match
+                    </span>
                   </div>
                 )}
 
-                {/* Submit */}
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="w-full rounded-[13px] py-3.5 text-[14px] font-bold text-white flex items-center justify-center gap-2 transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed mt-1"
+                  disabled={loading || submitted}
+                  className="w-full rounded-[13px] py-3.5 text-white font-bold"
                   style={{
-                    background: 'linear-gradient(135deg, #7c3aed 0%, #9333ea 35%, #db2777 75%, #ec4899 100%)',
-                    boxShadow: '0 4px 20px rgba(139,92,246,0.30)',
-                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    background:
+                      "linear-gradient(135deg,#7c3aed,#9333ea,#db2777)"
                   }}
                 >
-                  {loading ? (
-                    <>
-                      <SpinnerIcon className="w-4 h-4 animate-spin" />
-                      Creating account…
-                    </>
-                  ) : (
-                    <>
-                      Request Account
-                      <ArrowRightIcon className="w-4 h-4" />
-                    </>
-                  )}
+                  {loading ? "Creating account..." : submitted ? "Registration Submitted" : "Request Account"}
                 </button>
-
               </form>
 
               {/* Divider + sign in */}
