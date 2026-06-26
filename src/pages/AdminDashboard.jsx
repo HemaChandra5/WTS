@@ -863,9 +863,9 @@ useEffect(() => {
     const approved = await approveEmployee?.(id);
     if (!approved) {
       setAdminError(
-        'Cannot approve accounts with non-company email addresses.',
+        'Unable to approve this account. Please try again.',
       );
-      addToast('Cannot approve: non-company email', 'error');
+      addToast('Unable to approve account', 'error');
     } else {
       setAdminError('');
       const emp = employees.find((e) => e.id === id);
@@ -2277,10 +2277,10 @@ useEffect(() => {
                         style={{ borderRadius: 11, border: `1px solid ${T.bdr1}`, background: 'rgba(15,23,42,0.04)', padding: '11px 14px', fontSize: 13, color: T.txt0, outline: 'none', fontFamily: 'inherit' }} />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <label style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: T.txt2 }}>Company Email <span style={{ color: T.txt0 }}>*</span></label>
+                      <label style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: T.txt2 }}>Email <span style={{ color: T.txt0 }}>*</span></label>
                       <div style={{ position: 'relative' }}>
                         <I.Mail style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: T.txt2, pointerEvents: 'none' }} />
-                        <input type="email" name="email" value={userForm.email} onChange={handleUserFormChange} placeholder="name@sskatt.com" required
+                        <input type="email" name="email" value={userForm.email} onChange={handleUserFormChange} placeholder="name@company.com" required
                           style={{ width: '100%', borderRadius: 11, border: `1px solid ${T.bdr1}`, background: 'rgba(15,23,42,0.04)', padding: '11px 14px 11px 36px', fontSize: 13, color: T.txt0, outline: 'none', fontFamily: 'inherit' }} />
                       </div>
                     </div>

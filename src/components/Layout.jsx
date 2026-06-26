@@ -68,14 +68,20 @@ const Layout = ({ children }) => {
           {/* Left — Logo + role */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{
+              position: 'relative',
               width: 40, height: 40, borderRadius: 12,
-              background: `linear-gradient(135deg, ${T.accent} 0%, ${T.accentB} 100%)`,
+              background: `linear-gradient(160deg, ${T.accent} 0%, ${T.accentB} 100%)`,
               boxShadow: `0 4px 14px ${T.accentL}, 0 1px 0 rgba(255,255,255,0.25) inset`,
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              overflow: 'hidden',
             }}>
+              <div style={{
+                position: 'absolute', top: -16, right: -16, width: 44, height: 44,
+                borderRadius: '50%', background: 'rgba(255,255,255,0.16)', filter: 'blur(2px)',
+              }} />
               {isAdmin
-                ? <ShieldCheckIcon style={{ width: 20, height: 20, color: '#fff' }} />
-                : <UserCircleIcon style={{ width: 20, height: 20, color: '#fff' }} />}
+                ? <ShieldCheckIcon style={{ width: 20, height: 20, color: '#fff', position: 'relative' }} />
+                : <UserCircleIcon style={{ width: 20, height: 20, color: '#fff', position: 'relative' }} />}
             </div>
 
             <div>
@@ -97,8 +103,12 @@ const Layout = ({ children }) => {
               fontSize: 11, fontWeight: 700,
               color: isAdmin ? T.accent : T.emerald,
               letterSpacing: '0.04em', textTransform: 'uppercase',
+              boxShadow: `0 1px 2px rgba(15,23,42,0.03)`,
             }}>
-              <span style={{ width: 5, height: 5, borderRadius: '50%', background: isAdmin ? T.accent : T.emerald }} />
+              <span style={{
+                width: 5, height: 5, borderRadius: '50%', background: isAdmin ? T.accent : T.emerald,
+                boxShadow: `0 0 0 3px ${isAdmin ? T.accentL : T.emeraldD}`,
+              }} />
               {isAdmin ? 'Admin' : 'Employee'}
             </span>
           </div>
@@ -113,13 +123,19 @@ const Layout = ({ children }) => {
             </div>
 
             <div style={{
+              position: 'relative',
               width: 38, height: 38, borderRadius: 11,
-              background: `linear-gradient(135deg, ${T.accent}, ${T.accentB})`,
-              boxShadow: `0 2px 10px ${T.accentL}`,
+              background: `linear-gradient(160deg, ${T.accent}, ${T.accentB})`,
+              boxShadow: `0 2px 10px ${T.accentL}, 0 0 0 2px ${T.glass}, 0 0 0 3px ${T.glassBorder}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0, userSelect: 'none',
+              overflow: 'hidden',
             }}>
-              {initials}
+              <div style={{
+                position: 'absolute', top: -14, right: -14, width: 36, height: 36,
+                borderRadius: '50%', background: 'rgba(255,255,255,0.18)', filter: 'blur(2px)',
+              }} />
+              <span style={{ position: 'relative' }}>{initials}</span>
             </div>
 
             <div style={{ width: 1, height: 28, background: T.bdr1, margin: '0 2px' }} />
@@ -151,6 +167,8 @@ const LogoutButton = ({ onClick, T }) => {
         fontSize: 13, fontWeight: 600,
         color: hov ? T.rose : T.txt1,
         fontFamily: 'inherit',
+        transform: hov ? 'translateY(-1px)' : 'translateY(0)',
+        boxShadow: hov ? '0 4px 12px rgba(244,63,94,0.16)' : 'none',
       }}
     >
       <ArrowRightOnRectangleIcon style={{ width: 16, height: 16 }} />

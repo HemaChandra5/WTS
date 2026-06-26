@@ -3,66 +3,70 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import companyLogo from '../assets/logo.png';
 
-/* ════════════════════════════════════════════════════════
-   SVG ICONS
-════════════════════════════════════════════════════════ */
+/* ─── Icons ──────────────────────────────────────────────────────────────── */
 
 const MailIcon = () => (
   <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
   </svg>
 );
-
 const LockIcon = () => (
   <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
   </svg>
 );
-
 const EyeIcon = () => (
   <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
     <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
   </svg>
 );
-
 const EyeOffIcon = () => (
   <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
   </svg>
 );
-
 const AlertIcon = () => (
   <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
   </svg>
 );
+const TaskIcon = () => (
+  <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+  </svg>
+);
+const FolderIcon = () => (
+  <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" />
+  </svg>
+);
+const ShieldIcon = () => (
+  <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+  </svg>
+);
+const ArrowRightIcon = () => (
+  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+  </svg>
+);
 
-/* ════════════════════════════════════════════════════════
-   LEFT PANEL STEPS DATA
-════════════════════════════════════════════════════════ */
+/* ─── Content ─────────────────────────────────────────────────────────────── */
 
-const STEPS = [
-  {
-    num: '01',
-    title: 'Authenticate Securely',
-    desc: 'Enterprise-grade identity verification with encrypted credentials.',
-  },
-  {
-    num: '02',
-    title: 'Assign & Track Work',
-    desc: 'Assign tasks, send work, and monitor progress in real time.',
-  },
-  {
-    num: '03',
-    title: 'Approve & Store Files',
-    desc: 'Review submissions, approve work, and manage file storage.',
-  },
+const FEATURES = [
+  { Icon: TaskIcon,   title: 'Assign & Track Tasks',   desc: 'Create tasks, set priorities, and monitor progress live' },
+  { Icon: FolderIcon, title: 'Share & Review Files',    desc: 'Upload work, request approvals, and keep an audit trail' },
+  { Icon: ShieldIcon, title: 'Role-Based Access',       desc: 'Admin, manager, and employee permission tiers' },
 ];
 
-/* ════════════════════════════════════════════════════════
-   MAIN COMPONENT
-════════════════════════════════════════════════════════ */
+const STATS = [
+  { value: '98%', label: 'On-Time Delivery' },
+  { value: '5×',  label: 'Faster Reviews' },
+  { value: '24/7', label: 'Team Visibility' },
+];
+
+/* ─── Main component ─────────────────────────────────────────────────────── */
 
 const Login = () => {
   const navigate = useNavigate();
@@ -97,702 +101,460 @@ const Login = () => {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body, #root { height: 100%; overflow: hidden; }
 
-        html, body, #root {
-          height: 100%;
-          overflow: hidden;
+        @keyframes l-page-in {
+          from { opacity: 0; transform: translateY(14px) scale(0.99); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes l-rise {
+          from { opacity: 0; transform: translateY(10px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
 
-        .pg-root {
+        .l-root {
           height: 100vh;
-          display: flex;
-          font-family: 'Plus Jakarta Sans', sans-serif;
-          -webkit-font-smoothing: antialiased;
-          background: #fff;
+          width: 100%;
           overflow: hidden;
+          display: flex;
+          font-family: 'Inter', system-ui, -apple-system, sans-serif;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+          background: #0A0712;
+          animation: l-page-in 0.55s cubic-bezier(0.22,1,0.36,1);
         }
 
-        /* ══════════════════════════════════
-           LEFT PANEL
-        ══════════════════════════════════ */
-        .pg-left {
+        /* ══════════════ LEFT PANEL — BRAND / GRID BG ══════════════ */
+        .l-left {
           display: none;
           position: relative;
-          flex-direction: column;
           width: 50%;
+          flex-shrink: 0;
+          flex-direction: column;
           overflow: hidden;
+          background:
+            radial-gradient(circle at 25% 18%, rgba(168,85,247,0.10), transparent 45%),
+            linear-gradient(165deg, #2A1240 0%, #200B33 45%, #170821 100%);
         }
-        @media (min-width: 1024px) {
-          .pg-left { display: flex; }
-        }
+        @media (min-width: 1024px) { .l-left { display: flex; } }
 
-        .pg-left-bg {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(155deg,
-            #1a0533 0%,
-            #2d0a5e 25%,
-            #4a0f6e 45%,
-            #6b1a7a 65%,
-            #8b1a6b 80%,
-            #a0185a 100%
-          );
-        }
-
-        .pg-orb {
-          position: absolute;
-          border-radius: 50%;
-          pointer-events: none;
-          filter: blur(60px);
-        }
-        .pg-orb-1 {
-          width: 420px; height: 420px;
-          top: -120px; right: -80px;
-          background: radial-gradient(circle, rgba(236,72,153,0.55) 0%, rgba(168,85,247,0.3) 50%, transparent 75%);
-          animation: pg-float1 8s ease-in-out infinite;
-        }
-        .pg-orb-2 {
-          width: 350px; height: 350px;
-          bottom: -100px; left: -60px;
-          background: radial-gradient(circle, rgba(139,92,246,0.5) 0%, rgba(236,72,153,0.25) 55%, transparent 75%);
-          animation: pg-float2 10s ease-in-out infinite;
-        }
-        .pg-orb-3 {
-          width: 200px; height: 200px;
-          top: 45%; left: 35%;
-          background: radial-gradient(circle, rgba(244,114,182,0.35) 0%, transparent 70%);
-          animation: pg-float3 7s ease-in-out infinite;
-        }
-        .pg-orb-4 {
-          width: 160px; height: 160px;
-          top: 20%; left: 10%;
-          background: radial-gradient(circle, rgba(192,132,252,0.3) 0%, transparent 70%);
-          animation: pg-float1 9s ease-in-out infinite reverse;
-        }
-
-        @keyframes pg-float1 {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50%       { transform: translate(20px, -30px) scale(1.06); }
-        }
-        @keyframes pg-float2 {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50%       { transform: translate(-15px, 25px) scale(1.04); }
-        }
-        @keyframes pg-float3 {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50%       { transform: translate(10px, -20px) scale(1.08); }
-        }
-
-        .pg-noise {
-          position: absolute; inset: 0; opacity: 0.032;
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-          pointer-events: none;
-        }
-
-        .pg-grid {
+        .l-left::before {
+          content: '';
           position: absolute; inset: 0;
           background-image:
-            linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
-          background-size: 40px 40px;
+            linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+          background-size: 42px 42px;
+          mask-image: radial-gradient(ellipse at 30% 30%, rgba(0,0,0,0.9), transparent 70%);
           pointer-events: none;
         }
-
-        /* Left inner layout — 3 rows: brand / center / footer */
-        .pg-left-inner {
-          position: relative;
-          z-index: 3;
-          display: flex;
-          flex-direction: column;
-          height: 100%;
-          padding: 40px 52px 36px;
-          gap: 0;
-        }
-
-        /* ── Brand ── */
-        .pg-brand {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          flex-shrink: 0;
-        }
-        .pg-brand-mark {
-          width: 58px; height: 58px;
-          border-radius: 16px;
-          background: linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.06));
-          border: 1px solid rgba(255,255,255,0.22);
-          backdrop-filter: blur(12px);
-          display: flex; align-items: center; justify-content: center;
-          overflow: hidden;
-          box-shadow: 0 4px 16px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.2);
-          flex-shrink: 0;
-        }
-        .pg-brand-mark img {
-          width: 40px; height: 40px;
-          object-fit: contain;
-        }
-        .pg-brand-name {
-          font-size: 20px; font-weight: 700;
-          letter-spacing: 0.06em;
-          color: #fff;
-        }
-        .pg-brand-tag {
-          font-size: 9.5px; font-weight: 400;
-          letter-spacing: 0.10em; text-transform: uppercase;
-          color: rgba(255,255,255,0.42);
-          margin-top: 3px;
-        }
-
-        /* ── Center content — flex-grow to fill remaining space ── */
-        .pg-left-center {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          padding: 32px 0 24px;
-        }
-
-        .pg-overline {
-          display: flex; align-items: center; gap: 10px;
-          margin-bottom: 20px;
-        }
-        .pg-overline-line {
-          width: 22px; height: 1px;
-          background: linear-gradient(90deg, rgba(244,114,182,0.9), transparent);
-        }
-        .pg-overline-text {
-          font-size: 9px; font-weight: 600;
-          letter-spacing: 0.26em; text-transform: uppercase;
-          color: rgba(244,114,182,0.85);
-        }
-
-        .pg-headline {
-          font-size: clamp(30px, 3vw, 46px);
-          font-weight: 800;
-          line-height: 1.10;
-          color: #fff;
-          letter-spacing: -0.025em;
-          margin-bottom: 14px;
-        }
-        .pg-headline-accent {
-          display: block;
-          background: linear-gradient(90deg, #f472b6, #c084fc, #a78bfa);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-
-        .pg-sub {
-          font-size: 12.5px; font-weight: 300;
-          color: rgba(255,255,255,0.48);
-          line-height: 1.75;
-          max-width: 290px;
-          margin-bottom: 32px;
-        }
-
-        .pg-steps { display: flex; flex-direction: column; }
-        .pg-step {
-          display: grid;
-          grid-template-columns: 26px 1fr;
-          gap: 16px;
-          align-items: start;
-          padding: 14px 0;
-          border-top: 1px solid rgba(255,255,255,0.07);
-        }
-        .pg-step:last-child { border-bottom: 1px solid rgba(255,255,255,0.07); }
-
-        .pg-step-num {
-          font-size: 11px; font-weight: 600;
-          color: rgba(244,114,182,0.7);
-          letter-spacing: 0.06em;
-          padding-top: 1px;
-          font-variant-numeric: tabular-nums;
-        }
-        .pg-step-title {
-          font-size: 12.5px; font-weight: 600;
-          color: rgba(255,255,255,0.92);
-          margin-bottom: 2px;
-        }
-        .pg-step-desc {
-          font-size: 11px; font-weight: 300;
-          color: rgba(255,255,255,0.36);
-          line-height: 1.6;
-        }
-
-        /* ── Left footer ── */
-        .pg-left-foot {
-          flex-shrink: 0;
-          text-align: center;
-        }
-        .pg-left-foot-text {
-          font-size: 10px; font-weight: 300;
-          letter-spacing: 0.07em;
-          color: rgba(255,255,255,0.25);
-        }
-
-        /* ══════════════════════════════════
-           RIGHT PANEL
-        ══════════════════════════════════ */
-        .pg-right {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          background: #fff;
-          position: relative;
-          overflow: hidden;
-          padding: 32px 28px;
-        }
-
-        .pg-right-bg {
-          position: absolute; inset: 0;
-          background:
-            radial-gradient(ellipse 80% 60% at 80% 0%, rgba(244,114,182,0.04) 0%, transparent 60%),
-            radial-gradient(ellipse 60% 50% at 20% 100%, rgba(139,92,246,0.04) 0%, transparent 55%);
-          pointer-events: none;
-        }
-
-        .pg-wm {
+        .l-left::after {
+          content: '';
           position: absolute;
-          bottom: 20px; right: 28px;
-          font-size: 90px; font-weight: 800; font-style: italic;
-          background: linear-gradient(135deg, rgba(236,72,153,0.05), rgba(139,92,246,0.05));
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          user-select: none; pointer-events: none;
-          letter-spacing: -0.04em; line-height: 1;
+          right: 0; top: 6%; bottom: 6%; width: 1px;
+          background: linear-gradient(180deg, transparent, rgba(219,39,119,0.35) 30%, rgba(168,85,247,0.35) 70%, transparent);
         }
 
-        /* Mobile brand (shown only below 1024px) */
-        .pg-mobile-brand {
-          display: flex; align-items: center; gap: 11px;
-          margin-bottom: 28px;
+        .l-glow-1 {
+          position: absolute; top: -16%; left: -8%;
+          width: 420px; height: 420px; border-radius: 50%;
+          background: radial-gradient(circle, rgba(219,39,119,0.22) 0%, transparent 70%);
+          filter: blur(20px); pointer-events: none;
+          animation: l-drift 11s ease-in-out infinite alternate;
         }
-        @media (min-width: 1024px) { .pg-mobile-brand { display: none; } }
-
-        .pg-mobile-mark {
-          width: 44px; height: 44px;
-          border-radius: 12px;
-          background: linear-gradient(135deg, #8b5cf6, #ec4899);
-          display: flex; align-items: center; justify-content: center;
-          overflow: hidden;
-          box-shadow: 0 4px 14px rgba(139,92,246,0.4);
+        .l-glow-2 {
+          position: absolute; bottom: -18%; right: -10%;
+          width: 400px; height: 400px; border-radius: 50%;
+          background: radial-gradient(circle, rgba(124,58,237,0.28) 0%, transparent 70%);
+          filter: blur(22px); pointer-events: none;
+          animation: l-drift 11s ease-in-out infinite alternate-reverse;
         }
-        .pg-mobile-mark img { width: 28px; height: 28px; object-fit: contain; }
-        .pg-mobile-name {
-          font-size: 16px; font-weight: 700;
-          letter-spacing: 0.08em;
-          background: linear-gradient(135deg, #7c3aed, #db2777);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+        @keyframes l-drift {
+          from { transform: translate(0,0) scale(1); }
+          to   { transform: translate(14px, 16px) scale(1.05); }
         }
 
-        /* Form wrap */
-        .pg-form-wrap {
-          width: 100%; max-width: 392px;
+        .l-left-inner {
           position: relative; z-index: 2;
+          display: flex; flex-direction: column;
+          height: 100%;
+          padding: clamp(20px, 4vh, 40px) clamp(32px, 4.5vw, 54px);
         }
 
-        /* Header above the card */
-        .pg-header { margin-bottom: 20px; }
-
-        .pg-h1 {
-          font-size: 28px; font-weight: 800;
-          letter-spacing: -0.025em; line-height: 1.08;
-          color: #1a0533;
-          margin-bottom: 6px;
-        }
-        .pg-h1 em {
-          font-style: italic; font-weight: 700;
-          background: linear-gradient(90deg, #8b5cf6, #ec4899);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-        .pg-h1-sub {
-          font-size: 12px; font-weight: 400;
-          color: #9ca3af; line-height: 1.6;
-        }
-
-        /* Card */
-        .pg-card {
+        /* Brand — big */
+        .l-brand { display: flex; align-items: center; gap: 16px; flex-shrink: 0; animation: l-rise 0.6s ease both; }
+        .l-brand-mark {
+          width: 66px; height: 66px; border-radius: 16px;
           background: #fff;
-          border-radius: 22px;
-          padding: 26px 26px 22px;
-          border: 1.5px solid rgba(139,92,246,0.14);
-          box-shadow:
-            0 0 0 1px rgba(236,72,153,0.04),
-            0 2px 8px rgba(139,92,246,0.05),
-            0 8px 32px rgba(139,92,246,0.08),
-            0 32px 72px rgba(236,72,153,0.06);
+          box-shadow: 0 12px 30px rgba(219,39,119,0.28);
+          display: flex; align-items: center; justify-content: center;
+          overflow: hidden; flex-shrink: 0;
+        }
+        .l-brand-mark img { width: 42px; height: 42px; object-fit: contain; }
+        .l-brand-name {
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 28px; font-weight: 700;
+          color: #F4EEFB; letter-spacing: -0.015em;
+        }
+
+        .l-center { flex: 1; display: flex; flex-direction: column; justify-content: center; min-height: 0; padding: 14px 0; }
+
+        .l-headline {
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: clamp(26px, 3.6vw, 42px); font-weight: 700;
+          line-height: 1.1; letter-spacing: -0.02em;
+          color: #F7F2FC; margin-bottom: 14px;
+          animation: l-rise 0.6s ease 0.05s both;
+        }
+        .l-headline-accent {
+          background: linear-gradient(100deg, #C77DFF, #F472B6);
+          -webkit-background-clip: text; background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .l-sub {
+          font-size: 13.5px; font-weight: 400;
+          color: #B6A8CC; line-height: 1.65;
+          max-width: 420px; margin-bottom: 24px;
+          animation: l-rise 0.6s ease 0.1s both;
+        }
+
+        .l-stats { display: flex; gap: 0; margin-bottom: 26px; animation: l-rise 0.6s ease 0.15s both; }
+        .l-stat { flex: 1; }
+        .l-stat:not(:last-child) { border-right: 1px solid rgba(255,255,255,0.10); padding-right: 16px; }
+        .l-stat:not(:first-child) { padding-left: 16px; }
+        .l-stat-val {
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 22px; font-weight: 700; color: #F472B6; letter-spacing: -0.01em; margin-bottom: 3px;
+        }
+        .l-stat-lbl {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 9.5px; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase;
+          color: #8A7AA0;
+        }
+
+        .l-features { display: flex; flex-direction: column; gap: 10px; max-width: 460px; animation: l-rise 0.6s ease 0.2s both; }
+        .l-feat {
+          display: flex; align-items: flex-start; gap: 13px;
+          padding: 12px 16px; border-radius: 13px;
+          background: rgba(255,255,255,0.035);
+          border: 1px solid rgba(255,255,255,0.07);
+        }
+        .l-feat-icon {
+          width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          background: linear-gradient(135deg, rgba(124,58,237,0.35), rgba(219,39,119,0.35));
+          color: #F0D6FA;
+        }
+        .l-feat-title { font-size: 13px; font-weight: 600; color: #F2EBFA; margin-bottom: 1px; }
+        .l-feat-desc { font-size: 11.5px; font-weight: 400; color: #9685AE; line-height: 1.4; }
+
+        .l-left-foot {
+          flex-shrink: 0;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 10px; color: #6E5E84;
+        }
+
+        /* ══════════════ RIGHT PANEL — FORM ══════════════ */
+        .l-right {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          background: #0A0712;
           position: relative;
+          height: 100%;
+          padding: clamp(16px, 4vh, 36px) 24px;
           overflow: hidden;
         }
-        .pg-card::before {
-          content: '';
-          position: absolute;
-          top: 0; left: 0; right: 0; height: 2px;
-          background: linear-gradient(90deg, transparent 0%, #8b5cf6 30%, #ec4899 70%, transparent 100%);
-        }
-        .pg-card::after {
-          content: '';
-          position: absolute;
-          top: -40px; right: -40px;
-          width: 150px; height: 150px;
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(236,72,153,0.07) 0%, transparent 70%);
-          pointer-events: none;
-        }
 
-        /* Error banner */
-        .pg-error {
-          display: flex; align-items: flex-start; gap: 9px;
-          background: linear-gradient(135deg, rgba(253,242,248,1), rgba(250,245,255,1));
-          border: 1px solid rgba(236,72,153,0.25);
-          border-radius: 12px;
-          padding: 10px 13px;
-          margin-bottom: 16px;
-        }
-        .pg-error-icon { color: #db2777; margin-top: 1px; flex-shrink: 0; }
-        .pg-error-text { font-size: 12px; color: #9d174d; line-height: 1.5; }
-
-        /* Labels */
-        .pg-label {
-          display: block;
-          font-size: 9.5px; font-weight: 600;
-          letter-spacing: 0.18em; text-transform: uppercase;
-          color: #9ca3af; margin-bottom: 7px;
-        }
-
-        /* Input wrapper */
-        .pg-input-wrap { position: relative; margin-bottom: 14px; }
-
-        .pg-icon-left {
-          position: absolute; left: 14px; top: 50%;
-          transform: translateY(-50%);
-          color: #c4b5fd; pointer-events: none;
-          display: flex; transition: color 0.2s;
-        }
-        .pg-input-wrap:focus-within .pg-icon-left { color: #8b5cf6; }
-
-        .pg-input {
-          width: 100%;
-          background: rgba(250,248,255,0.8);
-          border: 1.5px solid rgba(196,181,253,0.4);
-          border-radius: 13px;
-          padding: 12px 42px 12px 40px;
-          font-family: 'Plus Jakarta Sans', sans-serif;
-          font-size: 13.5px; font-weight: 400;
-          color: #1a0533;
-          outline: none;
-          transition: all 0.2s;
-          -webkit-appearance: none;
-        }
-        .pg-input::placeholder { color: #d8b4fe; }
-        .pg-input:hover:not(:focus) {
-          border-color: rgba(139,92,246,0.35);
-          background: rgba(250,248,255,1);
-        }
-        .pg-input:focus {
-          border-color: #8b5cf6;
+        .l-mobile-brand { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; animation: l-rise 0.55s ease both; }
+        @media (min-width: 1024px) { .l-mobile-brand { display: none; } }
+        .l-mobile-mark {
+          width: 56px; height: 56px; border-radius: 14px;
           background: #fff;
-          box-shadow: 0 0 0 3.5px rgba(139,92,246,0.12), 0 1px 4px rgba(139,92,246,0.1);
+          display: flex; align-items: center; justify-content: center; overflow: hidden;
+        }
+        .l-mobile-mark img { width: 36px; height: 36px; object-fit: contain; }
+        .l-mobile-name {
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 24px; font-weight: 700; color: #F2EBFA; letter-spacing: -0.01em;
         }
 
-        .pg-eye {
-          position: absolute; right: 13px; top: 50%;
-          transform: translateY(-50%);
-          background: none; border: none; cursor: pointer;
-          color: #c4b5fd; display: flex; padding: 4px; border-radius: 6px;
-          transition: color 0.18s, background 0.18s;
-        }
-        .pg-eye:hover { color: #8b5cf6; background: rgba(139,92,246,0.07); }
+        .l-form-wrap { position: relative; z-index: 1; width: 100%; max-width: 420px; animation: l-rise 0.6s ease 0.1s both; }
 
-        /* Forgot */
-        .pg-forgot-row { display: flex; justify-content: flex-end; margin-top: 6px; }
-        .pg-forgot {
-          font-size: 11.5px; font-weight: 500;
-          background: linear-gradient(90deg, #8b5cf6, #ec4899);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          text-decoration: none; padding-bottom: 1px;
-          border-bottom: 1px solid transparent;
-          transition: border-color 0.2s;
+        .l-eyebrow {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 10.5px; font-weight: 500;
+          letter-spacing: 0.16em; text-transform: uppercase;
+          color: #E879B9;
+          margin-bottom: 10px;
         }
-        .pg-forgot:hover { border-bottom-color: #ec4899; }
 
-        /* CTA */
-        .pg-cta-wrap { margin-top: 18px; }
-        .pg-cta {
+        .l-hdr { margin-bottom: 18px; }
+        .l-hdr-title {
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 26px; font-weight: 700; letter-spacing: -0.02em;
+          line-height: 1.2; color: #F7F2FC; margin-bottom: 6px;
+        }
+        .l-hdr-sub { font-size: 13px; font-weight: 400; color: #9685AE; line-height: 1.55; }
+
+        .l-error {
+          display: flex; align-items: flex-start; gap: 9px;
+          background: rgba(244,63,94,0.10); border: 1px solid rgba(244,63,94,0.28);
+          border-radius: 11px; padding: 10px 12px; margin-bottom: 14px;
+        }
+        .l-error-icon { color: #FB7185; flex-shrink: 0; margin-top: 1px; }
+        .l-error-text { font-size: 12px; color: #FCA5B1; line-height: 1.45; }
+
+        .l-label {
+          display: block; font-family: 'JetBrains Mono', monospace;
+          font-size: 10px; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase;
+          color: #8A7AA0; margin-bottom: 7px;
+        }
+
+        .l-field { position: relative; margin-bottom: 14px; }
+        .l-field-icon {
+          position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+          color: #6E5E84; pointer-events: none; display: flex;
+        }
+        .l-input {
           width: 100%;
-          border: none; border-radius: 13px;
-          padding: 13px 24px;
-          font-family: 'Plus Jakarta Sans', sans-serif;
-          font-size: 13px; font-weight: 700;
-          letter-spacing: 0.06em; color: #fff;
-          cursor: pointer;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.10);
+          border-radius: 12px;
+          padding: 12px 14px 12px 38px;
+          font-size: 13.5px; color: #F2EBFA;
+          outline: none; transition: border-color 0.18s, background 0.18s;
+        }
+        .l-input::placeholder { color: #5E4F75; }
+        .l-input:focus {
+          border-color: rgba(219,39,119,0.55);
+          background: rgba(255,255,255,0.06);
+        }
+        .l-eye {
+          position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+          background: none; border: none; cursor: pointer; color: #6E5E84;
+          display: flex; padding: 2px; transition: color 0.18s;
+        }
+        .l-eye:hover { color: #B6A8CC; }
+
+        .l-forgot-row { display: flex; justify-content: flex-end; margin-bottom: 16px; margin-top: -4px; }
+        .l-forgot { font-size: 12px; font-weight: 500; color: #C77DFF; text-decoration: none; transition: color 0.18s; }
+        .l-forgot:hover { color: #F472B6; }
+
+        .l-btn {
+          width: 100%;
           display: flex; align-items: center; justify-content: center; gap: 8px;
-          position: relative; overflow: hidden;
-          background: linear-gradient(135deg, #7c3aed 0%, #9333ea 35%, #db2777 75%, #ec4899 100%);
-          background-size: 200% 200%;
-          background-position: 0% 50%;
-          box-shadow:
-            0 1px 0 rgba(255,255,255,0.15) inset,
-            0 4px 16px rgba(139,92,246,0.4),
-            0 12px 32px rgba(236,72,153,0.25);
-          transition: background-position 0.5s ease, box-shadow 0.2s, transform 0.15s;
+          background: linear-gradient(100deg, #7C3AED, #DB2777);
+          border: none; border-radius: 12px;
+          padding: 13px 20px;
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 14px; font-weight: 600; color: #fff;
+          letter-spacing: -0.005em;
+          cursor: pointer;
+          box-shadow: 0 10px 24px rgba(124,58,237,0.32), 0 4px 10px rgba(219,39,119,0.22);
+          transition: opacity 0.18s, transform 0.18s, box-shadow 0.25s;
         }
-        .pg-cta:hover:not(:disabled) {
-          background-position: 100% 50%;
-          box-shadow:
-            0 1px 0 rgba(255,255,255,0.15) inset,
-            0 6px 24px rgba(139,92,246,0.55),
-            0 16px 40px rgba(236,72,153,0.35);
-        }
-        .pg-cta:active:not(:disabled) { transform: scale(0.986); }
-        .pg-cta:disabled { opacity: 0.52; cursor: not-allowed; }
-        .pg-cta::after {
-          content: '';
-          position: absolute; inset: 0;
-          background: linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 50%);
-          pointer-events: none;
-        }
-        .pg-cta-arrow {
-          width: 15px; height: 15px;
-          transition: transform 0.2s;
-          position: relative; z-index: 1;
-        }
-        .pg-cta:hover:not(:disabled) .pg-cta-arrow { transform: translateX(3px); }
-        .pg-cta-label { position: relative; z-index: 1; }
+        .l-btn:hover { opacity: 0.92; box-shadow: 0 14px 30px rgba(124,58,237,0.4), 0 6px 14px rgba(219,39,119,0.28); }
+        .l-btn:active { transform: scale(0.99); }
+        .l-btn:disabled { opacity: 0.65; cursor: not-allowed; }
+        .l-btn-arrow { width: 16px; height: 16px; transition: transform 0.2s; }
+        .l-btn:hover .l-btn-arrow { transform: translateX(2px); }
 
-        /* Spinner */
-        .pg-spin {
-          width: 14px; height: 14px;
-          border: 2px solid rgba(255,255,255,0.25);
-          border-top-color: #fff;
-          border-radius: 50%;
-          animation: pg-rotate 0.65s linear infinite;
-          flex-shrink: 0;
+        .l-spin {
+          width: 16px; height: 16px; border-radius: 50%;
+          border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff;
+          animation: l-spin-rot 0.7s linear infinite;
         }
-        @keyframes pg-rotate { to { transform: rotate(360deg); } }
+        @keyframes l-spin-rot { to { transform: rotate(360deg); } }
 
-        /* Divider */
-        .pg-divider {
-          display: flex; align-items: center; gap: 12px;
-          margin: 18px 0 0;
-        }
-        .pg-div-line {
-          flex: 1; height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(196,181,253,0.35), transparent);
-        }
-        .pg-div-txt {
-          font-size: 9.5px; font-weight: 400;
-          letter-spacing: 0.14em; text-transform: uppercase;
-          color: #d8b4fe; white-space: nowrap;
-        }
+        .l-divider { display: flex; align-items: center; gap: 12px; margin: 18px 0 14px; }
+        .l-div-line { flex: 1; height: 1px; background: rgba(255,255,255,0.08); }
+        .l-div-txt { font-size: 11px; color: #6E5E84; white-space: nowrap; }
 
-        /* Card footer */
-        .pg-card-foot { margin-top: 14px; text-align: center; }
-        .pg-card-foot p { font-size: 12.5px; font-weight: 300; color: #9ca3af; }
-        .pg-card-foot a {
-          font-weight: 700; text-decoration: none;
-          background: linear-gradient(90deg, #8b5cf6, #ec4899);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          border-bottom: 1px solid transparent;
-          padding-bottom: 1px;
-          transition: border-color 0.2s;
+        .l-foot { text-align: center; }
+        .l-foot p { font-size: 12.5px; font-weight: 400; color: #9685AE; }
+        .l-foot a { font-weight: 600; color: #C77DFF; text-decoration: none; transition: color 0.18s; }
+        .l-foot a:hover { color: #F472B6; }
+
+        @media (max-height: 680px) {
+          .l-features { display: none; }
         }
-        .pg-card-foot a:hover { border-bottom-color: #ec4899; }
       `}</style>
 
-      <div className="pg-root">
+      <div className="l-root">
 
-        {/* ══════════════════ LEFT PANEL ══════════════════ */}
-        <div className="pg-left">
-          <div className="pg-left-bg" />
-          <div className="pg-noise" />
-          <div className="pg-grid" />
-          <div className="pg-orb pg-orb-1" />
-          <div className="pg-orb pg-orb-2" />
-          <div className="pg-orb pg-orb-3" />
-          <div className="pg-orb pg-orb-4" />
+        {/* ══════════════ LEFT PANEL ══════════════ */}
+        <div className="l-left">
+          <div className="l-glow-1" />
+          <div className="l-glow-2" />
 
-          <div className="pg-left-inner">
+          <div className="l-left-inner">
 
-            {/* Brand */}
-            <div className="pg-brand">
-              <div className="pg-brand-mark">
-                <img src={companyLogo} alt="ssKatt" />
+            <div className="l-brand">
+              <div className="l-brand-mark">
+                <img
+                  src={companyLogo}
+                  alt="ssKatt"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.parentElement.innerHTML =
+                      `<span style="color:#7C3AED;font-size:22px;font-weight:700;font-family:'Space Grotesk',sans-serif">sK</span>`;
+                  }}
+                />
               </div>
-              <div>
-                <div className="pg-brand-name">ssKatt</div>
-                <div className="pg-brand-tag">Work Tracking System</div>
-              </div>
+              <span className="l-brand-name">ssKatt</span>
             </div>
 
-            {/* Center — grows to fill vertical space */}
-            <div className="pg-left-center">
-              <div className="pg-overline">
-                <div className="pg-overline-line" />
-                <span className="pg-overline-text">How it works</span>
-              </div>
-
-              <h2 className="pg-headline">
-                Track work,<br />
-                <span className="pg-headline-accent">stay ahead,</span><br />
-                every day.
+            <div className="l-center">
+              <h2 className="l-headline">
+                Assign Work.<br />
+                <span className="l-headline-accent">Track Progress.</span><br />
+                Deliver Together.
               </h2>
 
-              <p className="pg-sub">
-                Assign tasks, send work, approve submissions,
-                and manage files — all in one secure workspace.
+              <p className="l-sub">
+                The shared workspace where admins assign tasks, employees
+                deliver files, and everyone stays in sync — in real time.
               </p>
 
-              <div className="pg-steps">
-                {STEPS.map((s) => (
-                  <div className="pg-step" key={s.num}>
-                    <span className="pg-step-num">{s.num}</span>
+              <div className="l-stats">
+                {STATS.map((s) => (
+                  <div className="l-stat" key={s.label}>
+                    <p className="l-stat-val">{s.value}</p>
+                    <p className="l-stat-lbl">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="l-features">
+                {FEATURES.map(({ Icon, title, desc }) => (
+                  <div className="l-feat" key={title}>
+                    <div className="l-feat-icon">
+                      <Icon />
+                    </div>
                     <div>
-                      <div className="pg-step-title">{s.title}</div>
-                      <div className="pg-step-desc">{s.desc}</div>
+                      <p className="l-feat-title">{title}</p>
+                      <p className="l-feat-desc">{desc}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="pg-left-foot">
-              <span className="pg-left-foot-text">
-                © {new Date().getFullYear()} ssKatt. All rights reserved.
-              </span>
-            </div>
+            <p className="l-left-foot">© {new Date().getFullYear()} ssKatt. All rights reserved.</p>
 
           </div>
         </div>
 
-        {/* ══════════════════ RIGHT PANEL ══════════════════ */}
-        <div className="pg-right">
-          <div className="pg-right-bg" />
-          <div className="pg-wm">ssK</div>
+        {/* ══════════════ RIGHT PANEL ══════════════ */}
+        <div className="l-right">
 
-          {/* Mobile brand */}
-          <div className="pg-mobile-brand">
-            <div className="pg-mobile-mark">
-              <img src={companyLogo} alt="ssKatt" />
+          <div className="l-form-wrap">
+
+            <div className="l-mobile-brand">
+              <div className="l-mobile-mark">
+                <img
+                  src={companyLogo}
+                  alt="ssKatt"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.parentElement.innerHTML =
+                      `<span style="color:#7C3AED;font-size:18px;font-weight:700;font-family:'Space Grotesk',sans-serif">sK</span>`;
+                  }}
+                />
+              </div>
+              <span className="l-mobile-name">ssKatt</span>
             </div>
-            <span className="pg-mobile-name">ssKatt</span>
-          </div>
 
-          <div className="pg-form-wrap">
-
-            {/* Header */}
-            <div className="pg-header">
-              <h1 className="pg-h1">Welcome <em>back</em></h1>
-              <p className="pg-h1-sub">Enter your credentials to access your workspace.</p>
+            <p className="l-eyebrow">Secure Access Portal</p>
+            <div className="l-hdr">
+              <h1 className="l-hdr-title">Welcome Back</h1>
+              <p className="l-hdr-sub">Sign in to your ssKatt workspace</p>
             </div>
 
-            {/* Card */}
-            <div className="pg-card">
-              <form onSubmit={handleSubmit} noValidate>
+            <form onSubmit={handleSubmit} noValidate>
 
-                {error && (
-                  <div className="pg-error">
-                    <span className="pg-error-icon"><AlertIcon /></span>
-                    <p className="pg-error-text">{error}</p>
-                  </div>
+              {error && (
+                <div className="l-error">
+                  <span className="l-error-icon"><AlertIcon /></span>
+                  <p className="l-error-text">{error}</p>
+                </div>
+              )}
+
+              <label className="l-label" htmlFor="l-email">Email</label>
+              <div className="l-field">
+                <span className="l-field-icon"><MailIcon /></span>
+                <input
+                  id="l-email"
+                  name="email"
+                  type="text"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="you@sskatt.com"
+                  autoComplete="email"
+                  required
+                  className="l-input"
+                />
+              </div>
+
+              <label className="l-label" htmlFor="l-password">Password</label>
+              <div className="l-field">
+                <span className="l-field-icon"><LockIcon /></span>
+                <input
+                  id="l-password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  required
+                  className="l-input"
+                />
+                <button
+                  type="button"
+                  className="l-eye"
+                  onClick={() => setShowPass((v) => !v)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                </button>
+              </div>
+
+              <div className="l-forgot-row">
+                <Link to="/forgot-password" className="l-forgot">Forgot password?</Link>
+              </div>
+
+              <button type="submit" disabled={loading} className="l-btn">
+                {loading ? (
+                  <>
+                    <div className="l-spin" />
+                    <span>Signing in…</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Sign In</span>
+                    <ArrowRightIcon className="l-btn-arrow" />
+                  </>
                 )}
+              </button>
 
-                {/* Email */}
-                <label className="pg-label" htmlFor="email">Email Address</label>
-                <div className="pg-input-wrap">
-                  <span className="pg-icon-left"><MailIcon /></span>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="you@sskatt.com"
-                    autoComplete="email"
-                    required
-                    className="pg-input"
-                  />
-                </div>
+            </form>
 
-                {/* Password */}
-                <label className="pg-label" htmlFor="password" style={{ marginTop: 14, display: 'block' }}>
-                  Password
-                </label>
-                <div className="pg-input-wrap" style={{ marginBottom: 0 }}>
-                  <span className="pg-icon-left"><LockIcon /></span>
-                  <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="Enter your password"
-                    autoComplete="current-password"
-                    required
-                    className="pg-input"
-                  />
-                  <button
-                    type="button"
-                    className="pg-eye"
-                    onClick={() => setShowPass((v) => !v)}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-                  </button>
-                </div>
+            <div className="l-divider">
+              <div className="l-div-line" />
+              <span className="l-div-txt">New to ssKatt?</span>
+              <div className="l-div-line" />
+            </div>
 
-                {/* Forgot */}
-                <div className="pg-forgot-row">
-                  <Link to="/forgot-password" className="pg-forgot">Forgot password?</Link>
-                </div>
-
-                {/* Sign In */}
-                <div className="pg-cta-wrap">
-                  <button type="submit" disabled={loading} className="pg-cta">
-                    {loading ? (
-                      <>
-                        <div className="pg-spin" />
-                        <span className="pg-cta-label">Authenticating…</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="pg-cta-label">Sign In</span>
-                        <svg className="pg-cta-arrow" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clipRule="evenodd" />
-                        </svg>
-                      </>
-                    )}
-                  </button>
-                </div>
-
-              </form>
-
-              {/* Divider */}
-              <div className="pg-divider">
-                <div className="pg-div-line" />
-                <span className="pg-div-txt">New to ssKatt?</span>
-                <div className="pg-div-line" />
-              </div>
-
-              {/* Card footer */}
-              <div className="pg-card-foot">
-                <p>Don't have an account?{' '}<Link to="/signup">Request access</Link></p>
-              </div>
+            <div className="l-foot">
+              <p>Don't have an account? <Link to="/signup">Create Account →</Link></p>
             </div>
 
           </div>

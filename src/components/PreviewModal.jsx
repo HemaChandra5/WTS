@@ -119,29 +119,42 @@ const PreviewModal = ({ file, open, onClose, isAdmin = false }) => {
 
   const canPreview = isImage || isPdf || isText;
 
-  const EmptyState = ({ title, message, onDownload }) => (
-    <div style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      background: T.surface, borderRadius: 16, padding: 36, textAlign: 'center',
-      border: `2px dashed ${T.border}`,
-    }}>
-      <DocumentTextIcon style={{ width: 46, height: 46, color: T.accentB, marginBottom: 16 }} />
-      <p style={{ fontSize: 15, fontWeight: 700, color: T.txt0, margin: '0 0 8px' }}>{title}</p>
-      <p style={{ fontSize: 13, color: T.txt1, margin: '0 0 22px', maxWidth: 360 }}>{message}</p>
-      <button
-        onClick={onDownload}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 8, borderRadius: 10,
-          background: T.accent, padding: '9px 18px', fontSize: 13, fontWeight: 700,
-          color: '#fff', border: 'none', cursor: 'pointer', transition: 'background 0.15s',
-          fontFamily: 'inherit',
-        }}
-      >
-        <ArrowDownTrayIcon style={{ width: 15, height: 15 }} />
-        Download instead
-      </button>
-    </div>
-  );
+  const EmptyState = ({ title, message, onDownload }) => {
+    const [hov, setHov] = useState(false);
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        background: T.surface, borderRadius: 16, padding: 36, textAlign: 'center',
+        border: `2px dashed ${T.border}`,
+      }}>
+        <div style={{
+          width: 72, height: 72, borderRadius: 18, background: T.accentL,
+          border: `1px solid ${T.accentB}`, marginBottom: 16,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <DocumentTextIcon style={{ width: 32, height: 32, color: T.accent }} />
+        </div>
+        <p style={{ fontSize: 15, fontWeight: 700, color: T.txt0, margin: '0 0 8px' }}>{title}</p>
+        <p style={{ fontSize: 13, color: T.txt1, margin: '0 0 22px', maxWidth: 360 }}>{message}</p>
+        <button
+          onClick={onDownload}
+          onMouseEnter={() => setHov(true)}
+          onMouseLeave={() => setHov(false)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8, borderRadius: 10,
+            background: T.accent, padding: '9px 18px', fontSize: 13, fontWeight: 700,
+            color: '#fff', border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+            fontFamily: 'inherit',
+            boxShadow: hov ? `0 6px 16px ${T.accentL}` : 'none',
+            transform: hov ? 'translateY(-1px)' : 'translateY(0)',
+          }}
+        >
+          <ArrowDownTrayIcon style={{ width: 15, height: 15 }} />
+          Download instead
+        </button>
+      </div>
+    );
+  };
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, fontFamily: FONT }}>
@@ -157,7 +170,10 @@ const PreviewModal = ({ file, open, onClose, isAdmin = false }) => {
         display: 'flex', flexDirection: 'column', borderRadius: 20, background: T.surface,
         boxShadow: '0 30px 80px rgba(15,23,42,0.30)', overflow: 'hidden',
         border: `1px solid ${T.border}`,
+        animation: 'wts-pm-in 0.22s cubic-bezier(.16,1,.3,1)',
       }}>
+        <style>{`@keyframes wts-pm-in { from { opacity:0; transform: scale(0.97) translateY(6px);} to { opacity:1; transform: scale(1) translateY(0);} }`}</style>
+
         {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -243,6 +259,7 @@ const PreviewModal = ({ file, open, onClose, isAdmin = false }) => {
                   background: '#11151F', color: '#E2E8F0', padding: 18, borderRadius: 16,
                   fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 12,
                   overflow: 'auto', maxHeight: 600, border: '1px solid rgba(15,23,42,0.10)',
+                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2)',
                 }}>
                   <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0 }}>
                     {content}
@@ -298,9 +315,10 @@ const PreviewModal = ({ file, open, onClose, isAdmin = false }) => {
             onMouseLeave={() => setDlFooterHov(false)}
             style={{
               display: 'flex', alignItems: 'center', gap: 8, borderRadius: 10,
-              border: `1px solid ${T.border}`, background: dlFooterHov ? T.accentL : T.surface,
-              padding: '8px 16px', fontSize: 13, fontWeight: 700, color: T.txt1,
+              border: `1px solid ${dlFooterHov ? T.accentB : T.border}`, background: dlFooterHov ? T.accentL : T.surface,
+              padding: '8px 16px', fontSize: 13, fontWeight: 700, color: dlFooterHov ? T.accent : T.txt1,
               cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'inherit',
+              boxShadow: dlFooterHov ? `0 2px 8px ${T.accentL}` : 'none',
             }}
           >
             <ArrowDownTrayIcon style={{ width: 15, height: 15 }} />

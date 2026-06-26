@@ -12,7 +12,6 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import EmployeeDashboard from './pages/EmployeeDashboard';
 import AdminDashboard from './pages/AdminDashboard';
-import NotFound from './pages/NotFound';
 
 function App() {
   const { user, loading } = useAuth();
@@ -128,8 +127,16 @@ function App() {
           }
         />
 
-        {/* 404 */}
-        <Route path="*" element={<NotFound />} />
+        {/* Fallback */}
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to={user ? (user.role === 'admin' ? '/admin' : '/employee') : '/login'}
+              replace
+            />
+          }
+        />
       </Routes>
     </div>
   );

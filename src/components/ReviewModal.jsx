@@ -92,7 +92,10 @@ const ReviewModal = ({ file, open, onClose, onUpdateStatus }) => {
         position: 'relative', zIndex: 1, width: '100%', maxWidth: 480,
         borderRadius: 22, background: T.surface, border: `1px solid ${T.bdr1}`,
         boxShadow: '0 30px 80px rgba(15,23,42,0.30)', overflow: 'hidden',
+        animation: 'wts-rm-in 0.22s cubic-bezier(.16,1,.3,1)',
       }}>
+        <style>{`@keyframes wts-rm-in { from { opacity:0; transform: scale(0.96) translateY(8px);} to { opacity:1; transform: scale(1) translateY(0);} }`}</style>
+
         {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -187,10 +190,12 @@ const ReviewModal = ({ file, open, onClose, onUpdateStatus }) => {
               border: `1px solid ${confirming === 'approved' ? T.emeraldB : T.roseB}`,
               background: confirming === 'approved' ? T.emeraldD : T.roseD,
               color: confirming === 'approved' ? T.emerald : T.rose,
+              animation: 'wts-rm-hint 0.18s ease-out',
             }}>
               Click <strong>{confirming === 'approved' ? 'Approve' : 'Reject'}</strong> again to confirm this action.
             </div>
           )}
+          <style>{`@keyframes wts-rm-hint { from { opacity:0; transform: translateY(-4px);} to { opacity:1; transform: translateY(0);} }`}</style>
         </div>
 
         {/* Footer actions */}

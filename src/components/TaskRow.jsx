@@ -1,4 +1,3 @@
-// src/components/TaskRow.jsx
 import React, { useState } from 'react';
 import {
   CheckCircleIcon,
@@ -86,7 +85,8 @@ const TaskRow = ({ task, onStatusChange }) => {
         border: `1px solid ${isOverdue ? T.roseB : T.bdr0}`,
         background: isOverdue ? T.roseD : rowHov ? T.bg2 : T.bg1,
         padding: '12px 16px',
-        boxShadow: rowHov ? '0 2px 10px rgba(15,23,42,0.06)' : 'none',
+        boxShadow: rowHov ? '0 6px 18px rgba(15,23,42,0.08)' : '0 1px 2px rgba(15,23,42,0.03)',
+        transform: rowHov ? 'translateY(-1px)' : 'translateY(0)',
         transition: 'all 0.18s', listStyle: 'none',
       }}
     >
@@ -95,6 +95,7 @@ const TaskRow = ({ task, onStatusChange }) => {
         <div style={{
           display: 'flex', height: 34, width: 34, alignItems: 'center', justifyContent: 'center',
           borderRadius: 10, background: cfg.bg, border: `1px solid ${cfg.border}`, flexShrink: 0,
+          boxShadow: `0 0 0 3px ${cfg.bg}`,
         }}>
           <StatusIcon style={{ width: 15, height: 15, color: cfg.color }} />
         </div>
@@ -186,11 +187,13 @@ const TaskRow = ({ task, onStatusChange }) => {
                 position: 'absolute', right: 0, marginTop: 8, width: 176, zIndex: 40,
                 borderRadius: 12, border: `1px solid ${T.bdr1}`, background: T.bg1,
                 boxShadow: '0 20px 50px rgba(15,23,42,0.18)', overflow: 'hidden',
+                animation: 'wts-tr-menu 0.16s cubic-bezier(.16,1,.3,1)',
               }}>
                 <MenuItem onClick={() => setStatus('pending')}>Mark as Pending</MenuItem>
                 <MenuItem onClick={() => setStatus('in_progress')}>Mark In Progress</MenuItem>
                 <MenuItem onClick={() => setStatus('done')} color={T.emerald}>Mark Completed</MenuItem>
               </div>
+              <style>{`@keyframes wts-tr-menu { from { opacity:0; transform: translateY(-4px) scale(0.98);} to { opacity:1; transform: translateY(0) scale(1);} }`}</style>
             </>
           )}
         </div>

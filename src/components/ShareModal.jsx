@@ -30,6 +30,7 @@ const ShareModal = ({ file, open, onClose, onShared }) => {
   const [successMessage, setSuccessMessage] = useState('');
   const [copied, setCopied] = useState(false);
   const [closeHov, setCloseHov] = useState(false);
+  const [cancelHov, setCancelHov] = useState(false);
 
   useEffect(() => {
     if (!open || !file) {
@@ -129,8 +130,11 @@ const ShareModal = ({ file, open, onClose, onShared }) => {
           width: '90vw', maxWidth: 420, borderRadius: 18, background: T.surface,
           padding: 22, boxShadow: '0 30px 80px rgba(15,23,42,0.30)',
           border: `1px solid ${T.bdr1}`,
+          animation: 'wts-sm-in 0.22s cubic-bezier(.16,1,.3,1)',
         }}
       >
+        <style>{`@keyframes wts-sm-in { from { opacity:0; transform: scale(0.96) translateY(8px);} to { opacity:1; transform: scale(1) translateY(0);} }`}</style>
+
         <div style={{ marginBottom: 14, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
@@ -195,8 +199,9 @@ const ShareModal = ({ file, open, onClose, onShared }) => {
               style={{
                 borderRadius: 999, background: copied ? T.emerald : T.accent,
                 padding: '7px 16px', fontSize: 11.5, fontWeight: 700, color: '#fff',
-                border: 'none', cursor: 'pointer', transition: 'background 0.15s', whiteSpace: 'nowrap',
+                border: 'none', cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
                 fontFamily: 'inherit',
+                boxShadow: copied ? '0 4px 12px rgba(16,185,129,0.30)' : '0 4px 12px rgba(79,70,229,0.24)',
               }}
             >
               {copied ? 'Copied' : 'Copy'}
@@ -226,7 +231,10 @@ const ShareModal = ({ file, open, onClose, onShared }) => {
                 background: '#fff',
                 outline: 'none',
                 fontFamily: 'inherit',
+                transition: 'border-color 0.15s, box-shadow 0.15s',
               }}
+              onFocus={(e) => { e.target.style.borderColor = 'rgba(79,70,229,0.30)'; e.target.style.boxShadow = `0 0 0 3px ${T.accentL}`; }}
+              onBlur={(e) => { e.target.style.borderColor = T.bdr1; e.target.style.boxShadow = 'none'; }}
             />
           </div>
 
@@ -242,7 +250,15 @@ const ShareModal = ({ file, open, onClose, onShared }) => {
             {!loadingTargets && filteredTargets.map((user) => {
               const checked = selectedIds.includes(String(user.id));
               return (
-                <label key={user.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px', borderBottom: `1px solid ${T.bdr0}`, cursor: 'pointer' }}>
+                <label
+                  key={user.id}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px',
+                    borderBottom: `1px solid ${T.bdr0}`, cursor: 'pointer',
+                    background: checked ? T.accentL : 'transparent',
+                    transition: 'background 0.15s',
+                  }}
+                >
                   <input
                     type="checkbox"
                     checked={checked}
@@ -260,22 +276,29 @@ const ShareModal = ({ file, open, onClose, onShared }) => {
         </div>
 
         {error && (
-          <p style={{ marginTop: 10, fontSize: 12, color: T.rose, fontWeight: 600 }}>
+          <p style={{ marginTop: 10, fontSize: 12, color: T.rose, fontWeight: 600, animation: 'wts-sm-msg 0.18s ease-out' }}>
             {error}
           </p>
         )}
 
         {successMessage && (
-          <p style={{ marginTop: 10, fontSize: 12, color: T.emerald, fontWeight: 600 }}>
+          <p style={{ marginTop: 10, fontSize: 12, color: T.emerald, fontWeight: 600, animation: 'wts-sm-msg 0.18s ease-out' }}>
             {successMessage}
           </p>
         )}
+        <style>{`@keyframes wts-sm-msg { from { opacity:0; transform: translateY(-4px);} to { opacity:1; transform: translateY(0);} }`}</style>
 
         <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <button
             type="button"
             onClick={onClose}
-            style={{ borderRadius: 10, border: `1px solid ${T.bdr1}`, background: '#fff', padding: '8px 14px', fontSize: 12, fontWeight: 700, color: T.txt1, cursor: 'pointer', fontFamily: 'inherit' }}
+            onMouseEnter={() => setCancelHov(true)}
+            onMouseLeave={() => setCancelHov(false)}
+            style={{
+              borderRadius: 10, border: `1px solid ${T.bdr1}`, background: cancelHov ? 'rgba(15,23,42,0.03)' : '#fff',
+              padding: '8px 14px', fontSize: 12, fontWeight: 700, color: T.txt1, cursor: 'pointer', fontFamily: 'inherit',
+              transition: 'background 0.15s',
+            }}
           >
             Cancel
           </button>
@@ -283,7 +306,13 @@ const ShareModal = ({ file, open, onClose, onShared }) => {
             type="button"
             disabled={sharing || !selectedIds.length}
             onClick={handleShare}
-            style={{ borderRadius: 10, border: 'none', background: sharing || !selectedIds.length ? 'rgba(79,70,229,0.35)' : T.accent, padding: '8px 14px', fontSize: 12, fontWeight: 700, color: '#fff', cursor: sharing || !selectedIds.length ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+            style={{
+              borderRadius: 10, border: 'none', background: sharing || !selectedIds.length ? 'rgba(79,70,229,0.35)' : T.accent,
+              padding: '8px 14px', fontSize: 12, fontWeight: 700, color: '#fff',
+              cursor: sharing || !selectedIds.length ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+              transition: 'all 0.15s',
+              boxShadow: sharing || !selectedIds.length ? 'none' : '0 4px 12px rgba(79,70,229,0.28)',
+            }}
           >
             {sharing ? 'Sharing...' : `Share (${selectedIds.length})`}
           </button>

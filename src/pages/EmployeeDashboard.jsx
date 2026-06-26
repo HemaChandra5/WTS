@@ -1005,26 +1005,34 @@ const EmployeeDashboard = () => {
         {/* ══ ACTIVITY LOG TAB ══ */}
         {activeTab === 'activity' && (
           <section style={{ borderRadius: 18, border: `1px solid ${T.glassBorder}`, background: T.glass, backdropFilter: 'blur(22px) saturate(160%)', WebkitBackdropFilter: 'blur(22px) saturate(160%)', overflow: 'hidden', animation: 'fadeIn 0.25s ease-out both' }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderBottom: `1px solid ${T.bdr1}`, padding: '16px 24px' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderBottom: `1px solid ${T.bdr1}`, padding: '18px 24px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ display: 'flex', height: 38, width: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 11, background: T.bg4 }}>
-                  <I.ListBullet style={{ color: T.txt1 }} />
+                <div style={{ display: 'flex', height: 40, width: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: T.accentL, border: '1px solid rgba(79,70,229,0.18)' }}>
+                  <I.ListBullet style={{ color: T.accent }} />
                 </div>
                 <div>
-                  <h2 style={{ fontSize: 14, fontWeight: 600, color: T.txt0, margin: 0 }}>Activity Log</h2>
+                  <h2 style={{ fontSize: 14, fontWeight: 700, color: T.txt0, margin: 0, letterSpacing: '-0.02em' }}>Activity Log</h2>
                   <p style={{ fontSize: 11, color: T.txt2, margin: '2px 0 0' }}>All actions in this session</p>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <select value={activityAction} onChange={e => setActivityAction(e.target.value)} style={{ ...inputSx, cursor: 'pointer' }} onFocus={focusInput} onBlur={blurInput}>
                   {ACTIVITY_ACTION_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                 </select>
                 <select value={activityDateRange} onChange={e => setActivityDateRange(e.target.value)} style={{ ...inputSx, cursor: 'pointer' }} onFocus={focusInput} onBlur={blurInput}>
                   {ACTIVITY_DATE_RANGE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                 </select>
-                <span style={{ fontSize: 11, color: T.txt2 }}>{activityLog.length} entries</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', height: 30, borderRadius: 8, background: T.bg3, border: `1px solid ${T.bdr1}`, padding: '0 10px', fontSize: 11, fontWeight: 700, color: T.txt2, letterSpacing: '0.02em' }}>
+                  {activityLog.length} entries
+                </span>
                 {activityLog.length > 0 && (
-                  <button onClick={() => exportToCSV(activityLog.map(e => ({ action: e.action, detail: e.detail, time: e.time })), 'activity-log')} style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 10, border: `1px solid ${T.bdr1}`, background: T.bg3, padding: '7px 13px', fontSize: 11.5, fontWeight: 600, color: T.txt1, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <button
+                    onClick={() => exportToCSV(activityLog.map(e => ({ action: e.action, detail: e.detail, time: e.time })), 'activity-log')}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 9, border: `1px solid ${T.bdr1}`, background: T.bg2, padding: '7px 13px', fontSize: 11.5, fontWeight: 600, color: T.txt1, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = T.bg3; e.currentTarget.style.borderColor = T.bdr2; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = T.bg2; e.currentTarget.style.borderColor = T.bdr1; }}
+                  >
                     <I.Download /> Export
                   </button>
                 )}
@@ -1033,35 +1041,75 @@ const EmployeeDashboard = () => {
 
             <div style={{ padding: '20px 24px' }}>
               {activityLog.length === 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: 16, border: `2px dashed ${T.bdr1}`, padding: '60px 0', textAlign: 'center' }}>
-                  <I.Info style={{ width: 44, height: 44, color: T.txt2 }} />
-                  <p style={{ marginTop: 12, fontSize: 13.5, fontWeight: 700, color: T.txt1 }}>{activityLoading ? 'Loading activity log…' : 'No activity yet'}</p>
-                  {!activityLoading && <p style={{ fontSize: 12, color: T.txt2 }}>Uploads and task updates will appear here.</p>}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: 16, border: `2px dashed ${T.bdr1}`, padding: '64px 0', textAlign: 'center' }}>
+                  <div style={{ width: 52, height: 52, borderRadius: 16, background: T.accentL, border: '1px solid rgba(79,70,229,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+                    <I.ListBullet style={{ width: 24, height: 24, color: T.accent }} />
+                  </div>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: T.txt0, margin: '0 0 6px', letterSpacing: '-0.02em' }}>{activityLoading ? 'Loading activity…' : 'No activity yet'}</p>
+                  {!activityLoading && <p style={{ fontSize: 12.5, color: T.txt2, margin: 0 }}>Uploads and task updates will appear here as you work.</p>}
                 </div>
               ) : (
-                <div style={{ position: 'relative' }}>
-                  {/* Timeline — same as AdminDashboard audit log */}
-                  <div style={{ position: 'absolute', left: 16, top: 0, bottom: 0, width: 1, background: T.bdr1 }} />
-                  <ul style={{ display: 'flex', flexDirection: 'column', gap: 4, listStyle: 'none', margin: 0, padding: '0 0 0 40px' }}>
-                    {activityLog.map(entry => (
-                      <li key={entry.id} style={{ position: 'relative' }}>
-                        <div style={{ position: 'absolute', left: -26, top: 8, display: 'flex', height: 16, width: 16, alignItems: 'center', justifyContent: 'center', borderRadius: '50%', border: `2px solid ${T.bg2}`, background: T.accent, boxShadow: '0 0 0 1px rgba(15,23,42,0.10)' }} />
-                        <div style={{ borderRadius: 12, border: `1px solid ${T.bdr0}`, background: T.bg3, padding: '12px 16px', transition: 'background 0.12s' }}
-                          onMouseEnter={e => { e.currentTarget.style.background = T.bg4; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = T.bg3; }}>
-                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-                            <div>
-                              <p style={{ fontSize: 12, fontWeight: 700, color: T.txt0, margin: 0 }}>{entry.action}</p>
-                              <p style={{ fontSize: 11, color: T.txt2, margin: '3px 0 0' }}>{entry.detail}</p>
-                            </div>
-                            <p style={{ fontSize: 10.5, color: T.txt2, flexShrink: 0, fontWeight: 500 }}>{timeAgo(entry.time)}</p>
-                          </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {activityLog.map((entry, idx) => {
+                    /* ── icon per action type ── */
+                    const raw = entry.rawAction || '';
+                    let iconEl, iconBg, iconBorder, iconColor;
+                    if (raw.includes('upload') || raw.includes('file')) {
+                      iconEl = <I.Cloud style={{ color: T.accent }} />;
+                      iconBg = T.accentL; iconBorder = 'rgba(79,70,229,0.20)'; iconColor = T.accent;
+                    } else if (raw.includes('approve')) {
+                      iconEl = <I.CheckCircle style={{ color: T.emerald }} />;
+                      iconBg = T.emeraldD; iconBorder = 'rgba(16,185,129,0.22)'; iconColor = T.emerald;
+                    } else if (raw.includes('reject')) {
+                      iconEl = <I.XCircle style={{ color: T.rose }} />;
+                      iconBg = T.roseD; iconBorder = 'rgba(244,63,94,0.22)'; iconColor = T.rose;
+                    } else if (raw.includes('task')) {
+                      iconEl = <I.Flag style={{ color: T.amber }} />;
+                      iconBg = T.amberD; iconBorder = 'rgba(245,158,11,0.22)'; iconColor = T.amber;
+                    } else if (raw.includes('login') || raw.includes('register')) {
+                      iconEl = <I.Shield style={{ color: T.violet }} />;
+                      iconBg = T.violetD; iconBorder = 'rgba(139,92,246,0.22)'; iconColor = T.violet;
+                    } else if (raw.includes('share')) {
+                      iconEl = <I.Eye style={{ color: T.cyan }} />;
+                      iconBg = T.cyanD; iconBorder = 'rgba(20,184,166,0.22)'; iconColor = T.cyan;
+                    } else {
+                      iconEl = <I.Info style={{ color: T.txt1 }} />;
+                      iconBg = T.bg3; iconBorder = T.bdr1; iconColor = T.txt1;
+                    }
+
+                    return (
+                      <div
+                        key={entry.id}
+                        style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 12px', borderRadius: 12, transition: 'background 0.13s', cursor: 'default' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = T.bg2; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                      >
+                        {/* Icon badge */}
+                        <div style={{ width: 34, height: 34, borderRadius: 10, background: iconBg, border: `1px solid ${iconBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                          {iconEl}
                         </div>
-                      </li>
-                    ))}
-                  </ul>
-                  {activityLoadingMore && <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 0 8px', fontSize: 12.5, color: T.txt2, fontWeight: 500 }}>Loading more activity…</div>}
-                  {!activityHasMore && activityLog.length > 0 && <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 0 8px', fontSize: 12.5, color: T.txt2, fontWeight: 500 }}>End of activity history</div>}
+                        {/* Text */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 12.5, fontWeight: 700, color: T.txt0, margin: 0, letterSpacing: '-0.01em' }}>{entry.action}</p>
+                          {entry.detail && (
+                            <p style={{ fontSize: 11.5, color: T.txt1, margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.detail}</p>
+                          )}
+                        </div>
+                        {/* Time */}
+                        <span style={{ fontSize: 11, color: T.txt2, fontWeight: 500, flexShrink: 0, paddingTop: 2, whiteSpace: 'nowrap' }}>{timeAgo(entry.time)}</span>
+                      </div>
+                    );
+                  })}
+                  {activityLoadingMore && (
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 0 8px', fontSize: 12, color: T.txt2, fontWeight: 500 }}>Loading more activity…</div>
+                  )}
+                  {!activityHasMore && activityLog.length > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '18px 0 6px' }}>
+                      <div style={{ flex: 1, height: 1, background: T.bdr0 }} />
+                      <span style={{ fontSize: 11, color: T.txt2, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>End of history</span>
+                      <div style={{ flex: 1, height: 1, background: T.bdr0 }} />
+                    </div>
+                  )}
                   <div ref={activitySentinelRef} style={{ height: 1 }} />
                 </div>
               )}

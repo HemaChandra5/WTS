@@ -88,12 +88,6 @@ class UserRegistrationSerializer(
                 'Email already exists'
             )
  
-        if not value.endswith('@sskatt.com'):
- 
-            raise serializers.ValidationError(
-                'Only company emails (@sskatt.com) are allowed'
-            )
- 
         return value
  
     # ─────────────────────────────────────────
@@ -210,12 +204,6 @@ class AdminRegistrationSerializer(
  
             raise serializers.ValidationError(
                 'Email already exists'
-            )
- 
-        if not value.endswith('@sskatt.com'):
- 
-            raise serializers.ValidationError(
-                'Only company emails (@sskatt.com) are allowed'
             )
  
         return value

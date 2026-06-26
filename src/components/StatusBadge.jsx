@@ -87,6 +87,7 @@ const StatusBadge = ({ status, size = 'md', dark = false }) => {
         whiteSpace: 'nowrap',
         letterSpacing: '0.01em',
         fontFamily: 'inherit',
+        boxShadow: `0 1px 2px rgba(15,23,42,0.03)`,
       }}
     >
       <Icon style={{ width: isSm ? 11 : 13, height: isSm ? 11 : 13, flexShrink: 0 }} />
