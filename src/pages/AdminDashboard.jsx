@@ -63,6 +63,36 @@ const TASK_STATUS_CONFIG = {
   done: { label: 'Done', color: T.emerald, bg: T.emeraldD, border: 'rgba(16,232,160,0.2)', dot: T.emerald },
 };
 
+const ACTION_LABELS = {
+  login: 'Login',
+  register: 'Register',
+  approve_user: 'User Approved',
+  reject_user: 'User Rejected',
+  create_task: 'Task Created',
+  update_task: 'Task Updated',
+  delete_task: 'Task Deleted',
+  upload_file: 'File Uploaded',
+  review_file: 'File Reviewing',
+  approve_file: 'File Approved',
+  reject_file: 'File Rejected',
+  delete_file: 'File Deleted',
+  share_file: 'File Shared',
+  unshare_file: 'File Unshared',
+};
+
+const DEPARTMENT_FALLBACK = 'Unassigned';
+const KNOWN_DEPARTMENTS = [
+  'Python Developer',
+  'Data Analyst',
+  'Testing',
+  'Research',
+  'Digital Marketing',
+  'DevOps',
+  'HR',
+  'Cyber Security',
+  'Engineering',
+];
+
 /* ─── Helpers ─────────────────────────────────────────────────────────── */
 const formatBytes = (bytes) => {
   if (!bytes && bytes !== 0) return '0 B';
@@ -564,6 +594,7 @@ const AdminDashboard = () => {
   const [viewMode, setViewMode] = useState('list'); // for future list/grid support
   const [toasts, setToasts] = useState([]);
   const [auditLog, setAuditLog] = useState([]);
+  const [auditPage, setAuditPage] = useState(1);
   const [dashboardStats, setDashboardStats] = useState({
   employees: 0,
   activeEmployees: 0,
@@ -590,10 +621,11 @@ const AdminDashboard = () => {
 
     const normalized = rows.map((entry) => ({
       id: entry.id,
-      action: (entry.action || 'activity').replace(/_/g, ' '),
+      action: ACTION_LABELS[entry.action] || (entry.action || 'activity').replace(/_/g, ' '),
       detail: entry.description || entry.detail || '',
       admin: entry.user_name || entry.user_email || entry.admin || 'System',
       time: entry.created_at || entry.time || new Date().toISOString(),
+      rawAction: entry.action || '',
     }));
 
     setAuditLog(normalized);
@@ -627,6 +659,7 @@ const fetchDashboardStats = useCallback(async () => {
   const [range, setRange] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [departmentFilter, setDepartmentFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [search, setSearch] = useState('');
   const [filePage, setFilePage] = useState(1);
@@ -690,6 +723,10 @@ const fetchDashboardStats = useCallback(async () => {
   useEffect(() => {
     setFileList(files || []);
   }, [files]);
+
+  useEffect(() => {
+    setAuditPage(1);
+  }, [auditLog.length]);
 
   const refreshEmployees = useCallback(async () => {
     if (!getAllEmployees) {
@@ -1192,6 +1229,83 @@ useEffect(() => {
     });
   }, [empTab, pendingEmployees, activeEmployees, inactiveEmployees, empSearch]);
 
+  const fileListWithDepartment = useMemo(() => {
+    const deptByEmail = new Map(
+      (employees || [])
+        .filter((e) => e?.email)
+        .map((e) => [String(e.email).toLowerCase(), e.department || DEPARTMENT_FALLBACK]),
+    );
+
+    return (fileList || []).map((file) => {
+      const directDept = file?.department || file?.user?.department;
+      const email = (file?.userEmail || file?.user?.email || '').toLowerCase();
+      const resolvedDepartment = directDept || deptByEmail.get(email) || DEPARTMENT_FALLBACK;
+      return {
+        ...file,
+        resolvedDepartment,
+      };
+    });
+  }, [fileList, employees]);
+
+  const departmentUploadStats = useMemo(() => {
+    const aggregate = new Map();
+
+    for (const file of fileListWithDepartment) {
+      const department = file.resolvedDepartment || DEPARTMENT_FALLBACK;
+      const uploaderEmail = file.userEmail || file.user?.email || '';
+      const uploaderName = file.userName || file.user?.name || file.user?.username || uploaderEmail || 'Unknown';
+
+      if (!aggregate.has(department)) {
+        aggregate.set(department, {
+          department,
+          fileCount: 0,
+          totalSize: 0,
+          latestUploadAt: null,
+          uploadersMap: new Map(),
+        });
+      }
+
+      const row = aggregate.get(department);
+      row.fileCount += 1;
+      row.totalSize += file.size || 0;
+      row.uploadersMap.set(uploaderEmail || uploaderName, uploaderName);
+
+      if (!row.latestUploadAt || new Date(file.createdAt) > new Date(row.latestUploadAt)) {
+        row.latestUploadAt = file.createdAt;
+      }
+    }
+
+    return Array.from(aggregate.values())
+      .map((row) => ({
+        department: row.department,
+        fileCount: row.fileCount,
+        totalSize: row.totalSize,
+        latestUploadAt: row.latestUploadAt,
+        uploaderCount: row.uploadersMap.size,
+        uploaders: Array.from(row.uploadersMap.values()),
+      }))
+      .sort((a, b) => b.fileCount - a.fileCount || b.totalSize - a.totalSize || a.department.localeCompare(b.department));
+  }, [fileListWithDepartment]);
+
+  const departmentOptions = useMemo(() => {
+    const departments = new Set(KNOWN_DEPARTMENTS);
+
+    for (const entry of departmentUploadStats) {
+      if (entry?.department) departments.add(entry.department);
+    }
+
+    for (const employee of employees || []) {
+      if (employee?.department) departments.add(employee.department);
+    }
+
+    const sortedDepartments = Array.from(departments).sort((a, b) => a.localeCompare(b));
+
+    return [
+      { value: 'all', label: 'All departments' },
+      ...sortedDepartments.map((department) => ({ value: department, label: department })),
+    ];
+  }, [departmentUploadStats, employees]);
+
   const stats = useMemo(() => {
     const totalFiles = fileList.length;
     const totalSize = fileList.reduce(
@@ -1350,7 +1464,7 @@ useEffect(() => {
   );
 
   const filteredFiles = useMemo(() => {
-    let list = [...fileList];
+    let list = [...fileListWithDepartment];
 
     // Date range
     if (range === 'today') {
@@ -1371,6 +1485,10 @@ useEffect(() => {
       list = list.filter(
         (f) => getType(f.originalName) === typeFilter,
       );
+    }
+
+    if (departmentFilter !== 'all') {
+      list = list.filter((f) => f.resolvedDepartment === departmentFilter);
     }
 
     // Search
@@ -1408,7 +1526,7 @@ useEffect(() => {
     });
 
     return list;
-  }, [fileList, range, statusFilter, typeFilter, sortBy, search]);
+  }, [fileListWithDepartment, range, statusFilter, typeFilter, departmentFilter, sortBy, search]);
 
   const paginatedFiles = useMemo(() => {
     const start = (filePage - 1) * ITEMS_PER_PAGE;
@@ -1445,6 +1563,15 @@ useEffect(() => {
 
   const totalTaskPages = Math.ceil(
     filteredTasks.length / ITEMS_PER_PAGE,
+  );
+
+  const paginatedAuditLog = useMemo(() => {
+    const start = (auditPage - 1) * ITEMS_PER_PAGE;
+    return auditLog.slice(start, start + ITEMS_PER_PAGE);
+  }, [auditLog, auditPage]);
+
+  const totalAuditPages = Math.ceil(
+    auditLog.length / ITEMS_PER_PAGE,
   );
 
   const isOverdue = (dueDate) =>
@@ -1754,6 +1881,51 @@ useEffect(() => {
                 ))}
               </div>
             </Card>
+
+            {/* Department-wise uploads */}
+            <Card style={{ gridColumn: 'span 2' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div>
+                  <p style={{ fontSize: 13.5, fontWeight: 600, color: T.txt0, margin: 0 }}>Department Upload Analytics</p>
+                  <p style={{ fontSize: 11, color: T.txt2, margin: '2px 0 0' }}>Department-wise files and uploaders</p>
+                </div>
+                <button
+                  onClick={() => { setActiveTab('files'); setDepartmentFilter('all'); }}
+                  type="button"
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 9, border: `1px solid ${T.bdr1}`, background: T.bg3, padding: '6px 11px', fontSize: 11.5, fontWeight: 600, color: T.txt1, cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  <I.Doc /> View Files
+                </button>
+              </div>
+
+              {departmentUploadStats.length === 0 ? (
+                <div style={{ borderRadius: 12, border: `1px dashed ${T.bdr1}`, padding: '28px 16px', textAlign: 'center' }}>
+                  <p style={{ margin: 0, fontSize: 12.5, color: T.txt2 }}>No department upload data yet.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 10 }}>
+                  {departmentUploadStats.slice(0, 8).map((entry) => (
+                    <button
+                      key={entry.department}
+                      type="button"
+                      onClick={() => { setActiveTab('files'); setDepartmentFilter(entry.department); }}
+                      style={{ textAlign: 'left', borderRadius: 12, border: `1px solid ${T.bdr0}`, background: T.bg3, padding: '12px 13px', cursor: 'pointer', fontFamily: 'inherit' }}
+                    >
+                      <p style={{ margin: 0, fontSize: 12.5, fontWeight: 700, color: T.txt0 }}>{entry.department}</p>
+                      <p style={{ margin: '3px 0 0', fontSize: 11, color: T.txt2 }}>
+                        {entry.fileCount} files · {entry.uploaderCount} uploader{entry.uploaderCount !== 1 ? 's' : ''}
+                      </p>
+                      <p style={{ margin: '2px 0 0', fontSize: 10.5, color: T.txt2 }}>
+                        {formatBytes(entry.totalSize)} · latest {timeAgo(entry.latestUploadAt)}
+                      </p>
+                      <p style={{ margin: '6px 0 0', fontSize: 10.5, color: T.txt1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        Uploaders: {entry.uploaders.slice(0, 2).join(', ')}{entry.uploaders.length > 2 ? ` +${entry.uploaders.length - 2}` : ''}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </Card>
           </div>
         )}
 
@@ -1863,6 +2035,13 @@ useEffect(() => {
                       </select>
                     ))}
 
+                    <select value={departmentFilter} onChange={(e) => { setDepartmentFilter(e.target.value); setFilePage(1); }}
+                      style={{ borderRadius: 10, border: `1px solid ${T.bdr1}`, background: T.bg3, padding: '8px 11px', fontSize: 12, color: T.txt1, outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}>
+                      {departmentOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+
                     <div style={{ position: 'relative' }}>
                       <I.Search style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: T.txt2, pointerEvents: 'none' }} />
                       <input type="text" placeholder="Search files, employees…" value={search}
@@ -1883,8 +2062,8 @@ useEffect(() => {
                       <I.Download /> Export
                     </button>
 
-                    {(search || typeFilter !== 'all' || range !== 'all' || sortBy !== 'newest' || statusFilter !== 'all') && (
-                      <button onClick={() => { setSearch(''); setTypeFilter('all'); setRange('all'); setSortBy('newest'); setStatusFilter('all'); setFilePage(1); }}
+                    {(search || typeFilter !== 'all' || range !== 'all' || sortBy !== 'newest' || statusFilter !== 'all' || departmentFilter !== 'all') && (
+                      <button onClick={() => { setSearch(''); setTypeFilter('all'); setRange('all'); setSortBy('newest'); setStatusFilter('all'); setDepartmentFilter('all'); setFilePage(1); }}
                         style={{ display: 'flex', alignItems: 'center', gap: 5, borderRadius: 10, border: '1px solid rgba(255,95,126,0.25)', background: T.roseD, padding: '8px 13px', fontSize: 12, fontWeight: 600, color: T.rose, cursor: 'pointer', fontFamily: 'inherit' }}>
                         <I.X /> Clear
                       </button>
@@ -1985,6 +2164,7 @@ useEffect(() => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <label style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: T.txt2 }}>Due Date</label>
                       <input type="date" name="dueDate" value={taskForm.dueDate} onChange={handleTaskChange}
+                        min={new Date().toISOString().split('T')[0]}
                         style={{ borderRadius: 11, border: `1px solid ${T.bdr1}`, background: T.bg3, padding: '10px 14px', fontSize: 13, color: T.txt1, outline: 'none', fontFamily: 'inherit' }} />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -2437,27 +2617,55 @@ useEffect(() => {
                   <p style={{ fontSize: 11.5, color: T.txt2 }}>Admin actions will appear here as you use the dashboard.</p>
                 </div>
               ) : (
-                <div style={{ position: 'relative' }}>
-                  <div style={{ position: 'absolute', left: 16, top: 0, bottom: 0, width: 1, background: T.bdr1 }} />
-                  <ul style={{ display: 'flex', flexDirection: 'column', gap: 4, listStyle: 'none', margin: 0, padding: '0 0 0 40px' }}>
-                    {auditLog.map((entry) => (
-                      <li key={entry.id} style={{ position: 'relative' }}>
-                        <div style={{ position: 'absolute', left: -26, top: 8, display: 'flex', height: 16, width: 16, alignItems: 'center', justifyContent: 'center', borderRadius: '50%', border: `2px solid ${T.bg2}`, background: T.accent, boxShadow: '0 0 0 1px rgba(15,23,42,0.10)' }} />
-                        <div style={{ borderRadius: 12, border: `1px solid ${T.bdr0}`, background: T.bg3, padding: '12px 16px', transition: 'background 0.12s' }}>
-                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-                            <div>
-                              <p style={{ fontSize: 12, fontWeight: 700, color: T.txt0, margin: 0 }}>{entry.action}</p>
-                              <p style={{ fontSize: 11, color: T.txt2, margin: '3px 0 0' }}>{entry.detail}</p>
-                            </div>
-                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                              <p style={{ fontSize: 10.5, fontWeight: 700, color: T.accent, margin: 0 }}>{entry.admin}</p>
-                              <p style={{ fontSize: 10, color: T.txt2, margin: '2px 0 0' }}>{timeAgo(entry.time)}</p>
-                            </div>
-                          </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {paginatedAuditLog.map((entry) => {
+                    const raw = entry.rawAction || '';
+                    let iconEl, iconBg, iconBorder;
+                    if (raw.includes('upload') || raw.includes('file')) {
+                      iconEl = <I.Doc style={{ color: T.accent }} />;
+                      iconBg = T.accentL; iconBorder = 'rgba(91,124,255,0.20)';
+                    } else if (raw.includes('approve')) {
+                      iconEl = <I.CheckCircle style={{ color: T.emerald }} />;
+                      iconBg = T.emeraldD; iconBorder = 'rgba(16,185,129,0.22)';
+                    } else if (raw.includes('reject')) {
+                      iconEl = <I.XCircle style={{ color: T.rose }} />;
+                      iconBg = T.roseD; iconBorder = 'rgba(244,63,94,0.22)';
+                    } else if (raw.includes('task')) {
+                      iconEl = <I.Flag style={{ color: T.amber }} />;
+                      iconBg = T.amberD; iconBorder = 'rgba(245,158,11,0.22)';
+                    } else if (raw.includes('login') || raw.includes('register')) {
+                      iconEl = <I.Shield style={{ color: T.violet }} />;
+                      iconBg = T.violetD; iconBorder = 'rgba(139,92,246,0.22)';
+                    } else if (raw.includes('share')) {
+                      iconEl = <I.Eye style={{ color: T.cyan }} />;
+                      iconBg = T.cyanD; iconBorder = 'rgba(34,211,238,0.22)';
+                    } else {
+                      iconEl = <I.Info style={{ color: T.txt1 }} />;
+                      iconBg = T.bg3; iconBorder = T.bdr1;
+                    }
+
+                    return (
+                      <div
+                        key={entry.id}
+                        style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 12px', borderRadius: 12, transition: 'background 0.13s', cursor: 'default' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = T.bg2; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                      >
+                        <div style={{ width: 34, height: 34, borderRadius: 10, background: iconBg, border: `1px solid ${iconBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                          {iconEl}
                         </div>
-                      </li>
-                    ))}
-                  </ul>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 12.5, fontWeight: 700, color: T.txt0, margin: 0, letterSpacing: '-0.01em' }}>{entry.action}</p>
+                          {entry.detail && (
+                            <p style={{ fontSize: 11.5, color: T.txt1, margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.detail}</p>
+                          )}
+                          <p style={{ fontSize: 10.5, fontWeight: 700, color: T.accent, margin: '4px 0 0' }}>{entry.admin}</p>
+                        </div>
+                        <span style={{ fontSize: 11, color: T.txt2, fontWeight: 500, flexShrink: 0, paddingTop: 2, whiteSpace: 'nowrap' }}>{timeAgo(entry.time)}</span>
+                      </div>
+                    );
+                  })}
+                  <Pagination current={auditPage} total={totalAuditPages} onChange={setAuditPage} />
                 </div>
               )}
             </div>

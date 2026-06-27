@@ -440,7 +440,6 @@ const EmployeeDashboard = () => {
   const [activityDateRange,   setActivityDateRange]   = useState('30d');
   const [activeTab,           setActiveTab]           = useState('overview');
   const [viewMode,            setViewMode]            = useState('list');
-  const activitySentinelRef = useRef(null);
   const [now, setNow] = useState(() => new Date());
 
   /* ── Filter State ── */
@@ -459,6 +458,9 @@ const EmployeeDashboard = () => {
   const [taskPage,           setTaskPage]           = useState(1);
   const [taskSectionsOpen,   setTaskSectionsOpen]   = useState({ pending: true, in_progress: true, done: false });
   const [previewFile,        setPreviewFile]        = useState(null);
+  const [sendingToAdmin,     setSendingToAdmin]     = useState(null); // file being animated to upload
+  const [prefilledUploadFile, setPrefilledUploadFile] = useState(null);
+  const [deleteConfirm,      setDeleteConfirm]      = useState(null); // file pending deletion confirmation
 
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 60000); return () => clearInterval(id); }, []);
   useEffect(() => { setTaskList(tasks || []); }, [tasks]);
@@ -503,16 +505,6 @@ const EmployeeDashboard = () => {
 
   useEffect(() => { setActivityLog([]); setActivityPage(1); setActivityHasMore(true); fetchActivityLogs({ page: 1 }); }, [fetchActivityLogs]);
 
-  useEffect(() => {
-    if (activeTab !== 'activity') return;
-    const target = activitySentinelRef.current; if (!target) return;
-    const obs = new IntersectionObserver(entries => {
-      if (!entries[0]?.isIntersecting || activityLoading || activityLoadingMore || !activityHasMore) return;
-      fetchActivityLogs({ page: activityPage + 1, append: true });
-    }, { rootMargin: '240px 0px', threshold: 0 });
-    obs.observe(target); return () => obs.disconnect();
-  }, [activeTab, activityHasMore, activityLoading, activityLoadingMore, activityPage, fetchActivityLogs]);
-
   useWebSocket(`${WS_BASE_URL}/ws/tasks/`, data => {
     if (data?.type === 'task_notification' && data.task) { setTaskList(p => upsertById(p, data.task)); if (activeTab !== 'tasks') setTaskEventBadge(c => c + 1); }
     if (data?.type === 'task_status_update') { setTaskList(p => p.map(t => t.id === data.taskId ? { ...t, status: data.status } : t)); if (activeTab !== 'tasks') setTaskEventBadge(c => c + 1); }
@@ -545,6 +537,7 @@ const EmployeeDashboard = () => {
       fd.append('file', file); fd.append('description', description);
       fd.append('original_name', file.name); fd.append('mime_type', file.type); fd.append('size', file.size);
       await api.post('/files/', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setSendingToAdmin(null);
       addToast('File uploaded successfully', 'success');
       await fetchFiles(); await fetchActivityLogs();
     } catch { addToast('File upload failed', 'error'); }
@@ -555,6 +548,46 @@ const EmployeeDashboard = () => {
     updateTaskStatus(taskId, status);
     addToast(`Task marked as ${status.replace('_', ' ')}`, 'success');
   }, [updateTaskStatus, addToast]);
+
+  const handleSendToAdmin = useCallback(async (file) => {
+    setSendingToAdmin(file);
+    try {
+      await api.post(`/files/${file.id}/send_to_admin/`);
+
+      // Load the current file bytes so Upload tab can be pre-filled and ready.
+      const downloadRes = await api.get(`/files/${file.id}/download/`, {
+        responseType: 'blob',
+      });
+      const inferredName = file.originalName || file.fileName || `file-${file.id}`;
+      const inferredType = file.mimeType || downloadRes.data?.type || 'application/octet-stream';
+      const uploadReadyFile = new File([downloadRes.data], inferredName, { type: inferredType });
+      setPrefilledUploadFile(uploadReadyFile);
+
+      addToast(`"${file.originalName}" sent to admin for review`, 'success');
+      await fetchFiles();
+      setActiveTab('upload');
+    } catch {
+      addToast('Failed to send file to admin', 'error');
+      setSendingToAdmin(null);
+    }
+  }, [addToast, fetchFiles]);
+
+  const handleDeleteFile = useCallback((file) => {
+    setDeleteConfirm(file);
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleteConfirm) return;
+    const file = deleteConfirm;
+    setDeleteConfirm(null);
+    try {
+      await api.delete(`/files/${file.id}/`);
+      addToast(`"${file.originalName}" deleted`, 'success');
+      await fetchFiles();
+    } catch {
+      addToast('Failed to delete file', 'error');
+    }
+  }, [deleteConfirm, addToast, fetchFiles]);
 
   const toggleTaskSection = status => setTaskSectionsOpen(prev => ({ ...prev, [status]: !prev[status] }));
 
@@ -616,6 +649,10 @@ const EmployeeDashboard = () => {
 
   const paginatedFiles  = useMemo(() => { const s = (filePage - 1) * ITEMS_PER_PAGE; return filteredFiles.slice(s, s + ITEMS_PER_PAGE); }, [filteredFiles, filePage]);
   const totalFilePages  = Math.ceil(filteredFiles.length / ITEMS_PER_PAGE);
+
+  // Activity pagination
+  const totalActivityPages = Math.ceil(activityLog.length / 10);
+  const paginatedActivity  = useMemo(() => activityLog.slice((activityPage - 1) * 10, activityPage * 10), [activityLog, activityPage]);
 
   const filteredTasks = useMemo(() => {
     let list = [...myTasks];
@@ -858,7 +895,52 @@ const EmployeeDashboard = () => {
               </div>
             </div>
             <div style={{ padding: 24 }}>
-              <FileUpload onUpload={handleUpload} />
+              {sendingToAdmin && (
+                <div style={{
+                  marginBottom: 16, borderRadius: 14, padding: '12px 16px',
+                  background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.28)',
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  animation: 'fadeIn 0.3s ease-out',
+                }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(14,165,233,0.15)', border: '1px solid rgba(14,165,233,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <I.Cloud style={{ color: '#0EA5E9' }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 12.5, fontWeight: 700, color: T.txt0, margin: 0 }}>Re-submit to Admin</p>
+                    <p style={{ fontSize: 11.5, color: T.txt1, margin: '2px 0 0' }}>
+                      Upload a new version of <strong>"{sendingToAdmin.originalName}"</strong> — it will go straight to admin for review.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSendingToAdmin(null)}
+                    aria-label="Dismiss resend prompt"
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 8,
+                      border: '1px solid rgba(14,165,233,0.3)',
+                      background: 'rgba(14,165,233,0.12)',
+                      color: '#0EA5E9',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                      fontFamily: 'inherit',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(14,165,233,0.22)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(14,165,233,0.12)'; }}
+                  >
+                    <I.X />
+                  </button>
+                </div>
+              )}
+              <FileUpload
+                onUpload={handleUpload}
+                prefilledFile={prefilledUploadFile}
+                onPrefillCleared={() => setPrefilledUploadFile(null)}
+              />
             </div>
           </section>
         )}
@@ -928,7 +1010,7 @@ const EmployeeDashboard = () => {
                 </div>
               ) : (
                 <>
-                  <FileList files={paginatedFiles} viewMode={viewMode} onPreview={f => setPreviewFile(f)} />
+                  <FileList files={paginatedFiles} viewMode={viewMode} onPreview={f => setPreviewFile(f)} onSendToAdmin={handleSendToAdmin} onDelete={handleDeleteFile} />
                   <Pagination current={filePage} total={totalFilePages} onChange={setFilePage} />
                 </>
               )}
@@ -1050,7 +1132,7 @@ const EmployeeDashboard = () => {
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {activityLog.map((entry, idx) => {
+                  {paginatedActivity.map((entry, idx) => {
                     /* ── icon per action type ── */
                     const raw = entry.rawAction || '';
                     let iconEl, iconBg, iconBorder, iconColor;
@@ -1100,17 +1182,37 @@ const EmployeeDashboard = () => {
                       </div>
                     );
                   })}
-                  {activityLoadingMore && (
-                    <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 0 8px', fontSize: 12, color: T.txt2, fontWeight: 500 }}>Loading more activity…</div>
+                  {totalActivityPages > 1 && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 12px 4px', borderTop: `1px solid ${T.bdr0}`, marginTop: 8 }}>
+                      <span style={{ fontSize: 11.5, color: T.txt2, fontWeight: 500 }}>
+                        Page <strong style={{ color: T.txt0 }}>{activityPage}</strong> of {totalActivityPages}
+                      </span>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button
+                          disabled={activityPage === 1}
+                          onClick={() => setActivityPage(p => Math.max(1, p - 1))}
+                          style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${T.bdr1}`, background: activityPage === 1 ? T.bg2 : T.bg3, color: activityPage === 1 ? T.txt2 : T.txt1, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: activityPage === 1 ? 'not-allowed' : 'pointer', opacity: activityPage === 1 ? 0.45 : 1, transition: 'all 0.15s', fontFamily: 'inherit' }}
+                        >
+                          <I.ChevLeft />
+                        </button>
+                        <button
+                          disabled={activityPage === totalActivityPages}
+                          onClick={() => setActivityPage(p => Math.min(totalActivityPages, p + 1))}
+                          style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${T.bdr1}`, background: activityPage === totalActivityPages ? T.bg2 : T.bg3, color: activityPage === totalActivityPages ? T.txt2 : T.txt1, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: activityPage === totalActivityPages ? 'not-allowed' : 'pointer', opacity: activityPage === totalActivityPages ? 0.45 : 1, transition: 'all 0.15s', fontFamily: 'inherit' }}
+                        >
+                          <I.ChevRight />
+                        </button>
+                      </div>
+                    </div>
                   )}
-                  {!activityHasMore && activityLog.length > 0 && (
+                  {!activityHasMore && activityLog.length > 0 && totalActivityPages <= 1 && (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '18px 0 6px' }}>
                       <div style={{ flex: 1, height: 1, background: T.bdr0 }} />
                       <span style={{ fontSize: 11, color: T.txt2, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>End of history</span>
                       <div style={{ flex: 1, height: 1, background: T.bdr0 }} />
                     </div>
                   )}
-                  <div ref={activitySentinelRef} style={{ height: 1 }} />
+                  <div style={{ height: 1 }} />
                 </div>
               )}
             </div>
@@ -1120,6 +1222,53 @@ const EmployeeDashboard = () => {
       </main>
 
       <PreviewModal file={previewFile} open={!!previewFile} onClose={() => setPreviewFile(null)} />
+
+      {/* ── Delete Confirmation Modal ── */}
+      {deleteConfirm && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9998,
+          background: 'rgba(10,14,26,0.55)', backdropFilter: 'blur(6px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          animation: 'fadeIn 0.18s ease-out',
+        }} onClick={() => setDeleteConfirm(null)}>
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: T.bg1, borderRadius: 20, padding: '28px 32px',
+              maxWidth: 400, width: '90%', boxShadow: '0 24px 64px rgba(10,14,26,0.3)',
+              border: `1px solid ${T.bdr1}`, display: 'flex', flexDirection: 'column', gap: 16,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 14, background: T.roseD, border: `1px solid rgba(244,63,94,0.25)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <I.XCircle style={{ color: T.rose, width: 22, height: 22 }} />
+              </div>
+              <div>
+                <p style={{ fontSize: 15, fontWeight: 700, color: T.txt0, margin: 0, letterSpacing: '-0.015em' }}>Delete File</p>
+                <p style={{ fontSize: 12, color: T.txt2, margin: '3px 0 0' }}>This action cannot be undone</p>
+              </div>
+            </div>
+            <p style={{ fontSize: 13, color: T.txt1, margin: 0, lineHeight: 1.6, background: T.bg3, borderRadius: 10, padding: '10px 14px', border: `1px solid ${T.bdr0}` }}>
+              Are you sure you want to delete <strong style={{ color: T.txt0 }}>{deleteConfirm.originalName}</strong>?
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                style={{ borderRadius: 10, border: `1px solid ${T.bdr1}`, background: T.bg3, padding: '9px 18px', fontSize: 13, fontWeight: 600, color: T.txt1, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}
+                onMouseEnter={e => { e.currentTarget.style.background = T.bg2; }}
+                onMouseLeave={e => { e.currentTarget.style.background = T.bg3; }}
+              >Cancel</button>
+              <button
+                onClick={confirmDelete}
+                style={{ borderRadius: 10, border: '1px solid rgba(244,63,94,0.3)', background: T.roseD, padding: '9px 18px', fontSize: 13, fontWeight: 700, color: T.rose, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}
+                onMouseEnter={e => { e.currentTarget.style.background = T.rose; e.currentTarget.style.color = '#fff'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = T.roseD; e.currentTarget.style.color = T.rose; }}
+              >Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Toast toasts={toasts} removeToast={removeToast} />
     </div>
   );

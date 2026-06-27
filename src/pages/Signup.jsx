@@ -55,8 +55,15 @@ const ArrowRightIcon = () => (
 /* ─── Content ─────────────────────────────────────────────────────────────── */
 
 const DEPARTMENTS = [
-  'Engineering', 'HR', 'Python Developer', 'Research',
-  'Cybersecurity', 'DevOps', 'Testing', 'Data Analyst',
+  'Python Developer',
+  'Data Analyst',
+  'Testing',
+  'Research',
+  'Digital Marketing',
+  'DevOps',
+  'HR',
+  'Cyber Security',
+  'Engineering',
 ];
 
 const STEPS_INFO = [
@@ -72,7 +79,7 @@ export default function Signup() {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    username: '', email: '', department: 'Engineering', password: '',
+    username: '', email: '', department: '', password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error,        setError]        = useState('');
@@ -100,7 +107,7 @@ export default function Signup() {
     e.preventDefault();
     setError('');
 
-    if (!formData.username || !formData.email || !formData.password) {
+    if (!formData.username || !formData.email || !formData.password || !formData.department) {
       setError('Please fill in all required fields.');
       return;
     }
@@ -134,7 +141,7 @@ export default function Signup() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html, body, #root { height: 100%; overflow: hidden; }
@@ -181,25 +188,28 @@ export default function Signup() {
         }
         .s-mobile-mark img { width: 36px; height: 36px; object-fit: contain; }
         .s-mobile-name {
-          font-family: 'Space Grotesk', sans-serif;
-          font-size: 24px; font-weight: 700; color: #F2EBFA; letter-spacing: -0.01em;
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          font-size: 24px; font-weight: 800; color: #F2EBFA; letter-spacing: -0.02em;
         }
 
         .s-form-wrap { position: relative; z-index: 1; width: 100%; max-width: 420px; animation: s-rise 0.6s ease 0.1s both; }
 
         .s-eyebrow {
-          font-family: 'JetBrains Mono', monospace;
+          font-family: 'IBM Plex Mono', monospace;
           font-size: 10.5px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase;
           color: #E879B9; margin-bottom: 10px;
         }
 
         .s-hdr { margin-bottom: 16px; }
         .s-hdr-title {
-          font-family: 'Space Grotesk', sans-serif;
-          font-size: 26px; font-weight: 700; letter-spacing: -0.02em;
-          line-height: 1.2; color: #F7F2FC; margin-bottom: 6px;
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          font-size: 26px; font-weight: 800; letter-spacing: -0.03em;
+          line-height: 1.15; color: #F7F2FC; margin-bottom: 6px;
         }
-        .s-hdr-sub { font-size: 13px; font-weight: 400; color: #9685AE; line-height: 1.5; }
+        .s-hdr-sub {
+          font-family: 'Inter', sans-serif;
+          font-size: 13px; font-weight: 400; color: #9685AE; line-height: 1.5;
+        }
 
         .s-error {
           display: flex; align-items: flex-start; gap: 9px;
@@ -207,7 +217,10 @@ export default function Signup() {
           border-radius: 11px; padding: 10px 12px; margin-bottom: 13px;
         }
         .s-error-icon { color: #FB7185; flex-shrink: 0; margin-top: 1px; }
-        .s-error-text { font-size: 12px; color: #FCA5B1; line-height: 1.45; }
+        .s-error-text {
+          font-family: 'Inter', sans-serif;
+          font-size: 12px; color: #FCA5B1; line-height: 1.45;
+        }
 
         .s-success-box {
           margin-bottom: 13px;
@@ -220,22 +233,21 @@ export default function Signup() {
           box-shadow: 0 10px 24px rgba(16, 185, 129, 0.18), inset 0 1px 0 rgba(255,255,255,0.06);
         }
         .s-success-title {
-          font-family: 'Space Grotesk', sans-serif;
-          font-size: 14px;
-          font-weight: 700;
-          margin-bottom: 6px;
-          color: #DCFCE7;
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          font-size: 14px; font-weight: 700;
+          margin-bottom: 6px; color: #DCFCE7;
+          letter-spacing: -0.01em;
         }
         .s-success-msg {
-          font-size: 12px;
-          line-height: 1.5;
-          color: #BBF7D0;
-          opacity: 0.95;
+          font-family: 'Inter', sans-serif;
+          font-size: 12px; line-height: 1.5;
+          color: #BBF7D0; opacity: 0.95;
         }
 
         .s-label {
-          display: block; font-family: 'JetBrains Mono', monospace;
-          font-size: 10px; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase;
+          display: block;
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
           color: #8A7AA0; margin-bottom: 6px;
         }
         .s-req { color: #F472B6; }
@@ -251,9 +263,9 @@ export default function Signup() {
           border: 1px solid rgba(255,255,255,0.10);
           border-radius: 12px;
           padding: 11.5px 14px 11.5px 38px;
+          font-family: 'Inter', sans-serif;
           font-size: 13.5px; color: #F2EBFA;
           outline: none; transition: border-color 0.18s, background 0.18s;
-          font-family: inherit;
         }
         .s-select { appearance: none; padding-right: 34px; cursor: pointer; }
         .s-select option { background: #1A1026; color: #F2EBFA; }
@@ -280,9 +292,9 @@ export default function Signup() {
           background: linear-gradient(100deg, #DB2777, #7C3AED);
           border: none; border-radius: 12px;
           padding: 13px 20px; margin-top: 2px;
-          font-family: 'Space Grotesk', sans-serif;
+          font-family: 'Plus Jakarta Sans', sans-serif;
           font-size: 14px; font-weight: 700; color: #fff;
-          letter-spacing: -0.005em; cursor: pointer;
+          letter-spacing: -0.01em; cursor: pointer;
           box-shadow: 0 10px 24px rgba(219,39,119,0.3), 0 4px 10px rgba(124,58,237,0.22);
           transition: opacity 0.18s, transform 0.18s, box-shadow 0.25s;
         }
@@ -301,10 +313,16 @@ export default function Signup() {
 
         .s-divider { display: flex; align-items: center; gap: 12px; margin: 16px 0 12px; }
         .s-div-line { flex: 1; height: 1px; background: rgba(255,255,255,0.08); }
-        .s-div-txt { font-size: 11px; color: #6E5E84; white-space: nowrap; }
+        .s-div-txt {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 11px; color: #6E5E84; white-space: nowrap;
+        }
 
         .s-foot { text-align: center; }
-        .s-foot p { font-size: 12.5px; font-weight: 400; color: #9685AE; }
+        .s-foot p {
+          font-family: 'Inter', sans-serif;
+          font-size: 12.5px; font-weight: 400; color: #9685AE;
+        }
         .s-foot a { font-weight: 600; color: #C77DFF; text-decoration: none; transition: color 0.18s; }
         .s-foot a:hover { color: #F472B6; }
 
@@ -372,16 +390,16 @@ export default function Signup() {
         }
         .s-brand-mark img { width: 42px; height: 42px; object-fit: contain; }
         .s-brand-name {
-          font-family: 'Space Grotesk', sans-serif;
-          font-size: 28px; font-weight: 700; color: #F4EEFB; letter-spacing: -0.015em;
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          font-size: 28px; font-weight: 800; color: #F4EEFB; letter-spacing: -0.03em;
         }
 
         .s-center { flex: 1; display: flex; flex-direction: column; justify-content: center; min-height: 0; padding: 14px 0; }
 
         .s-headline {
-          font-family: 'Space Grotesk', sans-serif;
-          font-size: clamp(24px, 3.2vw, 38px); font-weight: 700;
-          line-height: 1.15; letter-spacing: -0.02em;
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          font-size: clamp(24px, 3.2vw, 38px); font-weight: 800;
+          line-height: 1.08; letter-spacing: -0.03em;
           color: #F7F2FC; margin-bottom: 14px;
           animation: s-rise 0.6s ease 0.05s both;
         }
@@ -392,8 +410,9 @@ export default function Signup() {
         }
 
         .s-sub {
+          font-family: 'Inter', sans-serif;
           font-size: 13.5px; font-weight: 400;
-          color: #B6A8CC; line-height: 1.65;
+          color: #B6A8CC; line-height: 1.7;
           max-width: 400px; margin-bottom: 26px;
           animation: s-rise 0.6s ease 0.1s both;
         }
@@ -404,15 +423,22 @@ export default function Signup() {
           width: 30px; height: 30px; border-radius: 50%;
           background: rgba(219,39,119,0.16); border: 1px solid rgba(219,39,119,0.35);
           display: flex; align-items: center; justify-content: center;
-          font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600;
+          font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-weight: 600;
           color: #F472B6; flex-shrink: 0;
         }
-        .s-proc-title { font-size: 13.5px; font-weight: 600; color: #F2EBFA; margin-bottom: 3px; }
-        .s-proc-desc { font-size: 12px; font-weight: 400; color: #9685AE; line-height: 1.5; }
+        .s-proc-title {
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          font-size: 13.5px; font-weight: 700; color: #F2EBFA; margin-bottom: 3px;
+          letter-spacing: -0.01em;
+        }
+        .s-proc-desc {
+          font-family: 'Inter', sans-serif;
+          font-size: 12px; font-weight: 400; color: #9685AE; line-height: 1.5;
+        }
 
         .s-right-foot {
           flex-shrink: 0;
-          font-family: 'JetBrains Mono', monospace;
+          font-family: 'IBM Plex Mono', monospace;
           font-size: 10px; color: #6E5E84;
         }
 
@@ -437,7 +463,7 @@ export default function Signup() {
                   onError={(e) => {
                     e.target.style.display = 'none';
                     e.target.parentElement.innerHTML =
-                      `<span style="color:#7C3AED;font-size:18px;font-weight:700;font-family:'Space Grotesk',sans-serif">sK</span>`;
+                      `<span style="color:#7C3AED;font-size:18px;font-weight:800;font-family:'Plus Jakarta Sans',sans-serif">sK</span>`;
                   }}
                 />
               </div>
@@ -502,7 +528,7 @@ export default function Signup() {
                 />
               </div>
 
-              <label className="s-label" htmlFor="s-dept">Department</label>
+              <label className="s-label" htmlFor="s-dept">Department </label>
               <div className="s-field">
                 <span className="s-field-icon"><FolderIcon /></span>
                 <select
@@ -510,9 +536,11 @@ export default function Signup() {
                   name="department"
                   value={formData.department}
                   onChange={handleChange}
+                  required
                   disabled={loading || registrationSuccess}
                   className="s-select"
                 >
+                  <option value="" disabled>Select your department</option>
                   {DEPARTMENTS.map((d) => (
                     <option key={d} value={d}>{d}</option>
                   ))}
@@ -593,7 +621,7 @@ export default function Signup() {
                   onError={(e) => {
                     e.target.style.display = 'none';
                     e.target.parentElement.innerHTML =
-                      `<span style="color:#7C3AED;font-size:22px;font-weight:700;font-family:'Space Grotesk',sans-serif">sK</span>`;
+                      `<span style="color:#7C3AED;font-size:22px;font-weight:800;font-family:'Plus Jakarta Sans',sans-serif">sK</span>`;
                   }}
                 />
               </div>

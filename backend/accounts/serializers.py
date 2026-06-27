@@ -69,6 +69,10 @@ class UserRegistrationSerializer(
         extra_kwargs = {
             'password': {
                 'write_only': True
+            },
+            'department': {
+                'required': True,
+                'allow_blank': False,
             }
         }
  
@@ -122,6 +126,29 @@ class UserRegistrationSerializer(
             )
  
         return attrs
+
+    def validate_department(self, value):
+
+        department = str(value).strip()
+
+        if not department:
+
+            raise serializers.ValidationError(
+                'Department is required'
+            )
+
+        valid_departments = {
+            choice[0]
+            for choice in CustomUser._meta.get_field('department').choices
+        }
+
+        if department not in valid_departments:
+
+            raise serializers.ValidationError(
+                'Select a valid department'
+            )
+
+        return department
  
     # ─────────────────────────────────────────
     # CREATE EMPLOYEE
@@ -140,7 +167,7 @@ class UserRegistrationSerializer(
     username=validated_data['username'],
     first_name=validated_data.get('first_name', ''),
     last_name=validated_data.get('last_name', ''),
-    department=validated_data.get('department', 'General'),
+    department=validated_data['department'],
     phone_number=validated_data.get('phone_number', ''),
     designation=validated_data.get('designation', ''),
     role='employee',
@@ -271,7 +298,7 @@ class AdminRegistrationSerializer(
  
             department=validated_data.get(
                 'department',
-                'General'
+                'Engineering'
             ),
  
             role='admin',

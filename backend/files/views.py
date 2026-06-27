@@ -325,6 +325,37 @@ class FileViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK,
         )
 
+    @action(detail=True, methods=['post'], url_path='send_to_admin')
+    def send_to_admin(self, request, pk=None):
+        file_instance = self.get_object()
+
+        if request.user.role == 'admin':
+            return Response({'detail': 'Admins cannot send files for review'}, status=400)
+
+        if file_instance.user_id != request.user.id:
+            return Response({'detail': 'You can only send your own files to admin'}, status=403)
+
+        if file_instance.status in {'pending', 'reviewing'}:
+            return Response(FileSerializer(file_instance).data, status=status.HTTP_200_OK)
+
+        file_instance.status = 'pending'
+        file_instance.admin_note = ''
+        file_instance.reviewed_by = None
+        file_instance.reviewed_at = None
+        file_instance.save(update_fields=['status', 'admin_note', 'reviewed_by', 'reviewed_at', 'updated_at'])
+
+        admins = CustomUser.objects.filter(role='admin', is_active=True)
+        for admin in admins:
+            create_notification(
+                user=admin,
+                title='File Submitted For Review',
+                message=f'{file_instance.user.email} sent "{file_instance.original_name}" for review.',
+                notification_type='file'
+            )
+
+        notify_file_status_update(file_instance)
+        return Response(FileSerializer(file_instance).data, status=status.HTTP_200_OK)
+
     @action(detail=True, methods=['post'])
     def share_file(self, request, pk=None):
 

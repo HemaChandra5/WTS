@@ -101,7 +101,7 @@ const Login = () => {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html, body, #root { height: 100%; overflow: hidden; }
@@ -184,7 +184,7 @@ const Login = () => {
           padding: clamp(20px, 4vh, 40px) clamp(32px, 4.5vw, 54px);
         }
 
-        /* Brand — big */
+        /* Brand */
         .l-brand { display: flex; align-items: center; gap: 16px; flex-shrink: 0; animation: l-rise 0.6s ease both; }
         .l-brand-mark {
           width: 66px; height: 66px; border-radius: 16px;
@@ -195,17 +195,17 @@ const Login = () => {
         }
         .l-brand-mark img { width: 42px; height: 42px; object-fit: contain; }
         .l-brand-name {
-          font-family: 'Space Grotesk', sans-serif;
-          font-size: 28px; font-weight: 700;
-          color: #F4EEFB; letter-spacing: -0.015em;
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          font-size: 28px; font-weight: 800;
+          color: #F4EEFB; letter-spacing: -0.03em;
         }
 
         .l-center { flex: 1; display: flex; flex-direction: column; justify-content: center; min-height: 0; padding: 14px 0; }
 
         .l-headline {
-          font-family: 'Space Grotesk', sans-serif;
-          font-size: clamp(26px, 3.6vw, 42px); font-weight: 700;
-          line-height: 1.1; letter-spacing: -0.02em;
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          font-size: clamp(26px, 3.6vw, 42px); font-weight: 800;
+          line-height: 1.08; letter-spacing: -0.03em;
           color: #F7F2FC; margin-bottom: 14px;
           animation: l-rise 0.6s ease 0.05s both;
         }
@@ -216,8 +216,9 @@ const Login = () => {
         }
 
         .l-sub {
+          font-family: 'Inter', sans-serif;
           font-size: 13.5px; font-weight: 400;
-          color: #B6A8CC; line-height: 1.65;
+          color: #B6A8CC; line-height: 1.7;
           max-width: 420px; margin-bottom: 24px;
           animation: l-rise 0.6s ease 0.1s both;
         }
@@ -227,12 +228,12 @@ const Login = () => {
         .l-stat:not(:last-child) { border-right: 1px solid rgba(255,255,255,0.10); padding-right: 16px; }
         .l-stat:not(:first-child) { padding-left: 16px; }
         .l-stat-val {
-          font-family: 'Space Grotesk', sans-serif;
-          font-size: 22px; font-weight: 700; color: #F472B6; letter-spacing: -0.01em; margin-bottom: 3px;
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          font-size: 22px; font-weight: 800; color: #F472B6; letter-spacing: -0.03em; margin-bottom: 3px;
         }
         .l-stat-lbl {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 9.5px; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase;
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 9.5px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
           color: #8A7AA0;
         }
 
@@ -249,12 +250,19 @@ const Login = () => {
           background: linear-gradient(135deg, rgba(124,58,237,0.35), rgba(219,39,119,0.35));
           color: #F0D6FA;
         }
-        .l-feat-title { font-size: 13px; font-weight: 600; color: #F2EBFA; margin-bottom: 1px; }
-        .l-feat-desc { font-size: 11.5px; font-weight: 400; color: #9685AE; line-height: 1.4; }
+        .l-feat-title {
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          font-size: 13px; font-weight: 700; color: #F2EBFA; margin-bottom: 1px;
+          letter-spacing: -0.01em;
+        }
+        .l-feat-desc {
+          font-family: 'Inter', sans-serif;
+          font-size: 11.5px; font-weight: 400; color: #9685AE; line-height: 1.4;
+        }
 
         .l-left-foot {
           flex-shrink: 0;
-          font-family: 'JetBrains Mono', monospace;
+          font-family: 'IBM Plex Mono', monospace;
           font-size: 10px; color: #6E5E84;
         }
 
@@ -281,14 +289,14 @@ const Login = () => {
         }
         .l-mobile-mark img { width: 36px; height: 36px; object-fit: contain; }
         .l-mobile-name {
-          font-family: 'Space Grotesk', sans-serif;
-          font-size: 24px; font-weight: 700; color: #F2EBFA; letter-spacing: -0.01em;
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          font-size: 24px; font-weight: 800; color: #F2EBFA; letter-spacing: -0.02em;
         }
 
         .l-form-wrap { position: relative; z-index: 1; width: 100%; max-width: 420px; animation: l-rise 0.6s ease 0.1s both; }
 
         .l-eyebrow {
-          font-family: 'JetBrains Mono', monospace;
+          font-family: 'IBM Plex Mono', monospace;
           font-size: 10.5px; font-weight: 500;
           letter-spacing: 0.16em; text-transform: uppercase;
           color: #E879B9;
@@ -297,11 +305,14 @@ const Login = () => {
 
         .l-hdr { margin-bottom: 18px; }
         .l-hdr-title {
-          font-family: 'Space Grotesk', sans-serif;
-          font-size: 26px; font-weight: 700; letter-spacing: -0.02em;
-          line-height: 1.2; color: #F7F2FC; margin-bottom: 6px;
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          font-size: 26px; font-weight: 800; letter-spacing: -0.03em;
+          line-height: 1.15; color: #F7F2FC; margin-bottom: 6px;
         }
-        .l-hdr-sub { font-size: 13px; font-weight: 400; color: #9685AE; line-height: 1.55; }
+        .l-hdr-sub {
+          font-family: 'Inter', sans-serif;
+          font-size: 13px; font-weight: 400; color: #9685AE; line-height: 1.55;
+        }
 
         .l-error {
           display: flex; align-items: flex-start; gap: 9px;
@@ -309,11 +320,15 @@ const Login = () => {
           border-radius: 11px; padding: 10px 12px; margin-bottom: 14px;
         }
         .l-error-icon { color: #FB7185; flex-shrink: 0; margin-top: 1px; }
-        .l-error-text { font-size: 12px; color: #FCA5B1; line-height: 1.45; }
+        .l-error-text {
+          font-family: 'Inter', sans-serif;
+          font-size: 12px; color: #FCA5B1; line-height: 1.45;
+        }
 
         .l-label {
-          display: block; font-family: 'JetBrains Mono', monospace;
-          font-size: 10px; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase;
+          display: block;
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
           color: #8A7AA0; margin-bottom: 7px;
         }
 
@@ -328,6 +343,7 @@ const Login = () => {
           border: 1px solid rgba(255,255,255,0.10);
           border-radius: 12px;
           padding: 12px 14px 12px 38px;
+          font-family: 'Inter', sans-serif;
           font-size: 13.5px; color: #F2EBFA;
           outline: none; transition: border-color 0.18s, background 0.18s;
         }
@@ -344,7 +360,10 @@ const Login = () => {
         .l-eye:hover { color: #B6A8CC; }
 
         .l-forgot-row { display: flex; justify-content: flex-end; margin-bottom: 16px; margin-top: -4px; }
-        .l-forgot { font-size: 12px; font-weight: 500; color: #C77DFF; text-decoration: none; transition: color 0.18s; }
+        .l-forgot {
+          font-family: 'Inter', sans-serif;
+          font-size: 12px; font-weight: 500; color: #C77DFF; text-decoration: none; transition: color 0.18s;
+        }
         .l-forgot:hover { color: #F472B6; }
 
         .l-btn {
@@ -353,9 +372,9 @@ const Login = () => {
           background: linear-gradient(100deg, #7C3AED, #DB2777);
           border: none; border-radius: 12px;
           padding: 13px 20px;
-          font-family: 'Space Grotesk', sans-serif;
-          font-size: 14px; font-weight: 600; color: #fff;
-          letter-spacing: -0.005em;
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          font-size: 14px; font-weight: 700; color: #fff;
+          letter-spacing: -0.01em;
           cursor: pointer;
           box-shadow: 0 10px 24px rgba(124,58,237,0.32), 0 4px 10px rgba(219,39,119,0.22);
           transition: opacity 0.18s, transform 0.18s, box-shadow 0.25s;
@@ -375,10 +394,16 @@ const Login = () => {
 
         .l-divider { display: flex; align-items: center; gap: 12px; margin: 18px 0 14px; }
         .l-div-line { flex: 1; height: 1px; background: rgba(255,255,255,0.08); }
-        .l-div-txt { font-size: 11px; color: #6E5E84; white-space: nowrap; }
+        .l-div-txt {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 11px; color: #6E5E84; white-space: nowrap;
+        }
 
         .l-foot { text-align: center; }
-        .l-foot p { font-size: 12.5px; font-weight: 400; color: #9685AE; }
+        .l-foot p {
+          font-family: 'Inter', sans-serif;
+          font-size: 12.5px; font-weight: 400; color: #9685AE;
+        }
         .l-foot a { font-weight: 600; color: #C77DFF; text-decoration: none; transition: color 0.18s; }
         .l-foot a:hover { color: #F472B6; }
 
@@ -404,7 +429,7 @@ const Login = () => {
                   onError={(e) => {
                     e.target.style.display = 'none';
                     e.target.parentElement.innerHTML =
-                      `<span style="color:#7C3AED;font-size:22px;font-weight:700;font-family:'Space Grotesk',sans-serif">sK</span>`;
+                      `<span style="color:#7C3AED;font-size:22px;font-weight:800;font-family:'Plus Jakarta Sans',sans-serif">sK</span>`;
                   }}
                 />
               </div>
@@ -465,7 +490,7 @@ const Login = () => {
                   onError={(e) => {
                     e.target.style.display = 'none';
                     e.target.parentElement.innerHTML =
-                      `<span style="color:#7C3AED;font-size:18px;font-weight:700;font-family:'Space Grotesk',sans-serif">sK</span>`;
+                      `<span style="color:#7C3AED;font-size:18px;font-weight:800;font-family:'Plus Jakarta Sans',sans-serif">sK</span>`;
                   }}
                 />
               </div>

@@ -1,6 +1,19 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
+
+DEPARTMENT_CHOICES = (
+    ('Python Developer', 'Python Developer'),
+    ('Data Analyst', 'Data Analyst'),
+    ('Testing', 'Testing'),
+    ('Research', 'Research'),
+    ('Digital Marketing', 'Digital Marketing'),
+    ('DevOps', 'DevOps'),
+    ('HR', 'HR'),
+    ('Cyber Security', 'Cyber Security'),
+    ('Engineering', 'Engineering'),
+)
+
 class CustomUser(AbstractUser):
     ROLE_CHOICES = (
         ('employee', 'Employee'),
@@ -15,7 +28,11 @@ class CustomUser(AbstractUser):
     blank=True
 )
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='employee')
-    department = models.CharField(max_length=255, default='General')
+    department = models.CharField(
+    max_length=100,
+    choices=DEPARTMENT_CHOICES,
+    default='Engineering'
+)
     phone_number = models.CharField(
     max_length=15,
     blank=True

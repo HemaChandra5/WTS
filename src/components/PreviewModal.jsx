@@ -1,28 +1,24 @@
 // src/components/PreviewModal.jsx
 import React, { useState, useEffect } from 'react';
-import {
-  XMarkIcon,
-  DocumentTextIcon,
-  ArrowDownTrayIcon,
-} from '@heroicons/react/24/outline';
+import { XMarkIcon, DocumentTextIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 
-/* ─── Executive Light tokens (admin) — identical to AdminDashboard.jsx ──── */
+/* Admin palette */
 const D = {
-  txt0: '#0F1729', txt1: '#5B6478', txt2: '#94A0B8',
-  accent: '#3454D1', accentL: 'rgba(52,84,209,0.10)', accentB: 'rgba(52,84,209,0.22)',
-  border: 'rgba(15,23,42,0.10)',
-  surface: '#FFFFFF', surface2: 'rgba(15,23,42,0.03)',
+  txt0: '#0D1526', txt1: '#3D4F6B', txt2: '#7A8BA8',
+  accent: '#3454D1', accentL: 'rgba(52,84,209,0.09)', accentB: 'rgba(52,84,209,0.22)',
+  border: 'rgba(15,23,42,0.085)',
+  surface: '#FFFFFF', surface2: 'rgba(15,23,42,0.022)',
 };
 
-/* ─── Light SaaS tokens (employee) — identical to EmployeeDashboard.jsx ── */
+/* Employee palette */
 const L = {
-  txt0: '#0F172A', txt1: '#475569', txt2: '#64748B',
-  accent: '#4F46E5', accentL: 'rgba(79,70,229,0.12)', accentB: 'rgba(79,70,229,0.26)',
-  border: 'rgba(15,23,42,0.10)',
-  surface: '#FFFFFF', surface2: 'rgba(15,23,42,0.03)',
+  txt0: '#0D1526', txt1: '#3D4F6B', txt2: '#7A8BA8',
+  accent: '#4F46E5', accentL: 'rgba(79,70,229,0.09)', accentB: 'rgba(79,70,229,0.24)',
+  border: 'rgba(15,23,42,0.085)',
+  surface: '#FFFFFF', surface2: 'rgba(15,23,42,0.022)',
 };
 
-const FONT = '"SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+const FONT = '"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
 
 const PreviewModal = ({ file, open, onClose, isAdmin = false }) => {
   const T = isAdmin ? D : L;
@@ -30,60 +26,35 @@ const PreviewModal = ({ file, open, onClose, isAdmin = false }) => {
   const [previewError, setPreviewError] = useState(false);
   const [content, setContent] = useState('');
   const [closeHov, setCloseHov] = useState(false);
-  const [dlFooterHov, setDlFooterHov] = useState(false);
+  const [dlHov, setDlHov] = useState(false);
 
   useEffect(() => {
-    if (!open || !file) {
-      setLoading(true);
-      setContent('');
-      setPreviewError(false);
-      return;
-    }
-
+    if (!open || !file) { setLoading(true); setContent(''); setPreviewError(false); return; }
     loadPreview();
   }, [open, file]);
 
   const loadPreview = async () => {
-    setLoading(true);
-    setPreviewError(false);
-    setContent('');
-
+    setLoading(true); setPreviewError(false); setContent('');
     try {
       const { mimeType, originalName, file: fileObj } = file;
       const type = mimeType?.toLowerCase() || '';
       const name = originalName?.toLowerCase() || '';
 
-      // Text files - use FileReader if we have the File object
-      if (
-        type.includes('text') ||
-        type.includes('plain') ||
-        type.includes('json') ||
-        type.includes('csv') ||
-        type.includes('xml') ||
-        type.includes('html') ||
-        name.match(/\.(txt|csv|json|xml|html|log)$/)
-      ) {
-        if (fileObj instanceof File) {
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            setContent(e.target.result);
-            setLoading(false);
-          };
-          reader.onerror = () => {
-            setPreviewError(true);
-            setLoading(false);
-          };
-          reader.readAsText(fileObj);
-          return;
-        }
-      }
+      const isTextType =
+        type.includes('text') || type.includes('plain') || type.includes('json') ||
+        type.includes('csv') || type.includes('xml') || type.includes('html') ||
+        name.match(/\.(txt|csv|json|xml|html|log)$/);
 
-      // For images and PDFs, just wait for them to load
+      if (isTextType && fileObj instanceof File) {
+        const reader = new FileReader();
+        reader.onload = (e) => { setContent(e.target.result); setLoading(false); };
+        reader.onerror = () => { setPreviewError(true); setLoading(false); };
+        reader.readAsText(fileObj);
+        return;
+      }
       setLoading(false);
     } catch (error) {
-      console.error('Error loading preview:', error);
-      setPreviewError(true);
-      setLoading(false);
+      setPreviewError(true); setLoading(false);
     }
   };
 
@@ -92,60 +63,55 @@ const PreviewModal = ({ file, open, onClose, isAdmin = false }) => {
   const resolvedUrl = file.url || file.downloadUrl || null;
 
   const downloadFile = () => {
-    if (!resolvedUrl) {
-      window.alert('File link is not available for this record yet.');
-      return;
-    }
-    const link = document.createElement('a');
-    link.href = resolvedUrl;
-    link.download = file.originalName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    if (!resolvedUrl) { window.alert('File link is not available.'); return; }
+    const a = document.createElement('a');
+    a.href = resolvedUrl; a.download = file.originalName;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
   };
 
-  const isImage = file.mimeType?.toLowerCase().includes('image');
-  const isPdf =
-    file.mimeType?.toLowerCase().includes('pdf') ||
-    file.originalName?.toLowerCase().endsWith('.pdf');
-  const isText =
-    file.mimeType?.toLowerCase().includes('text') ||
-    file.mimeType?.toLowerCase().includes('plain') ||
-    file.mimeType?.toLowerCase().includes('json') ||
-    file.mimeType?.toLowerCase().includes('csv') ||
-    file.mimeType?.toLowerCase().includes('xml') ||
-    file.mimeType?.toLowerCase().includes('html') ||
-    file.originalName?.toLowerCase().match(/\.(txt|csv|json|xml|html|log)$/);
-
+  const type = file.mimeType?.toLowerCase() || '';
+  const name = file.originalName?.toLowerCase() || '';
+  const isImage = type.includes('image');
+  const isPdf = type.includes('pdf') || name.endsWith('.pdf');
+  const isText = type.includes('text') || type.includes('plain') || type.includes('json') ||
+    type.includes('csv') || type.includes('xml') || type.includes('html') ||
+    name.match(/\.(txt|csv|json|xml|html|log)$/);
   const canPreview = isImage || isPdf || isText;
 
-  const EmptyState = ({ title, message, onDownload }) => {
+  const fmtSize = (bytes) => {
+    if (!bytes) return 'Unknown size';
+    const s = ['B', 'KB', 'MB', 'GB'];
+    let i = 0, v = bytes;
+    while (v >= 1024 && i < s.length - 1) { v /= 1024; i++; }
+    return `${v.toFixed(1)} ${s[i]}`;
+  };
+
+  const NoPreviewState = ({ title, message }) => {
     const [hov, setHov] = useState(false);
     return (
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        background: T.surface, borderRadius: 16, padding: 36, textAlign: 'center',
+        background: T.surface, borderRadius: 16, padding: 40, textAlign: 'center',
         border: `2px dashed ${T.border}`,
       }}>
         <div style={{
-          width: 72, height: 72, borderRadius: 18, background: T.accentL,
+          width: 68, height: 68, borderRadius: 18, background: T.accentL,
           border: `1px solid ${T.accentB}`, marginBottom: 16,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <DocumentTextIcon style={{ width: 32, height: 32, color: T.accent }} />
+          <DocumentTextIcon style={{ width: 30, height: 30, color: T.accent }} />
         </div>
-        <p style={{ fontSize: 15, fontWeight: 700, color: T.txt0, margin: '0 0 8px' }}>{title}</p>
-        <p style={{ fontSize: 13, color: T.txt1, margin: '0 0 22px', maxWidth: 360 }}>{message}</p>
+        <p style={{ fontSize: 15, fontWeight: 700, color: T.txt0, margin: '0 0 8px', letterSpacing: '-0.015em' }}>{title}</p>
+        <p style={{ fontSize: 13, color: T.txt1, margin: '0 0 24px', maxWidth: 340, lineHeight: 1.55 }}>{message}</p>
         <button
-          onClick={onDownload}
-          onMouseEnter={() => setHov(true)}
-          onMouseLeave={() => setHov(false)}
+          onClick={downloadFile}
+          onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
           style={{
             display: 'flex', alignItems: 'center', gap: 8, borderRadius: 10,
             background: T.accent, padding: '9px 18px', fontSize: 13, fontWeight: 700,
             color: '#fff', border: 'none', cursor: 'pointer', transition: 'all 0.15s',
             fontFamily: 'inherit',
-            boxShadow: hov ? `0 6px 16px ${T.accentL}` : 'none',
+            boxShadow: hov ? `0 6px 18px ${T.accentL}` : '0 2px 8px rgba(0,0,0,0.08)',
             transform: hov ? 'translateY(-1px)' : 'translateY(0)',
           }}
         >
@@ -157,22 +123,30 @@ const PreviewModal = ({ file, open, onClose, isAdmin = false }) => {
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, fontFamily: FONT }}>
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 200,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: 16, fontFamily: FONT,
+    }}>
       {/* Backdrop */}
       <div
         onClick={onClose}
-        style={{ position: 'absolute', inset: 0, background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
+        style={{
+          position: 'absolute', inset: 0,
+          background: 'rgba(13,21,38,0.55)',
+          backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+        }}
       />
 
       {/* Modal */}
       <div style={{
         position: 'relative', zIndex: 1, width: '100%', maxWidth: 920, maxHeight: '90vh',
         display: 'flex', flexDirection: 'column', borderRadius: 20, background: T.surface,
-        boxShadow: '0 30px 80px rgba(15,23,42,0.30)', overflow: 'hidden',
-        border: `1px solid ${T.border}`,
-        animation: 'wts-pm-in 0.22s cubic-bezier(.16,1,.3,1)',
+        boxShadow: '0 32px 80px rgba(13,21,38,0.28), 0 8px 24px rgba(13,21,38,0.08)',
+        overflow: 'hidden', border: `1px solid ${T.border}`,
+        animation: 'pmIn 0.22s cubic-bezier(.16,1,.3,1)',
       }}>
-        <style>{`@keyframes wts-pm-in { from { opacity:0; transform: scale(0.97) translateY(6px);} to { opacity:1; transform: scale(1) translateY(0);} }`}</style>
+        <style>{`@keyframes pmIn { from{opacity:0;transform:scale(0.97) translateY(6px)} to{opacity:1;transform:scale(1) translateY(0)} }`}</style>
 
         {/* Header */}
         <div style={{
@@ -181,33 +155,32 @@ const PreviewModal = ({ file, open, onClose, isAdmin = false }) => {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
             <div style={{
-              width: 40, height: 40, borderRadius: 11, background: T.accentL,
+              width: 38, height: 38, borderRadius: 11, background: T.accentL,
               border: `1px solid ${T.accentB}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
-              <DocumentTextIcon style={{ width: 19, height: 19, color: T.accent }} />
+              <DocumentTextIcon style={{ width: 17, height: 17, color: T.accent }} />
             </div>
             <div style={{ minWidth: 0 }}>
-              <h2 style={{ fontSize: 14, fontWeight: 700, color: T.txt0, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <h2 style={{ fontSize: 13.5, fontWeight: 700, color: T.txt0, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.015em' }}>
                 {file.originalName}
               </h2>
-              <p style={{ fontSize: 12, color: T.txt2, margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <p style={{ fontSize: 11.5, color: T.txt2, margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
                 {file.description || 'No description'}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            onMouseEnter={() => setCloseHov(true)}
-            onMouseLeave={() => setCloseHov(false)}
+            onMouseEnter={() => setCloseHov(true)} onMouseLeave={() => setCloseHov(false)}
             style={{
               display: 'flex', height: 34, width: 34, alignItems: 'center', justifyContent: 'center',
               borderRadius: 10, border: 'none', cursor: 'pointer', flexShrink: 0, transition: 'background 0.15s',
-              background: closeHov ? 'rgba(15,23,42,0.06)' : 'transparent',
+              background: closeHov ? 'rgba(15,23,42,0.07)' : 'transparent',
               color: closeHov ? T.txt0 : T.txt1,
             }}
           >
-            <XMarkIcon style={{ width: 17, height: 17 }} />
+            <XMarkIcon style={{ width: 16, height: 16 }} />
           </button>
         </div>
 
@@ -218,48 +191,47 @@ const PreviewModal = ({ file, open, onClose, isAdmin = false }) => {
               <div style={{ textAlign: 'center' }}>
                 <div style={{
                   margin: '0 auto', width: 40, height: 40, borderRadius: '50%',
-                  border: `4px solid ${T.border}`, borderTopColor: T.accent,
-                  animation: 'wts-spin-pm 0.8s linear infinite',
+                  border: `3px solid ${T.border}`, borderTopColor: T.accent,
+                  animation: 'pmSpin 0.8s linear infinite',
                 }} />
-                <style>{`@keyframes wts-spin-pm { to { transform: rotate(360deg); } }`}</style>
-                <p style={{ marginTop: 12, fontSize: 13, fontWeight: 600, color: T.txt1 }}>Loading preview...</p>
+                <style>{`@keyframes pmSpin { to{ transform: rotate(360deg); } }`}</style>
+                <p style={{ marginTop: 14, fontSize: 13, fontWeight: 600, color: T.txt1 }}>Loading preview…</p>
               </div>
             </div>
           )}
 
           {!loading && !previewError && (
             <>
-              {/* Image Preview */}
               {isImage && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.surface, borderRadius: 16, padding: 16, border: `1px solid ${T.border}` }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: T.surface, borderRadius: 16, padding: 16, border: `1px solid ${T.border}`,
+                }}>
                   <img
-                    src={resolvedUrl}
-                    alt={file.originalName}
+                    src={resolvedUrl} alt={file.originalName}
                     style={{ maxHeight: 600, maxWidth: '100%', borderRadius: 10, objectFit: 'contain' }}
                     onError={() => setPreviewError(true)}
                   />
                 </div>
               )}
 
-              {/* PDF Preview */}
               {isPdf && (
                 <div style={{ width: '100%', height: 700, borderRadius: 16, overflow: 'hidden', background: T.surface, border: `1px solid ${T.border}` }}>
                   <iframe
-                    src={resolvedUrl}
-                    style={{ width: '100%', height: '100%', border: 0 }}
-                    title={file.originalName}
-                    onError={() => setPreviewError(true)}
+                    src={resolvedUrl} style={{ width: '100%', height: '100%', border: 0 }}
+                    title={file.originalName} onError={() => setPreviewError(true)}
                   />
                 </div>
               )}
 
-              {/* Text Preview */}
               {isText && content && (
                 <div style={{
-                  background: '#11151F', color: '#E2E8F0', padding: 18, borderRadius: 16,
-                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 12,
-                  overflow: 'auto', maxHeight: 600, border: '1px solid rgba(15,23,42,0.10)',
-                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2)',
+                  background: '#0F1629', color: '#CBD5E1', padding: 20, borderRadius: 16,
+                  fontFamily: '"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace',
+                  fontSize: 12, overflow: 'auto', maxHeight: 600,
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.25)',
+                  lineHeight: 1.7,
                 }}>
                   <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0 }}>
                     {content}
@@ -267,22 +239,19 @@ const PreviewModal = ({ file, open, onClose, isAdmin = false }) => {
                 </div>
               )}
 
-              {/* Unsupported Type */}
               {!canPreview && (
-                <EmptyState
-                  title={`Cannot preview ${file.originalName}`}
-                  message="This file type cannot be previewed online. Please download it to view."
-                  onDownload={downloadFile}
+                <NoPreviewState
+                  title={`Can't preview ${file.originalName}`}
+                  message="This file type can't be previewed in the browser. Download it to view with a compatible app."
                 />
               )}
             </>
           )}
 
           {previewError && (
-            <EmptyState
-              title="Could not load preview"
-              message="There was an error loading the file preview."
-              onDownload={downloadFile}
+            <NoPreviewState
+              title="Preview unavailable"
+              message="There was a problem loading this file preview. You can still download it below."
             />
           )}
         </div>
@@ -292,36 +261,23 @@ const PreviewModal = ({ file, open, onClose, isAdmin = false }) => {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           borderTop: `1px solid ${T.border}`, background: T.surface, padding: '14px 24px',
         }}>
-          <p style={{ fontSize: 12, color: T.txt2, margin: 0 }}>
-            {file.size
-              ? (() => {
-                  const sizes = ['B', 'KB', 'MB', 'GB'];
-                  let sizeIndex = 0;
-                  let sizeValue = file.size;
-                  while (
-                    sizeValue >= 1024 &&
-                    sizeIndex < sizes.length - 1
-                  ) {
-                    sizeValue /= 1024;
-                    sizeIndex++;
-                  }
-                  return `${sizeValue.toFixed(1)} ${sizes[sizeIndex]}`;
-                })()
-              : 'Unknown size'}
+          <p style={{ fontSize: 12, color: T.txt2, margin: 0, fontWeight: 500 }}>
+            {fmtSize(file.size)}
           </p>
           <button
             onClick={downloadFile}
-            onMouseEnter={() => setDlFooterHov(true)}
-            onMouseLeave={() => setDlFooterHov(false)}
+            onMouseEnter={() => setDlHov(true)} onMouseLeave={() => setDlHov(false)}
             style={{
-              display: 'flex', alignItems: 'center', gap: 8, borderRadius: 10,
-              border: `1px solid ${dlFooterHov ? T.accentB : T.border}`, background: dlFooterHov ? T.accentL : T.surface,
-              padding: '8px 16px', fontSize: 13, fontWeight: 700, color: dlFooterHov ? T.accent : T.txt1,
+              display: 'flex', alignItems: 'center', gap: 7, borderRadius: 10,
+              border: `1px solid ${dlHov ? T.accentB : T.border}`,
+              background: dlHov ? T.accentL : T.surface,
+              padding: '8px 16px', fontSize: 12.5, fontWeight: 700,
+              color: dlHov ? T.accent : T.txt1,
               cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'inherit',
-              boxShadow: dlFooterHov ? `0 2px 8px ${T.accentL}` : 'none',
+              boxShadow: dlHov ? `0 2px 10px ${T.accentL}` : 'none',
             }}
           >
-            <ArrowDownTrayIcon style={{ width: 15, height: 15 }} />
+            <ArrowDownTrayIcon style={{ width: 14, height: 14 }} />
             Download
           </button>
         </div>
