@@ -88,6 +88,20 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
  
   const [loading, setLoading] = useState(true);
+
+  const syncUnreadTaskCount = useCallback((count = 0) => {
+    const normalizedCount = Math.max(0, Number(count) || 0);
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = {
+        ...prev,
+        unread_task_count: normalizedCount,
+        unreadTaskCount: normalizedCount,
+      };
+      localStorage.setItem('user', JSON.stringify(next));
+      return normalizeUser(next);
+    });
+  }, []);
  
   // ───────────────────────────────────────────
   // LOAD USER FROM LOCAL STORAGE
@@ -708,6 +722,7 @@ export const AuthProvider = ({ children }) => {
  
     reactivateEmployee,
     rejectEmployee,
+    syncUnreadTaskCount,
   };
  
   return (

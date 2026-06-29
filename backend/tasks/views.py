@@ -1,11 +1,15 @@
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+import mimetypes
+import os
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.utils.text import slugify
 from django.utils import timezone
+from django.http import FileResponse
+from django.core.files.storage import default_storage
 from rest_framework.exceptions import ValidationError
 from rest_framework.filters import SearchFilter
 from django_filters.rest_framework import DjangoFilterBackend
@@ -31,6 +35,10 @@ class TaskViewSet(viewsets.ModelViewSet):
         'title',
         'description',
         'assigned_to_email',
+        'assigned_to_user__username',
+        'assigned_to_user__first_name',
+        'assigned_to_user__last_name',
+        'assigned_to_user__email',
     ]
 
     filterset_fields = [
@@ -39,10 +47,11 @@ class TaskViewSet(viewsets.ModelViewSet):
     ]
 
     def get_queryset(self):
+        queryset = Task.objects.select_related('assigned_to_user', 'assigned_by_user')
         if self.request.user.role == 'admin':
-            return Task.objects.all().order_by("-created_at")
+            return queryset.order_by("-created_at")
 
-        return Task.objects.filter(
+        return queryset.filter(
             assigned_to_user=self.request.user
         ).order_by("-created_at")
 
@@ -61,10 +70,18 @@ class TaskViewSet(viewsets.ModelViewSet):
                 "Assigned user must be an active approved employee"
             )
 
+        uploaded_admin_file = self.request.FILES.get("admin_file")
+
         task = serializer.save(
             assigned_to_user=employee,
             assigned_by_user=self.request.user,
+            admin_file_original_name=(getattr(uploaded_admin_file, 'name', '') or ''),
+            admin_file_mime_type=(getattr(uploaded_admin_file, 'content_type', '') or ''),
         )
+
+        if task.assigned_to_user:
+            task.assigned_to_user.unread_task_count = (task.assigned_to_user.unread_task_count or 0) + 1
+            task.assigned_to_user.save(update_fields=['unread_task_count'])
 
         create_activity(
             self.request.user,
@@ -248,3 +265,36 @@ class TaskViewSet(viewsets.ModelViewSet):
         )
 
         return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], url_path='download_attachment')
+    def download_attachment(self, request, pk=None):
+        task = self.get_object()
+
+        if not task.admin_file:
+            return Response({'detail': 'This task has no attachment.'}, status=404)
+
+        storage_key = (getattr(task.admin_file, 'name', '') or '').strip()
+        if not storage_key:
+            return Response({'detail': 'Attachment storage location is missing.'}, status=404)
+
+        if not default_storage.exists(storage_key):
+            return Response({'detail': 'Attachment file not found.'}, status=404)
+
+        metadata_updates = []
+        if not task.admin_file_original_name:
+            task.admin_file_original_name = os.path.basename(storage_key) or 'task-attachment'
+            metadata_updates.append('admin_file_original_name')
+
+        if not task.admin_file_mime_type:
+            task.admin_file_mime_type = mimetypes.guess_type(task.admin_file_original_name)[0] or ''
+            metadata_updates.append('admin_file_mime_type')
+
+        if metadata_updates:
+            task.save(update_fields=metadata_updates)
+
+        opened = default_storage.open(storage_key, 'rb')
+        file_name = task.admin_file_original_name or os.path.basename(storage_key) or 'task-attachment'
+        mime_type = task.admin_file_mime_type or mimetypes.guess_type(file_name)[0] or 'application/octet-stream'
+        response = FileResponse(opened, as_attachment=True, filename=file_name)
+        response['Content-Type'] = mime_type
+        return response

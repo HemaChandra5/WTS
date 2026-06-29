@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 import uuid
 
+
 class Task(models.Model):
     STATUS_CHOICES = (
         ('pending', 'Pending'),
@@ -17,25 +18,27 @@ class Task(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, default='')
     assigned_to_email = models.EmailField()
-    
+
     assigned_to_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_tasks')
     assigned_by_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='created_tasks')
-    
+
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     priority = models.CharField(
-    max_length=20,
-    choices=PRIORITY_CHOICES,
-    default='medium'
-)
+        max_length=20,
+        choices=PRIORITY_CHOICES,
+        default='medium'
+    )
     admin_file = models.FileField(upload_to='task_files/', null=True, blank=True)
+    admin_file_original_name = models.CharField(max_length=255, blank=True, default='')
+    admin_file_mime_type = models.CharField(max_length=120, blank=True, default='')
     due_date = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         ordering = ['-created_at']
-    
+
     def __str__(self):
         return self.title

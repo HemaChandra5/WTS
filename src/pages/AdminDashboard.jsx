@@ -11,39 +11,90 @@ import PreviewModal from '../components/PreviewModal';
 import ReviewModal from '../components/ReviewModal';
 import StatusBadge from '../components/StatusBadge';
 import { isSameDay, isWithinDays } from '../utils/dateUtils';
+import { buildDownloadFileName } from '../utils/exportUtils';
 
 // ─── Design tokens — premium admin palette ───────────────────────────
+
+ 
 const T = {
-  bg0: '#071120',
-  bg1: '#0F172A',
-  bg2: 'rgba(255,255,255,0.03)',
-  bg3: 'rgba(255,255,255,0.06)',
-  bg4: 'rgba(255,255,255,0.09)',
-  glass: 'rgba(15,23,42,0.78)',
-  glassBorder: 'rgba(129,140,248,0.18)',
-  bdr0: 'rgba(255,255,255,0.08)',
-  bdr1: 'rgba(255,255,255,0.12)',
-  bdr2: 'rgba(255,255,255,0.18)',
-  accent: '#5B7CFF',
-  accentB: '#3948CF',
-  accentL: 'rgba(91,124,255,0.16)',
-  accentG: 'rgba(91,124,255,0.10)',
-  txt0: '#F8FAFC',
-  txt1: '#CBD5E1',
-  txt2: '#94A3B8',
-  emerald: '#10B981',
-  emeraldD: 'rgba(16,185,129,0.16)',
-  amber: '#F59E0B',
-  amberD: 'rgba(245,158,11,0.16)',
-  rose: '#F43F5E',
-  roseD: 'rgba(244,63,94,0.16)',
-  violet: '#8B5CF6',
-  violetD: 'rgba(139,92,246,0.16)',
-  cyan: '#22D3EE',
-  cyanD: 'rgba(34,211,238,0.16)',
-  neutral: '#94A3B8',
-  neutralDim: '#64748B',
+  // ─── BASE SURFACES ────────────────────────────────────────────────
+  bg0: '#08080A',        
+  bg1: '#0E0E12',        
+  bg2: '#13131A',        
+  bg3: '#18182200',      
+  bg4: '#1E1E2A',        
+ 
+  // ─── BORDERS ──────────────────────────────────────────────────────
+  bdr0: '#1A1A24',      
+  bdr1: '#222230',      
+  bdr2: '#2C2C3E',        
+  bdr3: '#383850',       
+ 
+  // ─── PRIMARY ACCENT — Electric Indigo ─────────────────────────────
+  accent:      '#5B6EFF',  
+  accentHover: '#7080FF',  
+  accentPress: '#3A4EE0',  
+  accentBg:    '#10112A',  
+  accentBdr:   '#1E2050',  
+ 
+  // ─── TYPOGRAPHY ───────────────────────────────────────────────────
+  txt0: '#EDEEF5',         
+  txt1: '#A8AEBE',         
+  txt2: '#5E6678',         
+  txt3: '#363A48',         
+ 
+  // ─── SEMANTIC: Emerald (Success) ──────────────────────────────────
+  emerald:    '#00C98D',   
+  emeraldBg:  '#071A14',
+  emeraldBdr: '#0D3326',
+ 
+  // ─── SEMANTIC: Amber (Warning) ────────────────────────────────────
+  amber:    '#FFB020',     
+  amberBg:  '#1A1200',
+  amberBdr: '#332400',
+ 
+  // ─── SEMANTIC: Rose (Error/Danger) ────────────────────────────────
+  rose:    '#FF4D6A',      
+  roseBg:  '#1A060C',
+  roseBdr: '#33101A',
+ 
+  // ─── SEMANTIC: Violet (Info / AI / Premium) ───────────────────────
+  violet:    '#9D6FFF',    
+  violetBg:  '#120E22',
+  violetBdr: '#231A44',
+ 
+  // ─── SEMANTIC: Cyan (Live / Active / Real-time) ───────────────────
+  cyan:    '#00D4FF',      
+  cyanBg:  '#001820',
+  cyanBdr: '#003040',
+ 
+  // ─── SEMANTIC: Gold (Premium / Tier / Admin) ──────────────────────
+  gold:    '#E8B84B',      
+  goldBg:  '#1A1200',
+  goldBdr: '#332400',
+ 
+  // ─── NEUTRALS ─────────────────────────────────────────────────────
+  neutral:    '#6B7585',
+  neutralDim: '#40485A',
+  badgeBg:    '#16161E',
+  badgeBdr:   '#22222E',
+ 
+  // ─── SHADOWS — Pure black, deep ───────────────────────────────────
+  shadowSm:     '0 1px 4px #00000066',
+  shadowMd:     '0 4px 24px #00000077',
+  shadowLg:     '0 16px 60px #00000088',
+  shadowCard:   '0 0 0 1px #1A1A24, 0 2px 12px #00000060',
+  shadowAccent: '0 4px 24px #5B6EFF28',  
+ 
+  // ─── GRADIENTS ────────────────────────────────────────────────────
+  bgGradient:      'linear-gradient(180deg, #08080A 0%, #0A0A10 100%)',
+  cardGradient:    'linear-gradient(180deg, #101016 0%, #0E0E12 100%)',
+  accentGradient:  'linear-gradient(135deg, #5B6EFF 0%, #3A4EE0 100%)',
+  premiumGradient: 'linear-gradient(135deg, #E8B84B 0%, #C49020 100%)',
+  dangerGradient:  'linear-gradient(135deg, #FF4D6A 0%, #D4203E 100%)',
 };
+ 
+ 
 
 /* ─── Constants ──────────────────────────────────────────────────────── */
 const ITEMS_PER_PAGE = 10;
@@ -132,7 +183,7 @@ const exportToCSV = (data, filename) => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${filename}.csv`;
+  a.download = buildDownloadFileName({ name: filename, extension: 'csv' });
   a.click();
   URL.revokeObjectURL(url);
 };
@@ -676,9 +727,9 @@ const fetchDashboardStats = useCallback(async () => {
   const greetingEmoji = useMemo(() => {
     const h = now.getHours();
     if (h < 5) return '🌙';
-    if (h < 12) return '☀️';
-    if (h < 17) return '🌤️';
-    if (h < 21) return '🌆';
+    if (h < 12) return '👋';
+    if (h < 17) return '👋';
+    if (h < 21) return '👋';
     return '🌙';
   }, [now]);
   const todayLabel = useMemo(
@@ -1429,11 +1480,24 @@ useEffect(() => {
     }
     const q = taskSearch.trim().toLowerCase();
     if (q) {
-      list = list.filter(
-        (t) =>
+      list = list.filter((t) => {
+        const assignedUser = t.assignedToUser || {};
+        const assignedName = [assignedUser.first_name, assignedUser.last_name]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        const assignedUsername = (assignedUser.username || '').toLowerCase();
+        const assignedEmail = (t.assignedToEmail || '').toLowerCase();
+        const assignedUserEmail = (assignedUser.email || '').toLowerCase();
+
+        return (
           t.title?.toLowerCase().includes(q) ||
-          t.assignedToEmail?.toLowerCase().includes(q),
-      );
+          assignedEmail.includes(q) ||
+          assignedUserEmail.includes(q) ||
+          assignedName.includes(q) ||
+          assignedUsername.includes(q)
+        );
+      });
     }
     return list;
   }, [tasks, taskStatusFilter, taskPriorityFilter, taskSearch]);
@@ -1450,9 +1514,7 @@ useEffect(() => {
   const isOverdue = (dueDate) =>
     dueDate && new Date(dueDate) < new Date() && new Date(dueDate).toDateString() < new Date().toDateString();
 
-  /* ── Tabs config ── */
-  // Badge colors removed in favor of a single neutral pill (see render
-  // below) — counts communicate via numerals, not a traffic-light of hues.
+  
   const tabs = [
     { id: 'overview', label: 'Overview', icon: I.Chart },
     { id: 'pending', label: 'Needs Review', icon: I.Clock },
@@ -1539,7 +1601,7 @@ useEffect(() => {
             <div style={{ minWidth: 0 }}>
               <h1 style={{ fontSize: 21, fontWeight: 650, color: T.txt0, letterSpacing: '-0.02em', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                 {greeting}, {firstName(user?.name) || 'there'}
-                <span style={{ fontSize: 18 }} aria-hidden="true">{greetingEmoji}</span>
+                <span style={{ fontSize: 25 }} aria-hidden="true">{greetingEmoji}</span>
               </h1>
               <p style={{ fontSize: 12.5, color: T.txt1, lineHeight: 1.5, margin: '4px 0 0' }}>
                 {user?.organization || 'Control Center'} · here's what's happening across your workspace.
@@ -1555,13 +1617,7 @@ useEffect(() => {
               <I.Calendar style={{ color: T.txt2 }} />
               {todayLabel}
             </div>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 7, borderRadius: 999, border: `1px solid rgba(14,159,110,0.22)`, background: T.emeraldD,
-              padding: '7px 13px', fontSize: 11.5, fontWeight: 700, color: T.emerald,
-            }}>
-              <span style={{ width: 7, height: 7, borderRadius: '50%', background: T.emerald, boxShadow: `0 0 0 3px ${T.emeraldD}` }} />
-              Workspace healthy
-            </div>
+           
           </div>
         </div>
 
@@ -2011,17 +2067,17 @@ useEffect(() => {
                 <div style={{ position: 'relative', flex: 1, minWidth: 160 }}>
                   <I.Search style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: T.txt2, pointerEvents: 'none' }} />
                   <input type="text" placeholder="Search tasks…" value={taskSearch} onChange={(e) => { setTaskSearch(e.target.value); setTaskPage(1); }}
-                    style={{ width: '100%', borderRadius: 10, border: `1px solid ${T.bdr1}`, background: T.bg2, padding: '8px 12px 8px 30px', fontSize: 12, color: T.txt0, outline: 'none', fontFamily: 'inherit' }} />
+                    style={{ width: '100%', borderRadius: 10, border: `1px solid ${T.bdr1}`, background: T.bg2, padding: '8px 12px 8px 30px', fontSize: 12, color: T.txt0, outline: 'none', fontFamily: 'inherit', transition: 'border-color 0.2s ease, box-shadow 0.2s ease' }} />
                 </div>
                 <select value={taskStatusFilter} onChange={(e) => { setTaskStatusFilter(e.target.value); setTaskPage(1); }}
-                  style={{ borderRadius: 10, border: `1px solid ${T.bdr1}`, background: T.bg2, padding: '8px 11px', fontSize: 12, color: T.txt1, outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}>
+                  style={{ borderRadius: 10, border: `1px solid ${T.bdr1}`, background: T.bg2, padding: '8px 11px', fontSize: 12, color: T.txt1, outline: 'none', fontFamily: 'inherit', cursor: 'pointer', transition: 'border-color 0.2s ease, transform 0.2s ease' }}>
                   <option value="all">All statuses</option>
                   <option value="pending">Pending</option>
                   <option value="in_progress">In progress</option>
                   <option value="done">Done</option>
                 </select>
                 <select value={taskPriorityFilter} onChange={(e) => { setTaskPriorityFilter(e.target.value); setTaskPage(1); }}
-                  style={{ borderRadius: 10, border: `1px solid ${T.bdr1}`, background: T.bg2, padding: '8px 11px', fontSize: 12, color: T.txt1, outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}>
+                  style={{ borderRadius: 10, border: `1px solid ${T.bdr1}`, background: T.bg2, padding: '8px 11px', fontSize: 12, color: T.txt1, outline: 'none', fontFamily: 'inherit', cursor: 'pointer', transition: 'border-color 0.2s ease, transform 0.2s ease' }}>
                   <option value="all">All priorities</option>
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -2036,7 +2092,7 @@ useEffect(() => {
               {/* Task list */}
               <div style={{ padding: '16px 24px' }}>
                 {paginatedTasks.length === 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: 16, border: `2px dashed ${T.bdr1}`, padding: '48px 0', textAlign: 'center' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: 16, border: `2px dashed ${T.bdr1}`, padding: '48px 0', textAlign: 'center', animation: 'fadeIn 0.2s ease-out both' }}>
                     <I.ExclCircle style={{ width: 36, height: 36, color: T.txt2 }} />
                     <p style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: T.txt2 }}>No tasks found</p>
                     <p style={{ fontSize: 11.5, color: T.txt2 }}>Try adjusting your filters or create a new task.</p>
@@ -2049,9 +2105,10 @@ useEffect(() => {
                       const overdue = isOverdue(t.dueDate) && t.status !== 'done';
                       return (
                         <li key={t.id} style={{
-                          display: 'flex', alignItems: 'flex-start', gap: 14, borderRadius: 13, padding: '14px 16px', transition: 'all 0.15s',
+                          display: 'flex', alignItems: 'flex-start', gap: 14, borderRadius: 13, padding: '14px 16px', transition: 'all 0.2s ease',
                           border: `1px solid ${overdue ? 'rgba(255,95,126,0.25)' : T.bdr0}`,
                           background: overdue ? 'rgba(255,95,126,0.04)' : T.bg3,
+                          animation: 'fadeIn 0.18s ease-out both',
                         }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>

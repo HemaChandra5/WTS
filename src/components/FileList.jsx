@@ -9,6 +9,7 @@ import {
 } from '@heroicons/react/24/outline';
 import StatusBadge from './StatusBadge';
 import { api } from '../api';
+import { buildDownloadFileName } from '../utils/exportUtils';
 
 /* ─── Executive Light tokens (admin) — identical to AdminDashboard.jsx ──── */
 const D = {
@@ -137,45 +138,17 @@ const ActionBtn = ({ onClick, title, children, accent, T }) => {
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        width: 32, height: 32, borderRadius: 9,
+        width: 36, height: 36, borderRadius: 12,
         border: `1px solid ${hov ? a.border : T.bdr1}`,
-        background: hov ? a.bg : T.bg1,
-        color: hov ? a.color : T.txt1,
+        background: hov ? a.bg : 'linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)',
+        color: hov ? a.color : T.txt0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        cursor: 'pointer', transition: 'all 0.15s',
-        boxShadow: hov ? `0 2px 8px ${a.bg}` : '0 1px 2px rgba(15,23,42,0.04)',
+        cursor: 'pointer', transition: 'all 0.16s ease',
+        boxShadow: hov ? `0 8px 20px ${a.bg}` : '0 4px 10px rgba(15,23,42,0.05)',
       }}
     >
       {children}
     </button>
-  );
-};
-
-const Checkbox = ({ checked, onChange, T }) => (
-  <input
-    type="checkbox"
-    checked={checked}
-    onChange={onChange}
-    onClick={(e) => e.stopPropagation()}
-    style={{ width: 15, height: 15, cursor: 'pointer', accentColor: T.accent }}
-  />
-);
-
-const Avatar = ({ name = 'U', T, isAdmin }) => {
-  const initials = name.slice(0, 2).toUpperCase();
-  const gradsAdmin = ['linear-gradient(135deg,#3454D1,#6D4FE0)', 'linear-gradient(135deg,#0E84A5,#3454D1)', 'linear-gradient(135deg,#0E9F6E,#0E84A5)', 'linear-gradient(135deg,#B7791F,#C23552)'];
-  const gradsEmployee = ['linear-gradient(135deg,#4F46E5,#8B5CF6)', 'linear-gradient(135deg,#14B8A6,#4F46E5)', 'linear-gradient(135deg,#10B981,#14B8A6)', 'linear-gradient(135deg,#F59E0B,#F43F5E)'];
-  const grad = (isAdmin ? gradsAdmin : gradsEmployee)[name.charCodeAt(0) % 4 || 0];
-  return (
-    <div style={{
-      width: 34, height: 34, borderRadius: 10,
-      background: grad,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: 11, fontWeight: 800, color: '#fff', flexShrink: 0,
-      boxShadow: `0 2px 8px ${T.accentL}`,
-    }}>
-      {initials}
-    </div>
   );
 };
 
@@ -191,7 +164,6 @@ const FileList = ({
   onSelectFile,
 }) => {
   const T = isAdmin ? D : L;
-  const selectable = isAdmin && typeof onSelectFile === 'function';
 
   const getFileUrl = (file) => file?.url || file?.downloadUrl || null;
 
@@ -218,7 +190,7 @@ const FileList = ({
         return false;
       }
 
-      triggerBlobDownload(response.data, file.originalName || file.fileName || 'download');
+      triggerBlobDownload(response.data, buildDownloadFileName({ name: file.originalName || file.fileName || 'download', extension: (file.originalName || file.fileName || '').split('.').pop() || 'bin' }));
       return true;
     } catch (error) {
       return false;
@@ -234,7 +206,7 @@ const FileList = ({
 
     const link = document.createElement('a');
     link.href = fileUrl;
-    link.download = file.originalName || 'download';
+    link.download = buildDownloadFileName({ name: file.originalName || file.fileName || 'download', extension: (file.originalName || file.fileName || '').split('.').pop() || 'bin' });
     link.target = '_blank';
     link.rel = 'noopener noreferrer';
     document.body.appendChild(link);
@@ -270,15 +242,6 @@ const FileList = ({
     );
   }
 
-  const allSelected = selectable && files.length > 0 && files.every((f) => selectedFiles?.has(f.id));
-  const toggleSelectAll = () => {
-    if (allSelected) {
-      files.forEach((f) => { if (selectedFiles?.has(f.id)) onSelectFile(f.id); });
-    } else {
-      files.forEach((f) => { if (!selectedFiles?.has(f.id)) onSelectFile(f.id); });
-    }
-  };
-
   const ActionsRow = ({ file }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
       <ActionBtn onClick={() => onPreview?.(file)} title="Preview file" accent="blue" T={T}>
@@ -299,8 +262,7 @@ const FileList = ({
   if (viewMode === 'grid') {
     return (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14, padding: 20 }}>
-        {files.map((file) => {
-          const checked = !!selectedFiles?.has(file.id);
+        {files.map((file, idx) => {
           return (
             <div
               key={file.id}
@@ -319,19 +281,13 @@ const FileList = ({
                     <p style={{ fontSize: 12.5, fontWeight: 700, color: T.txt0, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>
                       {file.originalName || 'Unnamed'}
                     </p>
-                    <p style={{ fontSize: 10.5, color: T.txt2, margin: '1px 0 0' }}>
+                    <p style={{ fontSize: 10.5, color: T.txt1, margin: '1px 0 0' }}>
                       {getFriendlyFileType(file.mimeType, file.originalName)}
                     </p>
                   </div>
                 </div>
-                {selectable && <Checkbox checked={checked} onChange={() => onSelectFile(file.id)} T={T} />}
+                <span style={{ fontSize: 11, fontWeight: 700, color: T.txt2, background: T.chipBg, border: `1px solid ${T.chipBdr}`, borderRadius: 999, padding: '4px 8px' }}>#{idx + 1}</span>
               </div>
-
-              {file.description && (
-                <p style={{ fontSize: 11.5, color: T.txt1, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {file.description}
-                </p>
-              )}
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                 <span style={{ fontSize: 10.5, fontWeight: 700, color: T.txt1, background: T.chipBg, border: `1px solid ${T.chipBdr}`, borderRadius: 6, padding: '2px 8px' }}>
@@ -367,11 +323,7 @@ const FileList = ({
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ borderBottom: `1px solid ${T.bdr1}`, background: T.headBg }}>
-            {selectable && (
-              <th style={{ padding: '12px 16px 12px 20px', width: 36 }}>
-                <Checkbox checked={allSelected} onChange={toggleSelectAll} T={T} />
-              </th>
-            )}
+            <TH width={48}>#</TH>
             <TH>User</TH>
             <TH>File</TH>
             <TH>Description</TH>
@@ -403,24 +355,21 @@ const FileList = ({
                 onMouseEnter={(e) => { if (!checked) e.currentTarget.style.background = T.rowHov; }}
                 onMouseLeave={(e) => { if (!checked) e.currentTarget.style.background = 'transparent'; }}
               >
-                {selectable && (
-                  <td style={{ padding: '14px 16px 14px 20px' }}>
-                    <Checkbox checked={checked} onChange={() => onSelectFile(file.id)} T={T} />
-                  </td>
-                )}
+                <td style={{ padding: '14px 16px', width: 48 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: T.txt1, background: T.chipBg, border: `1px solid ${T.chipBdr}`, borderRadius: 999, padding: '4px 8px', display: 'inline-flex', minWidth: 28, justifyContent: 'center' }}>
+                    {idx + 1}
+                  </span>
+                </td>
 
                 {/* User */}
                 <td style={{ padding: '14px 16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Avatar name={file.userName || 'Unknown'} T={T} isAdmin={isAdmin} />
-                    <div style={{ minWidth: 0 }}>
-                      <p style={{ fontSize: 12, fontWeight: 700, color: T.txt0, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>
-                        {file.userName || 'Unknown'}
-                      </p>
-                      <p style={{ fontSize: 10, color: T.txt2, margin: '1px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>
-                        {file.userEmail || 'N/A'}
-                      </p>
-                    </div>
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: T.txt0, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>
+                      {file.userName || 'Unknown'}
+                    </p>
+                    <p style={{ fontSize: 10, color: T.txt1, margin: '1px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>
+                      {file.userEmail || 'N/A'}
+                    </p>
                   </div>
                 </td>
 
@@ -441,25 +390,25 @@ const FileList = ({
 
                 {/* Description */}
                 <td style={{ padding: '14px 16px', maxWidth: 180 }}>
-                  <p style={{ fontSize: 12, color: T.txt1, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <p style={{ fontSize: 12, color: T.txt0, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {file.description || <span style={{ color: T.txt2 }}>—</span>}
                   </p>
                 </td>
 
                 {/* Date */}
                 <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: T.txt1, margin: 0 }}>{fileDate}</p>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: T.txt0, margin: 0 }}>{fileDate}</p>
                 </td>
 
                 {/* Time */}
                 <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: T.txt1, margin: 0 }}>{fileTime}</p>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: T.txt0, margin: 0 }}>{fileTime}</p>
                 </td>
 
                 {/* Size */}
                 <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
                   <span style={{
-                    fontSize: 11, fontWeight: 700, color: T.txt1,
+                    fontSize: 11, fontWeight: 700, color: T.txt0,
                     background: T.chipBg, border: `1px solid ${T.chipBdr}`,
                     borderRadius: 6, padding: '2px 8px',
                   }}>{formatBytes(file.size)}</span>

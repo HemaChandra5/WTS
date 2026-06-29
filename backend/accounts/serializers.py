@@ -24,6 +24,7 @@ class UserSerializer(serializers.ModelSerializer):
             'designation',
             'role',
             'department',
+            'unread_task_count',
             'profile_picture',
             'is_active',
             'is_approved',

@@ -12,6 +12,7 @@ import PreviewModal  from '../components/PreviewModal';
 import StatusBadge   from '../components/StatusBadge';
 
 import { formatLongDate, formatTime, isSameDay, isWithinDays } from '../utils/dateUtils';
+import { buildDownloadFileName } from '../utils/exportUtils';
 
 // ─── Design tokens — light SaaS-style palette ───────────────────────────
 const T = {
@@ -126,7 +127,7 @@ const exportToCSV = (data, filename) => {
   const csv = [keys.join(','), ...data.map(r => keys.map(k => `"${r[k] ?? ''}"`).join(','))].join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = `${filename}.csv`; a.click();
+  const a = document.createElement('a'); a.href = url; a.download = buildDownloadFileName({ name: filename, extension: 'csv' }); a.click();
   URL.revokeObjectURL(url);
 };
 
@@ -308,8 +309,70 @@ const MiniBarChart = ({ data, color = T.accent }) => {
 
 /* ─── Task Row ────────────────────────────────────────────────────────────── */
 const TaskRow = ({ task, onStatusChange }) => {
+  const [attachmentBusy, setAttachmentBusy] = useState(false);
+
+  const getDisplayAttachmentName = () => {
+    if (task.adminFileOriginalName) return task.adminFileOriginalName;
+    if (typeof task.adminFile === 'string') {
+      try {
+        const rawName = task.adminFile.split('/').pop() || '';
+        return decodeURIComponent(rawName) || `task-${task.id}-attachment`;
+      } catch (error) {
+        return `task-${task.id}-attachment`;
+      }
+    }
+    return `task-${task.id}-attachment`;
+  };
+
+  const triggerBlobDownload = (blob, filename) => {
+    const objectUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = filename || 'task-attachment';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(objectUrl);
+  };
+
+  const openBlobInNewTab = (blob) => {
+    const objectUrl = window.URL.createObjectURL(blob);
+    window.open(objectUrl, '_blank', 'noopener,noreferrer');
+    window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 60_000);
+  };
+
+  const getAttachmentFilename = (headers = {}) => {
+    const disposition = headers['content-disposition'] || headers['Content-Disposition'] || '';
+    const matches = disposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
+    if (matches?.[1]) return decodeURIComponent(matches[1]);
+    if (matches?.[2]) return matches[2];
+    return getDisplayAttachmentName();
+  };
+
+  const handleAttachmentAction = async (mode) => {
+    if (!task?.id || !task?.adminFile || attachmentBusy) return;
+    setAttachmentBusy(true);
+    try {
+      const response = await api.get(`/tasks/${task.id}/download_attachment/`, {
+        responseType: 'blob',
+      });
+      const blob = response.data;
+      if (!(blob instanceof Blob)) return;
+      if (mode === 'view') {
+        openBlobInNewTab(blob);
+        return;
+      }
+      triggerBlobDownload(blob, getAttachmentFilename(response.headers));
+    } catch (error) {
+      window.alert('Unable to access task attachment right now. Please try again.');
+    } finally {
+      setAttachmentBusy(false);
+    }
+  };
+
   const cfg      = TASK_STATUS_CONFIG[task.status] || TASK_STATUS_CONFIG.pending;
   const priCfg   = PRIORITY_CONFIG[task.priority]  || PRIORITY_CONFIG.medium;
+  const attachmentName = getDisplayAttachmentName();
   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'done';
   return (
     <li style={{
@@ -334,6 +397,32 @@ const TaskRow = ({ task, onStatusChange }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 8, flexWrap: 'wrap' }}>
           {task.dueDate && <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: isOverdue ? T.rose : T.txt2, fontWeight: isOverdue ? 600 : 400 }}><I.Calendar />Due {formatDate(task.dueDate)}</span>}
           <span style={{ fontSize: 11, color: T.neutralDim }}>Assigned by admin · {timeAgo(task.createdAt)}</span>
+          {task.adminFile && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span
+                title={attachmentName}
+                style={{ fontSize: 11, color: T.accent, fontWeight: 600, maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              >
+                Attachment: {attachmentName}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleAttachmentAction('view')}
+                disabled={attachmentBusy}
+                style={{ borderRadius: 7, border: `1px solid ${T.bdr1}`, padding: '4px 10px', fontSize: 11, fontWeight: 600, background: T.bg3, color: T.txt1, cursor: attachmentBusy ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+              >
+                {attachmentBusy ? 'Opening...' : 'View Attachment'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAttachmentAction('download')}
+                disabled={attachmentBusy}
+                style={{ borderRadius: 7, border: `1px solid ${T.bdr1}`, padding: '4px 10px', fontSize: 11, fontWeight: 600, background: T.bg3, color: T.txt1, cursor: attachmentBusy ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+              >
+                {attachmentBusy ? 'Please wait...' : 'Download Attachment'}
+              </button>
+            </span>
+          )}
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10, flexShrink: 0 }}>
@@ -417,7 +506,7 @@ const FileActivityRow = ({ file }) => {
    MAIN COMPONENT
    ═══════════════════════════════════════════════════════════════════════════ */
 const EmployeeDashboard = () => {
-  const { user }                                               = useAuth();
+  const { user, syncUnreadTaskCount }                         = useAuth();
   const { files, fetchFiles, applyRealtimeFileUpdate }         = useFiles();
   const { tasks, updateTaskStatus }                            = useTasks();
 
@@ -429,7 +518,7 @@ const EmployeeDashboard = () => {
 
   /* ── State ── */
   const [taskList,            setTaskList]            = useState(tasks || []);
-  const [taskEventBadge,      setTaskEventBadge]      = useState(0);
+  const [taskEventBadge,      setTaskEventBadge]      = useState(Number(user?.unread_task_count ?? user?.unreadTaskCount ?? 0));
   const [toasts,              setToasts]              = useState([]);
   const [activityLog,         setActivityLog]         = useState([]);
   const [activityLoading,     setActivityLoading]     = useState(false);
@@ -462,7 +551,15 @@ const EmployeeDashboard = () => {
 
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 60000); return () => clearInterval(id); }, []);
   useEffect(() => { setTaskList(tasks || []); }, [tasks]);
-  useEffect(() => { if (activeTab === 'tasks' && taskEventBadge > 0) setTaskEventBadge(0); }, [activeTab, taskEventBadge]);
+  useEffect(() => { setTaskEventBadge(Number(user?.unread_task_count ?? user?.unreadTaskCount ?? 0)); }, [user?.unread_task_count, user?.unreadTaskCount]);
+
+  useEffect(() => {
+    if (activeTab === 'tasks' && taskEventBadge > 0) {
+      setTaskEventBadge(0);
+      syncUnreadTaskCount(0);
+      api.patch('/user/mark_tasks_seen/').catch(() => {});
+    }
+  }, [activeTab, taskEventBadge, syncUnreadTaskCount]);
 
   const addToast = useCallback((message, type = 'info') => {
     const id = Date.now();
@@ -514,8 +611,14 @@ const EmployeeDashboard = () => {
   }, [activeTab, activityHasMore, activityLoading, activityLoadingMore, activityPage, fetchActivityLogs]);
 
   useWebSocket(`${WS_BASE_URL}/ws/tasks/`, data => {
-    if (data?.type === 'task_notification' && data.task) { setTaskList(p => upsertById(p, data.task)); if (activeTab !== 'tasks') setTaskEventBadge(c => c + 1); }
-    if (data?.type === 'task_status_update') { setTaskList(p => p.map(t => t.id === data.taskId ? { ...t, status: data.status } : t)); if (activeTab !== 'tasks') setTaskEventBadge(c => c + 1); }
+    if (data?.type === 'task_notification' && data.task) {
+      setTaskList(p => upsertById(p, data.task));
+      const assignedToMe = String(data.task?.assignedToEmail || '').toLowerCase() === String(user?.email || '').toLowerCase();
+      if (assignedToMe && activeTab !== 'tasks') {
+        setTaskEventBadge(c => c + 1);
+      }
+    }
+    if (data?.type === 'task_status_update') { setTaskList(p => p.map(t => t.id === data.taskId ? { ...t, status: data.status } : t)); }
     if (data?.type === 'task_list' && Array.isArray(data.tasks)) setTaskList(data.tasks);
   }, err => console.error('WS tasks:', err));
 
@@ -630,7 +733,7 @@ const EmployeeDashboard = () => {
   const totalTaskPages = Math.ceil(filteredTasks.length / ITEMS_PER_PAGE);
 
   const greeting     = useMemo(() => getGreeting(now), [now]);
-  const greetingEmoji = useMemo(() => { const h = now.getHours(); if (h < 5) return '🌙'; if (h < 12) return '☀️'; if (h < 17) return '🌤️'; if (h < 21) return '🌆'; return '🌙'; }, [now]);
+  const greetingEmoji = useMemo(() => '👋', []);
   const todayLabel   = useMemo(() => now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' }), [now]);
 
   const tabs = [
@@ -722,6 +825,7 @@ const EmployeeDashboard = () => {
           <StatCard icon={I.Doc}          label="Total Files"   value={stats.totalFiles}             sub={`${stats.todayCount} today`}           color="indigo"  onClick={() => setActiveTab('files')} />
           <StatCard icon={I.Cloud}        label="This Month"    value={stats.monthCount}             sub="files uploaded"                         color="sky"     onClick={() => { setActiveTab('files'); setRange('30d'); }} />
           <StatCard icon={I.Shield}       label="Approved"      value={stats.approvedCount}          sub={`${stats.pendingCount} pending`}        color="emerald" onClick={() => { setActiveTab('files'); setStatusFilter('approved'); }} />
+          <StatCard icon={I.Clock}        label="Pending"       value={stats.pendingCount}           sub="awaiting review"                       color="amber"   onClick={() => { setActiveTab('files'); setStatusFilter('pending'); }} />
           <StatCard icon={I.XCircle}      label="Rejected"      value={stats.rejectedCount}          sub={`${stats.reviewingCount} reviewing`}    color="rose"    onClick={() => { setActiveTab('files'); setStatusFilter('rejected'); }} />
           <StatCard icon={I.CheckCircle}  label="My Tasks"      value={myTasks.length}               sub={`${stats.pendingTasks} open`}           color="violet"  onClick={() => setActiveTab('tasks')} />
           <StatCard icon={I.Download}     label="Storage Used"  value={formatBytes(stats.totalSize)} sub="total uploaded"                         color="amber"   onClick={() => setActiveTab('files')} />

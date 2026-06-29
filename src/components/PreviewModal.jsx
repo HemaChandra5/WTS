@@ -5,6 +5,7 @@ import {
   DocumentTextIcon,
   ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
+import { buildDownloadFileName } from '../utils/exportUtils';
 
 /* ─── Executive Light tokens (admin) — identical to AdminDashboard.jsx ──── */
 const D = {
@@ -98,7 +99,7 @@ const PreviewModal = ({ file, open, onClose, isAdmin = false }) => {
     }
     const link = document.createElement('a');
     link.href = resolvedUrl;
-    link.download = file.originalName;
+    link.download = buildDownloadFileName({ name: file.originalName || 'download', extension: (file.originalName || '').split('.').pop() || 'bin' });
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

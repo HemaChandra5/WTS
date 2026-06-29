@@ -20,6 +20,8 @@ const normalizeTask = (raw = {}) => ({
   status: raw.status || 'pending',
   priority: raw.priority || 'medium',
   adminFile: raw.adminFile ?? raw.admin_file ?? null,
+  adminFileOriginalName: raw.adminFileOriginalName ?? raw.admin_file_original_name ?? '',
+  adminFileMimeType: raw.adminFileMimeType ?? raw.admin_file_mime_type ?? '',
   dueDate: raw.dueDate ?? raw.due_date ?? null,
   completedAt: raw.completedAt ?? raw.completed_at ?? null,
   createdAt: raw.createdAt ?? raw.created_at ?? null,

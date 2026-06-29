@@ -166,6 +166,22 @@ class UserViewSet(viewsets.ModelViewSet):
     def me(self, request):
         return Response(UserSerializer(request.user).data)
 
+    @action(
+        detail=False,
+        methods=['patch'],
+        permission_classes=[IsAuthenticated],
+    )
+    def mark_tasks_seen(self, request):
+        request.user.unread_task_count = 0
+        request.user.save(update_fields=['unread_task_count'])
+        return Response(
+            {
+                'message': 'Task notifications marked as seen',
+                'unread_task_count': request.user.unread_task_count,
+            },
+            status=status.HTTP_200_OK,
+        )
+
     # ─────────────────────────────────────────
     # APPROVE USER
     # ─────────────────────────────────────────
