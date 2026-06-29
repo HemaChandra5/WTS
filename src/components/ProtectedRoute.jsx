@@ -20,14 +20,22 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   if (loading) {
     return (
       <div style={{
+        position: 'relative', overflow: 'hidden',
         display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center',
         background: T.bg0, fontFamily: FONT,
       }}>
-        <div style={{ textAlign: 'center' }}>
+        <div style={{
+          position: 'absolute', top: '50%', left: '50%', width: 520, height: 520,
+          transform: 'translate(-50%,-50%)', borderRadius: '50%', filter: 'blur(90px)',
+          background: 'radial-gradient(circle, rgba(79,70,229,0.10), rgba(79,70,229,0) 70%)',
+          pointerEvents: 'none',
+        }} />
+
+        <div style={{ position: 'relative', textAlign: 'center' }}>
           <div style={{
-            margin: '0 auto 18px', width: 44, height: 44, borderRadius: 13,
-            background: `linear-gradient(135deg, ${T.accent}, #4338CA)`,
-            boxShadow: '0 8px 24px rgba(79,70,229,0.28)',
+            margin: '0 auto 18px', width: 48, height: 48, borderRadius: 14,
+            background: `linear-gradient(160deg, ${T.accent}, #4338CA)`,
+            boxShadow: '0 10px 28px rgba(79,70,229,0.30), 0 1px 0 rgba(255,255,255,0.25) inset',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <div style={{
@@ -37,7 +45,7 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
             }} />
           </div>
           <style>{`@keyframes wts-spin-pr { to { transform: rotate(360deg); } }`}</style>
-          <p style={{ fontSize: 13.5, fontWeight: 700, color: T.txt0, margin: 0 }}>Work Tracking System</p>
+          <p style={{ fontSize: 13.5, fontWeight: 700, color: T.txt0, margin: 0, letterSpacing: '-0.01em' }}>Work Tracking System</p>
           <p style={{ marginTop: 4, fontSize: 12, fontWeight: 500, color: T.txt2 }}>Checking your session…</p>
         </div>
       </div>

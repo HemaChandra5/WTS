@@ -2,6 +2,9 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 
 const AuthContext = createContext(null);
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+const buildApiUrl = (path) => `${API_BASE_URL}${path}`;
+
 
 const DEMO_USERS = [
   {
@@ -167,8 +170,8 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
-      const employeeResponse = await fetch(
-        'http://127.0.0.1:8000/api/user/login/',
+      const response = await fetch(
+        buildApiUrl('/user/login/'),
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -176,38 +179,19 @@ export const AuthProvider = ({ children }) => {
         }
       );
 
-      const employeeData = await employeeResponse.json().catch(() => ({}));
+      const data = await response.json().catch(() => ({}));
 
-      if (employeeResponse.ok) {
-        const employeeUser = normalizeUser(employeeData.user);
-        setUser(employeeUser);
-        localStorage.setItem('user', JSON.stringify(employeeUser));
-        localStorage.setItem('token', employeeData.token || 'demo-token');
-        return { success: true, user: employeeUser };
-      }
-
-      const adminResponse = await fetch(
-        'http://127.0.0.1:8000/api/admin-auth/admin_login/',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        }
-      );
-
-      const adminData = await adminResponse.json().catch(() => ({}));
-
-      if (adminResponse.ok) {
-        const adminUser = normalizeUser(adminData.admin);
-        setUser(adminUser);
-        localStorage.setItem('user', JSON.stringify(adminUser));
-        localStorage.setItem('token', adminData.token || 'demo-token');
-        return { success: true, user: adminUser };
+      if (response.ok) {
+        const loggedInUser = normalizeUser(data.user || data.admin);
+        setUser(loggedInUser);
+        localStorage.setItem('user', JSON.stringify(loggedInUser));
+        localStorage.setItem('token', data.token || 'demo-token');
+        return { success: true, user: loggedInUser };
       }
 
       return {
         success: false,
-        error: adminData.message || employeeData.message || 'Invalid credentials',
+        error: data.message || 'Invalid credentials',
       };
     } catch (error) {
       console.error(error);
@@ -228,7 +212,7 @@ export const AuthProvider = ({ children }) => {
     name,
     department,
   }) => {
-    if (!email || !password || !name) {
+    if (!email || !password || !name || !department) {
       return {
         success: false,
         error: 'All fields are required',
@@ -236,13 +220,6 @@ export const AuthProvider = ({ children }) => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-
-    if (!normalizedEmail.endsWith('@sskatt.com')) {
-      return {
-        success: false,
-        error: 'Only company emails (@sskatt.com) are allowed.',
-      };
-    }
 
     const existingUsers = loadRegisteredUsers();
     const alreadyRegistered = existingUsers.some((user) => user.email === normalizedEmail);
@@ -262,7 +239,7 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const response = await fetch(
-        'http://127.0.0.1:8000/api/user/register/',
+        buildApiUrl('/user/register/'),
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -273,7 +250,7 @@ export const AuthProvider = ({ children }) => {
             last_name,
             password,
             password2: password,
-            department: department || 'General',
+            department,
           }),
         }
       );
@@ -300,7 +277,7 @@ export const AuthProvider = ({ children }) => {
       email: normalizedEmail,
       name: [first_name, last_name].filter(Boolean).join(' ') || username,
       role: 'employee',
-      department: department || 'General',
+      department,
       isApproved: false,
       isActive: false,
       createdAt: new Date().toISOString(),
@@ -341,7 +318,7 @@ export const AuthProvider = ({ children }) => {
           localStorage.getItem('token');
  
         const response = await fetch(
-          'http://127.0.0.1:8000/api/admin-auth/all_users/',
+          buildApiUrl('/admin-auth/all_users/'),
           {
             headers: {
               Authorization:
@@ -378,7 +355,7 @@ export const AuthProvider = ({ children }) => {
           localStorage.getItem('token');
 
         const response = await fetch(
-          'http://127.0.0.1:8000/api/admin-auth/all_admins/',
+          buildApiUrl('/admin-auth/all_admins/'),
           {
             headers: {
               Authorization:
@@ -415,7 +392,7 @@ export const AuthProvider = ({ children }) => {
           localStorage.getItem('token');
  
         const response = await fetch(
-          'http://127.0.0.1:8000/api/admin-auth/pending_users/',
+          buildApiUrl('/admin-auth/pending_users/'),
           {
             headers: {
               Authorization:
@@ -468,10 +445,6 @@ export const AuthProvider = ({ children }) => {
 
         const normalizedEmail = email.trim().toLowerCase();
 
-        if (!normalizedEmail.endsWith('@sskatt.com')) {
-          return { success: false, error: 'Only company emails (@sskatt.com) are allowed.' };
-        }
-
         const nameParts = name.trim().split(' ');
         const first_name = nameParts[0];
         const last_name = nameParts.slice(1).join(' ') || '';
@@ -485,7 +458,7 @@ export const AuthProvider = ({ children }) => {
         const token = localStorage.getItem('token');
 
         const response = await fetch(
-          'http://127.0.0.1:8000/api/admin-auth/create_user/',
+          buildApiUrl('/admin-auth/create_user/'),
           {
             method: 'POST',
             headers: {
@@ -524,7 +497,7 @@ export const AuthProvider = ({ children }) => {
         if (emailExists) {
           return {
             success: false,
-            error: 'Company email already exists. Please use a different email address.',
+            error: 'Email already exists. Please use a different email address.',
           };
         }
 
@@ -555,7 +528,7 @@ export const AuthProvider = ({ children }) => {
           localStorage.getItem('token');
  
         const response = await fetch(
-          `http://127.0.0.1:8000/api/user/${userId}/approve_user/`,
+          buildApiUrl(`/user/${userId}/approve_user/`),
           {
             method: 'PATCH',
  
@@ -590,7 +563,7 @@ export const AuthProvider = ({ children }) => {
           localStorage.getItem('token');
  
         const response = await fetch(
-          `http://127.0.0.1:8000/api/user/${userId}/deactivate_user/`,
+          buildApiUrl(`/user/${userId}/deactivate_user/`),
           {
             method: 'PATCH',
  
@@ -625,7 +598,7 @@ export const AuthProvider = ({ children }) => {
           localStorage.getItem('token');
  
         const response = await fetch(
-          `http://127.0.0.1:8000/api/user/${userId}/activate_user/`,
+          buildApiUrl(`/user/${userId}/activate_user/`),
           {
             method: 'PATCH',
  
@@ -668,7 +641,7 @@ export const AuthProvider = ({ children }) => {
           localStorage.getItem('token');
 
         const response = await fetch(
-          `http://127.0.0.1:8000/api/user/${userId}/reject_user/`,
+          buildApiUrl(`/user/${userId}/reject_user/`),
           {
             method: 'PATCH',
 

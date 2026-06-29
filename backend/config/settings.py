@@ -100,11 +100,14 @@ else:
 database_url = os.getenv('DATABASE_URL')
 
 if database_url:
+    configured_database = dj_database_url.config(
+        default=database_url,
+        conn_max_age=600,
+    )
+    if configured_database.get('ENGINE') != 'django.db.backends.postgresql':
+        raise ImproperlyConfigured('Only PostgreSQL is supported. Set DATABASE_URL to a PostgreSQL URL.')
     DATABASES = {
-        'default': dj_database_url.config( 
-            default=database_url,
-            conn_max_age=600,
-        )
+        'default': configured_database
     }
 else:
     DATABASES = {
@@ -165,7 +168,7 @@ CORS_ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.getenv(
         'CORS_ALLOWED_ORIGINS',
-        'http://localhost:5173,http://127.0.0.1:5173',
+        'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174',
     ).split(',')
     if origin.strip()
 ]
